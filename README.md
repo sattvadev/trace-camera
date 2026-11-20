@@ -55,5 +55,27 @@ and your chosen photo floats see-through on top, so you can draw while watching 
   shading. Save a transparent PNG, an SVG (vectorised with imagetracerjs 1.2.6, public domain, loaded from jsDelivr on demand),
   the straightened photo as JPG, or use the lines as your next base. Files go through the share sheet on iPhone.
 
+## For fashion designers (release 2: on-phone AI)
+
+Runs Google MediaPipe Tasks for Web 1.2.2 (Apache-2.0, from jsDelivr) with model files from Google's model storage, each
+downloaded on first use and kept in Cache Storage. Nothing leaves the phone.
+
+- **Show → Clothes / Person** (View tab): the Selfie Multiclass segmenter (16 MB) masks the photo to the garments or the person;
+  the mask applies to every view (photo, values, AI outlines; slightly grown for outlines so the silhouette line survives).
+- **Show → Tap pieces:** tap a garment to pick only it. Magic Touch (6 MB) finds the tapped object; inside the clothes mask a
+  competitive watershed splits garments: the tap seeds the piece, clothes in a clearly different colour, or on the other side of
+  the hips (from the pose) in a different colour, seed the competition, and both flood outward by edge strength, so shading and
+  folds stay inside one garment. Tap a picked piece to remove it.
+- **Croquis from photo pose** (Base tab): Pose Landmarker full (9 MB) reads 33 landmarks; a 9-head fashion figure is rebuilt with
+  the photo's joint directions and fashion lengths (about shoulders 1.4, waist 2.9, hip 3.9, knee 5.9, ankle 8.3, toes 8.8 heads from
+  the crown), foreshortened only by how much each limb points at the camera (3D world landmarks), drawn with continuous contours,
+  centre-front, bust/waist/hip marks and a balance line, then placed over the photo by its hips and torso.
+- **Face guide:** the classic proportions inside the first head (hairline, brow, eye line half way, nose at three quarters,
+  mouth), following the head's tilt.
+- **Check symmetry** (Flats tab): compares the two halves of the sheet across the centre line; green matches (within about
+  1.5 mm), red is missing on the checked side, orange has no partner; gives a percentage.
+- **Time-lapse** (Export tab): a camera frame every 1, 2 or 5 seconds, played back at 30 frames a second (at least 3 s) and
+  recorded with MediaRecorder to MP4 (WebM where MP4 is not available); saved through the share sheet.
+
 Photos are processed on the device and never uploaded. Everything is in `index.html`; no build step.
 Needs https for camera access (GitHub Pages provides it).

@@ -55,7 +55,8 @@ button, select, input { font: inherit; color: inherit; }
    ghost and mirror are camera-space pictures of the paper; guides holds the centre-front line */
 #baseLayer, #headLayer { position: absolute; left: 50%; top: 50%; transform-origin: 50% 50%; pointer-events: none; will-change: transform, opacity; }
 #baseLayer { mix-blend-mode: multiply; }
-#ghostLayer, #mirrorLayer, #guideLayer { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+#ghostLayer, #mirrorLayer, #guideLayer, #symLayer { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+#symLayer { visibility: hidden; }
 #ghostLayer { mix-blend-mode: multiply; }
 
 /* frosted pills */
@@ -163,6 +164,7 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
 #lockTag { position: fixed; z-index: 18; right: max(14px, env(safe-area-inset-right)); top: calc(70px + env(safe-area-inset-top));
   border: 0; border-radius: 999px; padding: 7px 12px; font-size: .85rem; font-weight: 600; display: flex; align-items: center; gap: 6px; cursor: pointer; }
 #lockTag svg { width: 16px; height: 16px; }
+#recTag { position: fixed; z-index: 18; left: max(14px, env(safe-area-inset-left)); top: calc(70px + env(safe-area-inset-top)); border-radius: 999px; padding: 6px 11px; font-size: .8rem; font-weight: 700; color: #fff; background: #B91C1C; box-shadow: var(--shadow-md); font-variant-numeric: tabular-nums; }
 
 /* dialogs: leave confirmation and help */
 .modal { position: fixed; inset: 0; z-index: 35; display: grid; place-items: center; background: rgba(15,14,12,.5);
@@ -241,6 +243,7 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
     <canvas id="gridLayer"></canvas>
     <canvas id="photoGrid"></canvas>
     <canvas id="guideLayer"></canvas>
+    <canvas id="symLayer"></canvas>
   </div>
 </div>
 
@@ -283,6 +286,18 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
     <div class="row" id="colourRow" hidden>
       <button type="button" class="chip colChip" id="lineCol"><i class="swatchDot" id="colDot"></i><span>Lines: black</span></button>
       <button type="button" class="chip colChip" id="hl"><i class="swatchDot" id="hlDot"></i><span>Step: coral</span></button>
+    </div>
+    <div id="isoRow" style="display:grid;gap:8px" hidden>
+      <div class="row"><span class="sub">Show</span>
+        <div class="seg" id="isoSeg" role="group" aria-label="Which part of the photo to show">
+          <button type="button" data-v="all" aria-pressed="true">All</button>
+          <button type="button" data-v="clothes" aria-pressed="false">Clothes</button>
+          <button type="button" data-v="person" aria-pressed="false">Person</button>
+          <button type="button" data-v="pieces" aria-pressed="false">Tap pieces</button>
+        </div>
+        <button type="button" class="chip" id="isoClear" hidden>Clear pieces</button>
+      </div>
+      <div class="note" id="isoNote"></div>
     </div>
     <details class="more" id="more">
       <summary>More options</summary>
@@ -328,7 +343,12 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
         <button type="button" data-v="10" aria-pressed="false">10</button>
       </div>
     </div>
-    <div class="row"><button type="button" class="chip" id="baseFit">Fit base to screen</button></div>
+    <div class="row">
+      <div class="ctl"><button type="button" class="switch" id="faceSw" role="switch" aria-checked="false" aria-label="Face guide"></button></div>
+      <span style="flex:1 1 160px">Face guide<br><span class="note">Eye line half way, nose at three quarters, in the first head.</span></span>
+    </div>
+    <div class="row"><button type="button" class="chip" id="baseFit">Fit base to screen</button><button type="button" class="chip primary" id="poseCroquis">Croquis from photo pose</button></div>
+    <div class="note">Croquis from photo pose reads the pose in your photo on the phone and draws a 9-head fashion figure in that pose, placed over the photo (pose model 9 MB, downloaded once).</div>
     <div class="note">Head lines split the figure from the top of the head to the soles into equal heads, so every look in a line-up keeps the same proportions. To move the base, turn on <b>Move</b> and choose <b>Base</b> at the bottom.</div>
   </div>
 
@@ -355,6 +375,7 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
     </div>
     <div class="grow"><input id="mirrorStrength" type="range" min="15" max="100" step="1" value="60" aria-label="Mirror strength"><span>Mirror strength</span></div>
     <div class="note">Draw one half of the garment. Mirror shows your own pencil lines flipped across the centre line, live, so you can trace the other half and keep the flat symmetrical.</div>
+    <div class="row"><button type="button" class="chip primary" id="symCheck">Check symmetry</button><span class="note" style="flex:1 1 150px">Compares both halves of your sheet across the centre line.</span></div>
     <div class="row">
       <span class="sub">Ghost</span>
       <button type="button" class="chip" id="ghostGrab">Capture this sheet</button>
@@ -376,6 +397,10 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
     <div class="note">Photograph your finished sheet, straighten it, and save it as clean line art: a see-through PNG, or an SVG for Illustrator. You can also make it your base.</div>
     <div class="row"><button type="button" class="chip primary" id="capStart">Capture sheet</button></div>
     <div class="note">Tip: lay the paper flat on a darker surface so its corners are found automatically. Hide the overlays first if you only want your drawing.</div>
+    <div class="row"><span class="sub">Time-lapse</span>
+      <div class="seg" id="tlEvery" role="group" aria-label="One frame every"><button type="button" data-v="1000" aria-pressed="false">1 s</button><button type="button" data-v="2000" aria-pressed="true">2 s</button><button type="button" data-v="5000" aria-pressed="false">5 s</button></div></div>
+    <div class="row"><button type="button" class="chip primary" id="tlBtn">Start time-lapse</button><button type="button" class="chip" id="tlSave" hidden>Save video</button></div>
+    <div class="note">Records the camera (your paper and hands) every few seconds and plays it back fast: 30 frames make one second of video.</div>
   </div>
 
   <div class="card glass" data-panel="strobe" hidden>
@@ -423,6 +448,7 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
 </section>
 
 <button type="button" id="lockTag" class="glass" hidden></button>
+<div id="recTag" hidden aria-live="polite"></div>
 <div id="toast" hidden></div>
 
 <footer id="bottom" hidden>
@@ -504,9 +530,12 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
       <li><b>Flats:</b> turn on the centre line, then <b>Mirror</b>: draw one half and your own lines appear flipped on the other side, live. <b>Ghost</b> keeps a faint copy of a finished sheet to draw the next look over.</li>
       <li><b>Boards</b> save your base, its place, head lines and guides, so every sheet of a collection matches. Your work is also saved on this phone as you go.</li>
       <li><b>Export:</b> photograph the finished sheet, drag the corners, and save clean lines as PNG or SVG, or use them as your next base.</li>
+      <li><b>Show</b> (Tools → View): <b>Clothes</b> keeps only the garments of a street or runway photo, in every view; <b>Tap pieces</b> lets you tap a single garment (a shirt, the trousers) to trace just that.</li>
+      <li><b>Croquis from photo pose</b> (Tools → Base) draws a 9-head fashion figure in the pose of your photo and places it over it. <b>Face guide</b> marks the eye line, nose and mouth.</li>
+      <li><b>Check symmetry</b> (Flats) compares both halves of your sheet: green matches, red is missing, orange has no partner. <b>Time-lapse</b> (Export) records your drawing as a short video.</li>
       <li><b>Hide</b> and <b>Opacity</b> help you check your drawing against the paper. Hide leaves the grid and guides showing.</li>
     </ul>
-    <p class="note">Photos stay on your phone. AI sketch uses the Informative Drawings model by Caroline Chan, Frédo Durand and Phillip Isola (MIT License), run on your phone.</p>
+    <p class="note">Photos stay on your phone. AI sketch uses the Informative Drawings model by Caroline Chan, Frédo Durand and Phillip Isola (MIT License). Clothes, pose and piece finding use Google MediaPipe models (Apache License 2.0). All run on your phone; models download once.</p>
     <div class="btns"><button type="button" class="primary" id="helpClose">Got it</button></div>
   </div>
 </div>
@@ -556,9 +585,9 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
 
   var S = { mode: 'photo', view: 'layered', values: 5, simplify: 3, hl: 0, lineStyle: 'ai', step: 1, opacity: 55, mirror: false,
             color: 0, grid: false, gridColor: 3, gridOpacity: 80, gridSize: 90, gridOn: 'photo', gridCells: 4, gridDiag: false, strobeSpeed: 4, aiView: 'layered', aiLayer: 1, cumulative: true,
-            baseOn: true, baseOpacity: 70, heads: 0, flatView: 'front', cfOn: false, cfX: 500, mirrorOn: false, mirrorSide: 'lr', mirrorStrength: 60, ghostOn: false, ghostOpacity: 35 };
+            baseOn: true, baseOpacity: 70, heads: 0, flatView: 'front', cfOn: false, cfX: 500, mirrorOn: false, mirrorSide: 'lr', mirrorStrength: 60, ghostOn: false, ghostOpacity: 35, iso: 'all', faceGuide: false };
   var SAVED = ['mode', 'view', 'values', 'simplify', 'hl', 'lineStyle', 'opacity', 'mirror', 'color', 'grid', 'gridColor', 'gridOpacity', 'gridSize', 'gridOn', 'gridCells', 'gridDiag', 'strobeSpeed', 'aiView', 'aiLayer', 'cumulative',
-               'baseOn', 'baseOpacity', 'heads', 'flatView', 'cfOn', 'cfX', 'mirrorOn', 'mirrorSide', 'mirrorStrength', 'ghostOn', 'ghostOpacity'];
+               'baseOn', 'baseOpacity', 'heads', 'flatView', 'cfOn', 'cfX', 'mirrorOn', 'mirrorSide', 'mirrorStrength', 'ghostOn', 'ghostOpacity', 'iso', 'faceGuide'];
   try { var sv = JSON.parse(localStorage.getItem('trace-camera') || 'null');
     if (sv) SAVED.forEach(function (k) { if (k in sv) S[k] = sv[k]; });
     if (sv && !sv.v2) S.lineStyle = 'ai';   // one-time switch: AI sketch became the default outline style
@@ -568,6 +597,7 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
   S.v2 = 1;
   if (S.mode !== 'photo' && S.mode !== 'lines' && S.mode !== 'values') S.mode = 'values';  // older saved modes
   if (S.color >= COLORS.length) S.color = 0;
+  if (S.iso === 'pieces') S.iso = 'all';   // picked pieces are not kept between visits
   function persist() { try { localStorage.setItem('trace-camera', JSON.stringify(S)); } catch (e) {} }
 
   var T = { x: 0, y: 0, scale: 1, rot: 0 };   // picture placement, in world pixels
@@ -589,7 +619,7 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
     loadPhoto(f, f.name).then(function () {
       $('err').hidden = true;
       if (!$('start').hidden) return;
-      target = 'picture'; setMove(true); fit(); drawGridLayer(); render(); syncUI(); scheduleSave();
+      target = 'picture'; setMove(true); fit(); drawGridLayer(); ensureIso(); render(); syncUI(); scheduleSave();
     }).catch(function (e) { showErr(e.message); toast(e.message); });
   });
   function showErr(t) { $('err').textContent = t; $('err').hidden = false; }
@@ -621,7 +651,7 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
       if (img && !placed.picture) { fit(); placed.picture = true; }
       renderBase(); if (hasBase() && !placed.base) fitBase();
       if (!img && target === 'picture' && hasBase()) target = 'base';
-      drawGridLayer(); drawGuides(); render(); place(); syncUI(); scheduleSave();
+      drawGridLayer(); drawGuides(); ensureIso(); render(); place(); syncUI(); scheduleSave();
     }).catch(function (e) {
       showErr(e && e.name === 'NotAllowedError'
         ? 'Camera access was blocked. Allow the camera for this site in your browser settings, then try again.'
@@ -900,7 +930,8 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
     }
     return out;
   }
-  function render() {
+  function render() { renderCore(); applyIso(); }
+  function renderCore() {
     if (!img) return;
     var w = img.w, h = img.h; overlay.width = w; overlay.height = h;
     if (S.mode === 'photo') { octx.drawImage(srcCanvas, 0, 0); place(); return; }
@@ -1219,6 +1250,8 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
     if (!wasMoved && (!$('tools').hidden || !$('opacityPop').hidden)) {   // a tap on the picture closes Tools and the slider
       if (!$('tools').hidden) closeTools(); $('opacityPop').hidden = true; syncUI(); lastTap = 0; return;
     }
+    if (!wasMoved) { $('symLayer').style.visibility = 'hidden'; }
+    if (!wasMoved && S.iso === 'pieces' && img && e.type === 'pointerup') { lastTap = 0; pickPiece(e.clientX, e.clientY); return; }
     if (!wasMoved) {   // a tap: two quick taps reset the zoom
       var now = Date.now();
       if (now - lastTap < 320) { resetView(); lastTap = 0; } else lastTap = now;
@@ -1311,6 +1344,7 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
     drawing = false; $('leave').hidden = true; $('tools').hidden = true; $('help').hidden = true; $('capture').hidden = true;
     $('start').hidden = false; $('top').hidden = true; $('bottom').hidden = true; $('opacityPop').hidden = true;
     if (strobeOn) setStrobe(false);
+    if (TL.on) tlStop();
     saveSession(); syncStart(); showResume(); syncUI();
   }
   function goHome() {
@@ -1336,7 +1370,7 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
     if (!$('ask').hidden) answer(false); else if (!$('leave').hidden) $('leave').hidden = true; else if (layerOpen()) closeLayer(); else if (!$('opacityPop').hidden) { $('opacityPop').hidden = true; syncUI(); }
   });
   // picture tab
-  function setMode(m) { S.mode = m; if (m === 'values') S.step = 1; persist(); render(); syncUI(); }  // values always start at the lightest
+  function setMode(m) { S.mode = m; if (m === 'values') S.step = 1; persist(); if (S.iso !== 'all') buildMaskCanvas(); render(); syncUI(); }  // values always start at the lightest
   $('modeSeg').querySelectorAll('button').forEach(function (b) { b.addEventListener('click', function () { setMode(b.dataset.v); }); });
   $('styleSeg').querySelectorAll('button').forEach(function (b) { b.addEventListener('click', function () { S.lineStyle = b.dataset.v; persist(); render(); syncUI(); }); });
   $('values').addEventListener('input', function () { $('valuesOut').textContent = this.value; });
@@ -1426,7 +1460,7 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
       img = { w: w, h: h, lum: lum, rgb: d };
       photoBlob = blob; photoName = name || 'Photo';
       $('thumb').src = thumbOf(srcCanvas, 160); $('thumbName').textContent = photoName; $('photoFig').hidden = false; $('thumbWrap').hidden = false;
-      S.step = 1; idx = null; lineMap = null; aiMap = null; $('strip').dataset.key = '';
+      S.step = 1; idx = null; lineMap = null; aiMap = null; $('strip').dataset.key = ''; resetIso();
       undoStack = []; redoStack = []; updateUndo(); placed.picture = false;
       syncStart();
     });
@@ -1464,20 +1498,22 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
   function placeBase() {
     var b = curBase(), off = hidden || (strobeOn && !strobePhase);
     baseCanvas.style.visibility = b && S.baseOn && !off ? 'visible' : 'hidden';
-    headCanvas.style.visibility = b && S.baseOn && S.heads ? 'visible' : 'hidden';
+    headCanvas.style.visibility = b && S.baseOn && (S.heads || S.faceGuide) ? 'visible' : 'hidden';
     if (!b) return;
     var tf = 'translate(-50%, -50%) translate(' + B.x + 'px,' + B.y + 'px) rotate(' + B.rot + 'rad) scale(' + B.scale + ')';
     [baseCanvas, headCanvas].forEach(function (c) { c.style.width = b.w + 'px'; c.style.height = b.h + 'px'; c.style.transform = tf; });
     baseCanvas.style.opacity = (backFallback() ? 0.6 : 1) * S.baseOpacity / 100;
-    if (S.heads && (!drawHeads.scale || Math.abs(B.scale / drawHeads.scale - 1) > 0.12)) drawHeads();
+    if ((S.heads || S.faceGuide) && (!drawHeads.scale || Math.abs(B.scale / drawHeads.scale - 1) > 0.12)) drawHeads();
   }
   // Head lines: the figure from the top of the head to the soles, split into equal heads, numbered down the side.
   function drawHeads() {
     var b = curBase(), c = headCanvas;
-    if (!b || !S.heads) { c.width = 1; c.height = 1; drawHeads.scale = 0; return; }
+    if (!b || !(S.heads || S.faceGuide)) { c.width = 1; c.height = 1; drawHeads.scale = 0; return; }
     var R = 2; c.width = b.w * R; c.height = b.h * R;
     var x = c.getContext('2d'); x.setTransform(R, 0, 0, R, 0, 0); x.clearRect(0, 0, b.w, b.h);
     var sc = B.scale || 1; drawHeads.scale = sc;
+    if (S.faceGuide) drawFaceGuide(x, b, sc);
+    if (!S.heads) return;
     var bx = b.box, n = S.heads, hh = (bx.y1 - bx.y0) / n, lw = 1.4 / sc, pad = (bx.x1 - bx.x0) * 0.18;
     var xa = Math.max(0, bx.x0 - pad), xb = Math.min(b.w, bx.x1 + pad);
     x.strokeStyle = 'rgba(' + WINE.join(',') + ',0.85)'; x.lineWidth = lw;
@@ -1548,6 +1584,8 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
     for (var j = 0; j < N; j++) ink[j] = smooth(lo, hi, 1 - Math.min(1, lum[j] / Math.max(0.05, bg[j])));
     return ink;
   }
+  // the paper's brightness in a frame: the bright end of the local background (works in dim light too)
+  function paperLevel(bg) { var a = []; for (var i = 0; i < bg.length; i += 13) a.push(bg[i]); a.sort(function (x, y) { return x - y; }); return a[Math.floor(a.length * 0.85)] || 1; }
   function inkCanvas(ink, w, h, col) {
     var c = document.createElement('canvas'); c.width = w; c.height = h;
     var x = c.getContext('2d'), out = x.createImageData(w, h), o = out.data;
@@ -1590,10 +1628,10 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
     var id = wx.getImageData(0, 0, sw, sh), d = id.data, N = sw * sh, lum = new Float32Array(N);
     for (var i = 0, p = 0; i < N; i++, p += 4) lum[i] = (0.299 * d[p] + 0.587 * d[p + 1] + 0.114 * d[p + 2]) / 255;
     var bg = boxMean(lum, sw, sh, Math.max(3, Math.round(Math.max(sw, sh) / 45)));
-    var x0 = S.mirrorSide === 'lr' ? Math.floor(cx * k) : 0, x1 = S.mirrorSide === 'lr' ? sw : Math.ceil(cx * k);
+    var x0 = S.mirrorSide === 'lr' ? Math.floor(cx * k) : 0, x1 = S.mirrorSide === 'lr' ? sw : Math.ceil(cx * k), pl = paperLevel(bg);
     for (var y = 0; y < sh; y++) for (var x = 0; x < sw; x++) {
       var j = y * sw + x, q = j * 4, a = 0;
-      if (x >= x0 && x < x1) a = smooth(0.1, 0.3, 1 - Math.min(1, lum[j] / Math.max(0.05, bg[j]))) * smooth(0.5, 0.68, bg[j]);   // only on paper, not the desk
+      if (x >= x0 && x < x1) a = smooth(0.1, 0.3, 1 - Math.min(1, lum[j] / Math.max(0.05, bg[j]))) * smooth(0.78 * pl, 0.9 * pl, bg[j]);   // only well inside the paper, not the desk or its edge
       d[q] = 40; d[q + 1] = 38; d[q + 2] = 36; d[q + 3] = Math.round(255 * a);
     }
     wx.putImageData(id, 0, 0);
@@ -2008,6 +2046,517 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
     syncGhost(); syncMirror();
   }
 
+  // ================= on-device fashion AI (MediaPipe Tasks, Apache-2.0): garment isolation, tap a piece, pose to croquis =================
+  var MP_BASE = 'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@1.2.2';
+  var MP_MODELS = {
+    seg: { url: 'https://storage.googleapis.com/mediapipe-models/image_segmenter/selfie_multiclass_256x256/float32/latest/selfie_multiclass_256x256.tflite', mb: 16, label: 'clothes finder' },
+    pose: { url: 'https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_full/float16/1/pose_landmarker_full.task', mb: 9, label: 'pose finder' },
+    touch: { url: 'https://storage.googleapis.com/mediapipe-models/interactive_segmenter/magic_touch/float32/1/magic_touch.tflite', mb: 6, label: 'piece picker' }
+  };
+  var mpP = null, mpTasks = {};
+  function mpRuntime() {
+    if (!mpP) {
+      mpP = import(MP_BASE + '/vision_bundle.mjs').then(function (m) {
+        return m.FilesetResolver.forVisionTasks(MP_BASE + '/wasm').then(function (fs) { return { m: m, fs: fs }; });
+      });
+      mpP.catch(function () { mpP = null; });
+    }
+    return mpP;
+  }
+  // Model files are fetched once and kept in the browser's cache storage, like the sketch model.
+  function cachedModel(key) {
+    var info = MP_MODELS[key];
+    var cacheP = ('caches' in window) ? caches.open('trace-camera-ai-v1').catch(function () { return null; }) : Promise.resolve(null);
+    return cacheP.then(function (cache) {
+      return (cache ? cache.match(info.url).catch(function () { return null; }) : Promise.resolve(null)).then(function (hit) {
+        if (hit) return hit.arrayBuffer();
+        toastSticky('Downloading the ' + info.label + ' (' + info.mb + ' MB, once)…');
+        return fetch(info.url).then(function (r) {
+          if (!r.ok) throw new Error('the ' + info.label + ' could not download (' + r.status + ')');
+          return r.arrayBuffer();
+        }).then(function (buf) {
+          if (cache) cache.put(info.url, new Response(buf.slice(0), { headers: { 'Content-Type': 'application/octet-stream' } })).catch(function () {});
+          return buf;
+        });
+      });
+    });
+  }
+  function mpTask(key) {
+    if (mpTasks[key]) return mpTasks[key];
+    var p = Promise.all([mpRuntime(), cachedModel(key)]).then(function (r) {
+      var m = r[0].m, fs = r[0].fs, buf = new Uint8Array(r[1]);
+      toastSticky('Starting the ' + MP_MODELS[key].label + '…');
+      function make(delegate) {
+        var base = { baseOptions: { modelAssetBuffer: buf, delegate: delegate }, runningMode: 'IMAGE' };
+        if (key === 'seg') { base.outputConfidenceMasks = true; base.outputCategoryMask = false; return m.ImageSegmenter.createFromOptions(fs, base); }
+        if (key === 'pose') { base.numPoses = 1; return m.PoseLandmarker.createFromOptions(fs, base); }
+        base.outputConfidenceMasks = true; base.outputCategoryMask = false; return m.InteractiveSegmenterLegacy.createFromOptions(fs, base);
+      }
+      return make('GPU').catch(function () { return make('CPU'); });
+    });
+    p.catch(function () { delete mpTasks[key]; });
+    mpTasks[key] = p; return p;
+  }
+  function aiFail(e) { toast('The on-phone AI could not run: ' + (e && e.message || e) + '.'); }
+
+  // ---------- isolate the garment: show only the clothes, only the person, or the pieces you tap
+  var ISO = { clothes: null, person: null, pieces: [], maskCanvas: null, busy: false };
+  function resetIso() { ISO.clothes = null; ISO.person = null; ISO.pieces = []; ISO.maskCanvas = null; ISO.segP = null; }
+  function isoMask() {
+    if (S.iso === 'clothes') return ISO.clothes;
+    if (S.iso === 'person') return ISO.person;
+    if (S.iso === 'pieces') {
+      if (!ISO.pieces.length) return null;
+      var N = img.w * img.h, u = new Float32Array(N);
+      ISO.pieces.forEach(function (p) { for (var i = 0; i < N; i++) if (p[i] > u[i]) u[i] = p[i]; });
+      return u;
+    }
+    return null;
+  }
+  function buildMaskCanvas() {
+    var m = isoMask(); ISO.maskCanvas = null;
+    if (!m) return;
+    // outlines sit right on the garment's edge, so for lines the mask is grown by a few pixels to keep the silhouette
+    var lines = S.mode === 'lines', w = img.w, h = img.h, soft = boxMean(m, w, h, lines ? Math.max(3, Math.round(Math.max(w, h) / 200)) : 1);
+    var c = document.createElement('canvas'); c.width = w; c.height = h;
+    var x = c.getContext('2d'), id = x.createImageData(w, h), d = id.data;
+    for (var i = 0, p = 0; i < w * h; i++, p += 4) d[p + 3] = Math.round(255 * (lines ? smooth(0.02, 0.25, soft[i]) : smooth(0.3, 0.7, soft[i])));
+    x.putImageData(id, 0, 0); ISO.maskCanvas = c; ISO.maskMode = lines;
+  }
+  function applyIso() {
+    if (!img || S.iso === 'all' || !ISO.maskCanvas || overlay.width !== img.w) return;
+    octx.save(); octx.globalCompositeOperation = 'destination-in'; octx.drawImage(ISO.maskCanvas, 0, 0); octx.restore();
+  }
+  // Clothes and person masks for the current photo (computed once per photo).
+  function segMasks() {
+    if (ISO.clothes && ISO.person) return Promise.resolve(ISO);
+    if (ISO.segP) return ISO.segP;
+    var forImg = img;
+    ISO.segP = mpTask('seg').then(function (seg) {
+      toastSticky('Finding the clothes…');
+      return new Promise(function (r) { setTimeout(r, 30); }).then(function () {
+        var res = seg.segment(srcCanvas), cm = res.confidenceMasks || [], N = forImg.w * forImg.h;
+        var bg = cm[0] ? cm[0].getAsFloat32Array() : null, cl = cm[4] ? cm[4].getAsFloat32Array() : null;
+        if (!bg || !cl || bg.length !== N) { if (res.close) res.close(); throw new Error('unexpected mask size'); }
+        var person = new Float32Array(N), clothes = new Float32Array(cl);
+        for (var i = 0; i < N; i++) person[i] = 1 - bg[i];
+        if (res.close) res.close();
+        if (img !== forImg) throw new Error('the photo changed');
+        ISO.clothes = clothes; ISO.person = person; $('toast').hidden = true;
+        return ISO;
+      });
+    });
+    ISO.segP.catch(function () {}).then(function () { ISO.segP = null; });
+    return ISO.segP;
+  }
+  function ensureIso() {
+    if (!img || S.iso === 'all' || S.iso === 'pieces') { buildMaskCanvas(); return; }
+    if (ISO.clothes && ISO.person) { buildMaskCanvas(); return; }
+    segMasks().then(function (r) {
+      var N = img.w * img.h, cover = 0; for (var j = 0; j < N; j += 7) cover += r.clothes[j] > 0.5 ? 1 : 0;
+      if (S.iso === 'clothes' && cover < N / 7 * 0.01) toast('No clothes found in this photo. Try Person, or Tap pieces.');
+    }).catch(aiFail).then(function () { buildMaskCanvas(); render(); syncUI(); });
+  }
+  // One garment piece from a tap, by a competitive watershed over the clothes area:
+  //  - the tap seeds the piece; clothes that are clearly another garment seed the competition: a very different colour,
+  //    or the opposite part of the body (top vs bottom, from the pose) in a different colour;
+  //  - both floods spread across the clothes, lowest edge strength first, and meet at the strongest edge between them.
+  // Shading and folds inside a garment do not stop it; a one-colour dress stays whole.
+  function growPiece(allowed, sx, sy, pose) {
+    var w = img.w, h = img.h, N = w * h, d = img.rgb, r = Math.max(3, Math.round(Math.max(w, h) / 270));
+    var R = new Float32Array(N), G = new Float32Array(N), Bc = new Float32Array(N);
+    for (var i = 0, p = 0; i < N; i++, p += 4) { R[i] = d[p]; G[i] = d[p + 1]; Bc[i] = d[p + 2]; }
+    R = boxMean(R, w, h, r); G = boxMean(G, w, h, r); Bc = boxMean(Bc, w, h, r);
+    var seed = sy * w + sx;
+    if (!allowed[seed]) return null;
+    var mr = 0, mg = 0, mb = 0, n0 = 0, rad = Math.max(3, r * 2);
+    for (var yy = Math.max(0, sy - rad); yy <= Math.min(h - 1, sy + rad); yy++) for (var xx = Math.max(0, sx - rad); xx <= Math.min(w - 1, sx + rad); xx++) {
+      var q0 = yy * w + xx; if (!allowed[q0]) continue; mr += R[q0]; mg += G[q0]; mb += Bc[q0]; n0++; }
+    mr /= n0; mg /= n0; mb /= n0;
+    var Lb = new Float32Array(N), grad = new Uint8Array(N);
+    for (var li = 0; li < N; li++) Lb[li] = 0.299 * R[li] + 0.587 * G[li] + 0.114 * Bc[li];
+    for (var gy = 1; gy < h - 1; gy++) for (var gx = 1; gx < w - 1; gx++) { var gi = gy * w + gx;
+      var gr = Math.max(Math.abs(Lb[gi + 1] - Lb[gi - 1]), Math.abs(Lb[gi + w] - Lb[gi - w]), Math.abs(R[gi + 1] - R[gi - 1]) * 0.7, Math.abs(Bc[gi + w] - Bc[gi - w]) * 0.7);
+      grad[gi] = Math.min(255, Math.round(gr)); }
+    // which side of the hips is a pixel on (positive = upper body), if we know the pose
+    var zone = null;
+    if (pose) {
+      var ax = pose.sh.x - pose.hip.x, ay = pose.sh.y - pose.hip.y, al = Math.hypot(ax, ay) || 1; ax /= al; ay /= al;
+      zone = function (q) { var qx = q % w, qy = (q / w) | 0; return ((qx - pose.hip.x) * ax + (qy - pose.hip.y) * ay) / al; };
+    }
+    var tapZone = zone ? zone(seed) : 0;
+    var lab = new Int8Array(N);   // 0 free, 1 piece, 2 other garment, -1 not clothes
+    for (var k = 0; k < N; k++) {
+      if (!allowed[k]) { lab[k] = -1; continue; }
+      var dr = R[k] - mr, dg = G[k] - mg, db = Bc[k] - mb, dist = Math.sqrt(dr * dr + dg * dg + db * db);
+      var far = dist > 105;
+      if (!far && zone && dist > 45) { var z = zone(k); far = tapZone > 0.05 ? z < -0.45 : (tapZone < -0.05 ? z > 0.35 : false); }
+      if (far) lab[k] = 2;
+    }
+    // the tap's own neighbourhood is the piece's seed
+    for (var sy2 = Math.max(0, sy - 2); sy2 <= Math.min(h - 1, sy + 2); sy2++) for (var sx2 = Math.max(0, sx - 2); sx2 <= Math.min(w - 1, sx + 2); sx2++) { var sq = sy2 * w + sx2; if (allowed[sq]) lab[sq] = 1; }
+    // priority flood with a bucket queue (edge strengths 0..255)
+    var buckets = []; for (var bi = 0; bi < 256; bi++) buckets.push([]);
+    for (var t = 0; t < N; t++) if (lab[t] > 0) buckets[grad[t]].push(t);
+    var level = 0;
+    while (level < 256) {
+      var bk = buckets[level];
+      if (!bk.length) { level++; continue; }
+      var c = bk.pop(), L1 = lab[c], cx = c % w, cy = (c / w) | 0, nb = [cx > 0 ? c - 1 : -1, cx < w - 1 ? c + 1 : -1, cy > 0 ? c - w : -1, cy < h - 1 ? c + w : -1];
+      for (var ni = 0; ni < 4; ni++) { var q = nb[ni]; if (q < 0 || lab[q] !== 0) continue; lab[q] = L1; var pr = Math.max(level, grad[q]); buckets[pr].push(q); if (pr < level) level = pr; }
+    }
+    var f = new Float32Array(N), area = 0; for (var u = 0; u < N; u++) f[u] = lab[u] === 1 ? 1 : 0;
+    var closed = boxMean(f, w, h, r), m = new Float32Array(N);   // smooth the edge and close pin-holes
+    for (var v = 0; v < N; v++) { m[v] = closed[v] > 0.5 && allowed[v] ? 1 : 0; area += m[v]; }
+    return area > N * 0.002 ? m : null;
+  }
+  var poseCache = { img: null, pose: null };
+  function poseFor(forImg) {   // shoulder and hip centres in photo pixels, or null
+    if (poseCache.img === forImg) return Promise.resolve(poseCache.pose);
+    return mpTask('pose').then(function (pt) {
+      var res = pt.detect(srcCanvas), L = res.landmarks && res.landmarks[0]; if (res.close) res.close();
+      var out = L ? { sh: { x: (L[11].x + L[12].x) / 2 * forImg.w, y: (L[11].y + L[12].y) / 2 * forImg.h }, hip: { x: (L[23].x + L[24].x) / 2 * forImg.w, y: (L[23].y + L[24].y) / 2 * forImg.h } } : null;
+      poseCache = { img: forImg, pose: out }; return out;
+    }).catch(function () { return null; });
+  }
+  // Screen point -> photo pixel, undoing the view zoom, the picture's placement, rotation and mirror.
+  function screenToPhoto(sx, sy) {
+    if (!img) return null;
+    var W = window.innerWidth, H = window.innerHeight, wx = (sx - V.x) / V.s, wy = (sy - V.y) / V.s;
+    var dx = wx - (W / 2 + T.x), dy = wy - (H / 2 + T.y), c = Math.cos(-T.rot), s = Math.sin(-T.rot);
+    var lx = (dx * c - dy * s) / T.scale, ly = (dx * s + dy * c) / T.scale;
+    if (S.mirror) lx = -lx;
+    var px = lx + img.w / 2, py = ly + img.h / 2;
+    return px >= 0 && py >= 0 && px < img.w && py < img.h ? { x: px, y: py } : null;
+  }
+  function pickPiece(sx, sy) {
+    var pt = screenToPhoto(sx, sy);
+    if (!pt) { toast('Tap on the photo to pick a piece.'); return; }
+    var at = Math.floor(pt.y) * img.w + Math.floor(pt.x);
+    for (var k = 0; k < ISO.pieces.length; k++) if (ISO.pieces[k][at] > 0.5) {   // tapping a picked piece removes it
+      ISO.pieces.splice(k, 1); buildMaskCanvas(); render(); syncUI(); toast('Piece removed.'); return;
+    }
+    var forImg = img, sxp = Math.floor(pt.x), syp = Math.floor(pt.y);
+    Promise.all([segMasks(), mpTask('touch'), poseFor(img)]).then(function (r) {
+      var masks = r[0], tsk = r[1], pose = r[2];
+      toastSticky('Picking the piece…');
+      return new Promise(function (res0) { setTimeout(res0, 30); }).then(function () {
+        if (img !== forImg) return;
+        var N = forImg.w * forImg.h, magic = null;
+        try {
+          var res = tsk.segment(srcCanvas, { keypoint: { x: pt.x / forImg.w, y: pt.y / forImg.h } }), cm = res.confidenceMasks || [];
+          if (cm.length) { magic = new Float32Array(cm[cm.length > 1 ? 1 : 0].getAsFloat32Array()); if (magic[at] < 0.5 && cm.length > 1) for (var i = 0; i < N; i++) magic[i] = 1 - magic[i]; }
+          if (res.close) res.close();
+        } catch (err) { magic = null; }
+        var onClothes = masks.clothes[at] > 0.5, allowed = new Uint8Array(N);
+        for (var j = 0; j < N; j++) allowed[j] = onClothes ? (masks.clothes[j] > 0.5 && (!magic || magic[j] > 0.3) ? 1 : 0) : (magic && magic[j] > 0.5 ? 1 : 0);
+        var piece = growPiece(allowed, sxp, syp, onClothes ? pose : null);
+        if (!piece && magic && !onClothes) { piece = magic; }
+        if (!piece) { $('toast').hidden = true; toast('Nothing to pick there. Tap inside a garment.'); return; }
+        ISO.pieces.push(piece); $('toast').hidden = true;
+        toast('Piece added. Tap another to add it, or tap a picked piece to remove it.');
+      });
+    }).catch(aiFail).then(function () { buildMaskCanvas(); render(); syncUI(); });
+  }
+  $('isoSeg').querySelectorAll('button').forEach(function (b) {
+    b.addEventListener('click', function () {
+      S.iso = b.dataset.v; persist();
+      if (S.iso === 'pieces' && !ISO.pieces.length) toast('Close Tools, then tap a garment piece on the photo.');
+      ensureIso(); render(); syncUI();
+    });
+  });
+  $('isoClear').addEventListener('click', function () { ISO.pieces = []; buildMaskCanvas(); render(); syncUI(); });
+
+  // ---------- pose to croquis: a 9-head fashion figure in the pose of the photo, placed over it
+  // Proportions in heads, from crown (0) to ground (9): shoulders 1.5, bust 2.2, waist 3, hip 4, crotch 4.5, knee 6, ankle 8.5.
+  var LM = { nose: 0, lEar: 7, rEar: 8, lSh: 11, rSh: 12, lEl: 13, rEl: 14, lWr: 15, rWr: 16, lIdx: 19, rIdx: 20, lHip: 23, rHip: 24, lKn: 25, rKn: 26, lAn: 27, rAn: 28, lHeel: 29, rHeel: 30, lToe: 31, rToe: 32 };
+  function v2(a, b) { return { x: b.x - a.x, y: b.y - a.y }; }
+  function len(v) { return Math.hypot(v.x, v.y) || 1e-6; }
+  function unit(v) { var l = len(v); return { x: v.x / l, y: v.y / l }; }
+  function add(a, v, k) { return { x: a.x + v.x * k, y: a.y + v.y * k }; }
+  function mid(a, b) { return { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 }; }
+  function perp(v) { return { x: -v.y, y: v.x }; }
+  function croquisFromPose(L, worldL, aspect) {
+    var P = function (i) { return { x: L[i].x * aspect, y: L[i].y }; };   // square units: x scaled by the photo's aspect
+    var h = 120, H = h;
+    var sh = mid(P(LM.lSh), P(LM.rSh)), hp = mid(P(LM.lHip), P(LM.rHip)), torsoP = len(v2(hp, sh));
+    var up = unit(v2(hp, sh));                                    // hip centre -> shoulder centre
+    var shDir = unit(v2(P(LM.rSh), P(LM.lSh))), hipDir = unit(v2(P(LM.rHip), P(LM.lHip)));   // image right -> image left of the figure
+    if (shDir.x * perp(up).x + shDir.y * perp(up).y < 0) { shDir = { x: -shDir.x, y: -shDir.y }; }
+    if (hipDir.x * shDir.x + hipDir.y * shDir.y < 0) { hipDir = { x: -hipDir.x, y: -hipDir.y }; }
+    var turn = clamp((len(v2(P(LM.lSh), P(LM.rSh))) / torsoP) / 0.6, 0.35, 1.15);   // a 3/4 turn makes the shoulders narrower
+    var hipTurn = clamp((len(v2(P(LM.lHip), P(LM.rHip))) / torsoP) / 0.38, 0.35, 1.15);
+    var J = {};
+    J.hip = { x: 0, y: 0 }; J.sh = add(J.hip, up, 2.5 * H);
+    J.lSh = add(J.sh, shDir, 0.75 * H * turn); J.rSh = add(J.sh, shDir, -0.75 * H * turn);
+    J.lHip = add(J.hip, hipDir, 0.5 * H * hipTurn); J.rHip = add(J.hip, hipDir, -0.5 * H * hipTurn);
+    // Direction from the photo; length in fashion heads, shortened only as much as the limb really points at the camera
+    // (from MediaPipe's 3D world landmarks: projected length / true length), so standing legs stay long and seated thighs foreshorten.
+    function limb(from, a, b, canonHeads, minK) {
+      var pv = v2(P(a), P(b)), k;
+      if (worldL && worldL[a] && worldL[b]) {
+        var dx = worldL[b].x - worldL[a].x, dy = worldL[b].y - worldL[a].y, dz = worldL[b].z - worldL[a].z;
+        k = clamp(Math.hypot(dx, dy) / (Math.hypot(dx, dy, dz) || 1), minK || 0.3, 1);
+      } else k = clamp((len(pv) / torsoP) / (canonHeads / 2.5), 0.7, 1.05);
+      return add(from, unit(pv), canonHeads * H * k);
+    }
+    J.lEl = limb(J.lSh, LM.lSh, LM.lEl, 1.5); J.rEl = limb(J.rSh, LM.rSh, LM.rEl, 1.5);
+    J.lWr = limb(J.lEl, LM.lEl, LM.lWr, 1.25); J.rWr = limb(J.rEl, LM.rEl, LM.rWr, 1.25);
+    J.lHd = limb(J.lWr, LM.lWr, LM.lIdx, 0.7); J.rHd = limb(J.rWr, LM.rWr, LM.rIdx, 0.7);
+    J.lKn = limb(J.lHip, LM.lHip, LM.lKn, 2.0, 0.35); J.rKn = limb(J.rHip, LM.rHip, LM.rKn, 2.0, 0.35);
+    J.lAn = limb(J.lKn, LM.lKn, LM.lAn, 2.45, 0.35); J.rAn = limb(J.rKn, LM.rKn, LM.rAn, 2.45, 0.35);
+    J.lToe = limb(J.lAn, LM.lHeel, LM.lToe, 0.55, 0.5); J.rToe = limb(J.rAn, LM.rHeel, LM.rToe, 0.55, 0.5);
+    var headP = mid(P(LM.lEar), P(LM.rEar)), headUp = unit(v2(sh, add(headP, v2(P(LM.nose), headP), 0)));
+    J.chin = add(J.sh, headUp, 0.38 * H); J.headC = add(J.chin, headUp, 0.5 * H); J.headUp = headUp;
+    // depth: which arm and leg are nearer the camera (MediaPipe z: smaller is nearer)
+    var z = function (i) { return worldL && worldL[i] ? worldL[i].z : L[i].z; };
+    J.leftArmFront = z(LM.lEl) < z(LM.rEl); J.leftLegFront = z(LM.lKn) < z(LM.rKn);
+    J.up = up; J.shDir = shDir; J.hipDir = hipDir; J.turn = turn; J.hipTurn = hipTurn; J.H = H;
+    return J;
+  }
+  function drawCroquis(J) {
+    var H = J.H, pts = [];
+    Object.keys(J).forEach(function (k) { var v = J[k]; if (v && typeof v.x === 'number' && typeof v.y === 'number' && k !== 'up' && k !== 'shDir' && k !== 'hipDir' && k !== 'headUp') pts.push(v); });
+    pts.push(add(J.headC, J.headUp, 0.55 * H));
+    var minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+    pts.forEach(function (p) { minX = Math.min(minX, p.x); minY = Math.min(minY, p.y); maxX = Math.max(maxX, p.x); maxY = Math.max(maxY, p.y); });
+    var pad = 0.6 * H, W = Math.ceil(maxX - minX + 2 * pad), Ht = Math.ceil(maxY - minY + 2 * pad);
+    var c = document.createElement('canvas'); c.width = W; c.height = Ht;
+    var x = c.getContext('2d'); x.fillStyle = '#fff'; x.fillRect(0, 0, W, Ht);
+    x.translate(pad - minX, pad - minY); x.lineJoin = 'round'; x.lineCap = 'round';
+    var ink = '#2b2825', fill = '#efebe6', lw = H / 34;
+    function shape(fn) { x.beginPath(); fn(); x.closePath(); x.fillStyle = fill; x.fill(); x.strokeStyle = ink; x.lineWidth = lw; x.stroke(); }
+    // one continuous outline through a chain of points with a width at each, rounded at both ends
+    function chain(pts, ws) {
+      var n = pts.length, Lp = [], Rp = [];
+      for (var i = 0; i < n; i++) {
+        var d = unit(v2(pts[Math.max(0, i - 1)], pts[Math.min(n - 1, i + 1)])), nn = perp(d);
+        Lp.push(add(pts[i], nn, ws[i] / 2)); Rp.push(add(pts[i], nn, -ws[i] / 2));
+      }
+      function curve(arr) { for (var j = 1; j < arr.length - 1; j++) { var m2 = mid(arr[j], arr[j + 1]); x.quadraticCurveTo(arr[j].x, arr[j].y, m2.x, m2.y); } x.lineTo(arr[arr.length - 1].x, arr[arr.length - 1].y); }
+      var dEnd = unit(v2(pts[n - 2], pts[n - 1])), nEnd = perp(dEnd), dSt = unit(v2(pts[0], pts[1])), nSt = perp(dSt);
+      shape(function () {
+        x.moveTo(Lp[0].x, Lp[0].y); curve(Lp);
+        x.arc(pts[n - 1].x, pts[n - 1].y, ws[n - 1] / 2, Math.atan2(nEnd.y, nEnd.x), Math.atan2(-nEnd.y, -nEnd.x), true);
+        var Rr = Rp.slice().reverse(); x.lineTo(Rr[0].x, Rr[0].y); curve(Rr);
+        x.arc(pts[0].x, pts[0].y, ws[0] / 2, Math.atan2(-nSt.y, -nSt.x), Math.atan2(nSt.y, nSt.x), true);
+      });
+    }
+    function along(a, b, t) { return { x: a.x + (b.x - a.x) * t, y: a.y + (b.y - a.y) * t }; }
+    function leg(s) {
+      var hip = J[s + 'Hip'], kn = J[s + 'Kn'], an = J[s + 'An'], toe = J[s + 'Toe'];
+      chain([hip, along(hip, kn, 0.35), kn, along(kn, an, 0.3), an, along(an, toe, 0.55), toe],
+            [0.62 * H, 0.52 * H, 0.32 * H, 0.36 * H, 0.17 * H, 0.15 * H, 0.06 * H]);
+    }
+    function arm(s) {
+      var shp = J[s + 'Sh'], el = J[s + 'El'], wr = J[s + 'Wr'], hd = J[s + 'Hd'];
+      chain([shp, along(shp, el, 0.4), el, along(el, wr, 0.35), wr, along(wr, hd, 0.5), hd],
+            [0.3 * H, 0.27 * H, 0.21 * H, 0.22 * H, 0.14 * H, 0.19 * H, 0.07 * H]);
+    }
+    function torso() {
+      // outline from shoulders to crotch, widths in heads; the side direction blends from the shoulder line to the hip line
+      var rows = [[0, 0.75 * J.turn], [0.35, 0.62 * J.turn], [0.7, 0.6 * J.turn], [1.5, 0.45 * (J.turn + J.hipTurn) / 2], [2.0, 0.6 * J.hipTurn], [2.5, 0.7 * J.hipTurn], [2.95, 0.52 * J.hipTurn]];
+      var side = function (t) { var a = clamp(t / 2.5, 0, 1); return unit({ x: J.shDir.x * (1 - a) + J.hipDir.x * a, y: J.shDir.y * (1 - a) + J.hipDir.y * a }); };
+      var down = { x: -J.up.x, y: -J.up.y }, L1 = [], R1 = [];
+      rows.forEach(function (r) { var c0 = add(J.sh, down, r[0] * H), sd = side(r[0]); L1.push(add(c0, sd, r[1] * H)); R1.push(add(c0, sd, -r[1] * H)); });
+      var crotch = add(J.sh, down, 3.0 * H);
+      shape(function () {
+        x.moveTo(L1[0].x, L1[0].y);
+        for (var i = 1; i < L1.length; i++) { var mp = mid(L1[i - 1], L1[i]); x.quadraticCurveTo(L1[i - 1].x, L1[i - 1].y, mp.x, mp.y); }
+        x.lineTo(L1[L1.length - 1].x, L1[L1.length - 1].y); x.lineTo(crotch.x, crotch.y); x.lineTo(R1[R1.length - 1].x, R1[R1.length - 1].y);
+        for (var j = R1.length - 2; j >= 0; j--) { var mq = mid(R1[j + 1], R1[j]); x.quadraticCurveTo(R1[j + 1].x, R1[j + 1].y, mq.x, mq.y); }
+        x.lineTo(R1[0].x, R1[0].y);
+      });
+      // centre-front line and bust, waist and hip marks
+      x.save(); x.setLineDash([H / 12, H / 14]); x.lineWidth = lw * 0.7; x.strokeStyle = 'rgba(124,42,52,0.9)';
+      x.beginPath(); x.moveTo(J.sh.x, J.sh.y); x.lineTo(crotch.x, crotch.y); x.stroke();
+      [[0.7, 0.6 * J.turn], [1.5, 0.45 * (J.turn + J.hipTurn) / 2], [2.5, 0.7 * J.hipTurn]].forEach(function (r) {
+        var c0 = add(J.sh, down, r[0] * H), sd = side(r[0]), a = add(c0, sd, r[1] * H * 0.9), b = add(c0, sd, -r[1] * H * 0.9);
+        x.beginPath(); x.moveTo(a.x, a.y); x.lineTo(b.x, b.y); x.stroke();
+      });
+      x.restore();
+    }
+    function neckHead() {
+      chain([add(J.sh, J.up, -0.08 * H), along(J.sh, J.chin, 0.5), add(J.chin, J.headUp, 0.12 * H)], [0.3 * H, 0.25 * H, 0.24 * H]);
+      var ang = Math.atan2(J.headUp.y, J.headUp.x) + Math.PI / 2;
+      shape(function () { x.ellipse(J.headC.x, J.headC.y, 0.36 * H, 0.5 * H, ang, 0, Math.PI * 2); });
+    }
+    var backLeg = J.leftLegFront ? 'r' : 'l', frontLeg = J.leftLegFront ? 'l' : 'r';
+    var backArm = J.leftArmFront ? 'r' : 'l', frontArm = J.leftArmFront ? 'l' : 'r';
+    leg(backLeg); leg(frontLeg); arm(backArm); torso(); arm(frontArm); neckHead();
+    // balance line: from the pit of the neck straight down
+    x.save(); x.setLineDash([H / 10, H / 10]); x.lineWidth = lw * 0.6; x.strokeStyle = 'rgba(124,42,52,0.55)';
+    x.beginPath(); x.moveTo(J.sh.x, J.sh.y); x.lineTo(J.sh.x, maxY + pad * 0.5); x.stroke(); x.restore();
+    var hipC = { x: J.hip.x + pad - minX, y: J.hip.y + pad - minY };
+    return { canvas: c, hip: hipC, torso: 2.5 * H };
+  }
+  $('poseCroquis').addEventListener('click', function () {
+    if (!img) { toast('Choose a photo of a person first (View → New photo).'); return; }
+    var forImg = img, btn = this; btn.disabled = true;
+    mpTask('pose').then(function (pose) {
+      toastSticky('Reading the pose…');
+      return new Promise(function (r) { setTimeout(r, 30); }).then(function () {
+        var res = pose.detect(srcCanvas), L = res.landmarks && res.landmarks[0], WL = res.worldLandmarks && res.worldLandmarks[0];
+        if (res.close) res.close();
+        if (!L) throw new Error('no person was found in the photo');
+        var need = [LM.lSh, LM.rSh, LM.lHip, LM.rHip, LM.lKn, LM.rKn, LM.lAn, LM.rAn];
+        var vis = need.filter(function (i) { return (L[i].visibility == null || L[i].visibility > 0.35); }).length;
+        if (vis < 6) toast('Part of the body is out of the photo, so the legs are estimated.');
+        var J = croquisFromPose(L, WL, forImg.w / forImg.h), out = drawCroquis(J);
+        // where the photo's hips are on screen, and how big its torso is there
+        var sh = mid(L[LM.lSh], L[LM.rSh]), hp = mid(L[LM.lHip], L[LM.rHip]);
+        var hpPx = { x: hp.x * forImg.w, y: hp.y * forImg.h }, torsoPx = Math.hypot((sh.x - hp.x) * forImg.w, (sh.y - hp.y) * forImg.h);
+        return new Promise(function (res2) { out.canvas.toBlob(res2, 'image/png'); }).then(function (blob) {
+          return loadBase(blob, 'front', 'Croquis from photo').then(function () {
+            var b = BASE.front, k = b.w / out.canvas.width;   // loadBase may shrink very tall figures
+            var W = window.innerWidth, Hs = window.innerHeight, sgn = S.mirror ? -1 : 1;
+            var lx = (hpPx.x - forImg.w / 2) * T.scale * sgn, ly = (hpPx.y - forImg.h / 2) * T.scale;
+            var pw = { x: W / 2 + T.x + lx * Math.cos(T.rot) - ly * Math.sin(T.rot), y: Hs / 2 + T.y + lx * Math.sin(T.rot) + ly * Math.cos(T.rot) };
+            B.scale = T.scale * torsoPx / (out.torso * k); B.rot = T.rot;
+            var cx = (out.hip.x * k - b.w / 2) * B.scale, cy = (out.hip.y * k - b.h / 2) * B.scale;
+            B.x = pw.x - W / 2 - (cx * Math.cos(B.rot) - cy * Math.sin(B.rot)); B.y = pw.y - Hs / 2 - (cx * Math.sin(B.rot) + cy * Math.cos(B.rot));
+            placed.base = true; S.baseOn = true; S.flatView = 'front'; if (!S.heads) S.heads = 9; persist();
+            pushUndo(snap('base')); renderBase(); syncUI(); scheduleSave();
+            $('toast').hidden = true;
+            toast('9-head croquis made from the pose and placed over the photo. Lower the photo opacity to draw the garment on it.');
+          });
+        });
+      });
+    }).catch(aiFail).then(function () { btn.disabled = false; });
+  });
+
+  // ---------- symmetry check for flats: compares the two halves of the sheet across the centre line
+  var symTimer = 0;
+  $('symCheck').addEventListener('click', function () {
+    if (!S.cfOn) { S.cfOn = true; persist(); drawGuides(); syncUI(); }
+    var W = window.innerWidth, H = window.innerHeight, m = videoCover(W, H);
+    if (!m) { toast('The camera is not ready yet.'); return; }
+    var k = Math.min(1, 520 / Math.max(W, H)), sw = Math.round(W * k), sh = Math.round(H * k);
+    var c = document.createElement('canvas'); c.width = sw; c.height = sh; var x = c.getContext('2d');
+    x.setTransform(k, 0, 0, k, 0, 0); x.drawImage(m.v, m.dx, m.dy, m.dw, m.dh);
+    var d = x.getImageData(0, 0, sw, sh).data, N = sw * sh, lum = new Float32Array(N);
+    for (var i = 0, p = 0; i < N; i++, p += 4) lum[i] = (0.299 * d[p] + 0.587 * d[p + 1] + 0.114 * d[p + 2]) / 255;
+    var bg = boxMean(lum, sw, sh, Math.max(3, Math.round(Math.max(sw, sh) / 45))), on = new Uint8Array(N), pl = paperLevel(bg);
+    for (var j = 0; j < N; j++) on[j] = (1 - Math.min(1, lum[j] / Math.max(0.05, bg[j]))) > 0.18 && bg[j] > 0.85 * pl ? 1 : 0;
+    var r = 3;   // how far a line may be off and still count as matching, in work pixels (~1.5 mm on A4 at a normal height)
+    function dilate(a) { var f = new Float32Array(N); for (var q = 0; q < N; q++) f[q] = a[q]; var b = boxMean(f, sw, sh, r), o = new Uint8Array(N); for (var t = 0; t < N; t++) o[t] = b[t] > 0.001 ? 1 : 0; return o; }
+    var cx = S.cfX / 1000 * sw, src = new Uint8Array(N), dst = new Uint8Array(N);   // src: the drawn side, mirrored; dst: the side being checked
+    for (var y = 0; y < sh; y++) for (var xx = 0; xx < sw; xx++) {
+      var mx = Math.round(2 * cx - xx), inDst = S.mirrorSide === 'lr' ? xx > cx + 2 : xx < cx - 2;
+      if (!inDst || mx < 0 || mx >= sw) continue;
+      dst[y * sw + xx] = on[y * sw + xx]; src[y * sw + xx] = on[y * sw + mx];
+    }
+    var dSrc = dilate(src), dDst = dilate(dst), match = 0, miss = 0, extra = 0;
+    var out = document.createElement('canvas'); out.width = sw; out.height = sh; var ox = out.getContext('2d'), od = ox.createImageData(sw, sh), o = od.data;
+    for (var z = 0; z < N; z++) {
+      var q2 = z * 4;
+      if (dst[z] && dSrc[z]) { match++; o[q2] = 22; o[q2 + 1] = 140; o[q2 + 2] = 80; o[q2 + 3] = 230; }
+      else if (dst[z]) { extra++; o[q2] = 217; o[q2 + 1] = 119; o[q2 + 2] = 6; o[q2 + 3] = 255; }
+      else if (src[z] && !dDst[z]) { miss++; o[q2] = 220; o[q2 + 1] = 38; o[q2 + 2] = 38; o[q2 + 3] = 255; }
+    }
+    ox.putImageData(od, 0, 0);
+    var sl = $('symLayer'), dpr = Math.min(2, window.devicePixelRatio || 1); sl.width = Math.round(W * dpr); sl.height = Math.round(H * dpr);
+    var sx = sl.getContext('2d'); sx.imageSmoothingEnabled = false; sx.drawImage(out, 0, 0, sl.width, sl.height); sl.style.visibility = 'visible';
+    var total = match + miss + extra;
+    clearTimeout(symTimer); symTimer = setTimeout(function () { sl.style.visibility = 'hidden'; }, 9000);
+    closeTools();
+    if (total < 40) { toast('Draw some lines on one side first, then check again.'); sl.style.visibility = 'hidden'; return; }
+    toast(Math.round(match / total * 100) + '% symmetrical. Green matches, red is missing on this side, orange has no partner.');
+  });
+
+  // ---------- time-lapse: a frame every few seconds while you draw, played back fast as a video
+  var TL = { on: false, frames: [], timer: 0, every: 2000, started: 0, tick: 0 };
+  function tlGrab() {
+    var W = window.innerWidth, H = window.innerHeight, m = videoCover(W, H); if (!m) return;
+    var k = Math.min(1, 720 / Math.min(W, H)), c = document.createElement('canvas');
+    c.width = Math.round(W * k / 2) * 2; c.height = Math.round(H * k / 2) * 2;
+    var x = c.getContext('2d'); x.setTransform(c.width / W, 0, 0, c.height / H, 0, 0); x.drawImage(m.v, m.dx, m.dy, m.dw, m.dh);
+    c.toBlob(function (b) { if (!b || !TL.on) return; TL.frames.push(b); if (TL.frames.length > 1800) TL.frames = TL.frames.filter(function (f, i) { return i % 2 === 0; }); }, 'image/jpeg', 0.82);
+  }
+  function tlLabel() {
+    var s = Math.round((Date.now() - TL.started) / 1000), mm = Math.floor(s / 60), ss = s % 60;
+    $('recTag').textContent = '● REC ' + mm + ':' + (ss < 10 ? '0' : '') + ss + ' · ' + TL.frames.length + ' frames';
+  }
+  function tlStart() {
+    if (!window.MediaRecorder || !HTMLCanvasElement.prototype.captureStream) { toast('This browser cannot record video.'); return; }
+    TL.on = true; TL.frames = []; TL.started = Date.now(); tlGrab();
+    TL.timer = setInterval(tlGrab, TL.every); TL.tick = setInterval(tlLabel, 1000); tlLabel();
+    $('recTag').hidden = false; syncUI(); toast('Recording a time-lapse. Stop it in Export when you are done.');
+  }
+  function tlStop() {
+    TL.on = false; clearInterval(TL.timer); clearInterval(TL.tick); $('recTag').hidden = true; syncUI();
+    var frames = TL.frames; TL.frames = [];
+    if (frames.length < 3) { toast('Too short to make a time-lapse.'); return; }
+    var types = ['video/mp4;codecs=avc1', 'video/mp4', 'video/webm;codecs=vp9', 'video/webm'], type = '';
+    for (var i = 0; i < types.length; i++) if (MediaRecorder.isTypeSupported && MediaRecorder.isTypeSupported(types[i])) { type = types[i]; break; }
+    loadImageBlob(frames[0]).then(function (first) {
+      var c = document.createElement('canvas'); c.width = first.naturalWidth; c.height = first.naturalHeight;
+      var x = c.getContext('2d'), stream = c.captureStream(30), rec = new MediaRecorder(stream, type ? { mimeType: type, videoBitsPerSecond: 6e6 } : undefined), chunks = [];
+      rec.ondataavailable = function (e) { if (e.data && e.data.size) chunks.push(e.data); };
+      var done = new Promise(function (res) { rec.onstop = res; });
+      rec.start(500);
+      // 30 frames make a second; short sessions hold each frame longer so the video is at least 3 seconds
+      var n = 0, hold = Math.max(1, Math.ceil(90 / frames.length));
+      function next() {
+        if (n >= frames.length) { setTimeout(function () { rec.stop(); }, 1000 / 30 * hold + 150); return; }   // let the last frame show for its full time
+        loadImageBlob(frames[n]).then(function (im) { x.drawImage(im, 0, 0, c.width, c.height); n++; toastSticky('Making the time-lapse… ' + Math.round(n / frames.length * 100) + '%'); setTimeout(next, 1000 / 30 * hold); });
+      }
+      next();
+      return done.then(function () {
+        stream.getTracks().forEach(function (t) { t.stop(); });
+        var blob = new Blob(chunks, { type: (type || 'video/webm').split(';')[0] });
+        TL.result = blob; $('toast').hidden = true; $('tlSave').hidden = false;
+        var secs = frames.length * Math.max(1, Math.ceil(90 / frames.length)) / 30;
+        toast('Time-lapse ready (' + (secs < 10 ? secs.toFixed(1) : Math.round(secs)) + ' s). Tap Save video in Export.');
+        syncUI();
+      });
+    }).catch(function (e) { toast('The time-lapse could not be made: ' + (e && e.message || e)); });
+  }
+  $('tlBtn').addEventListener('click', function () { if (TL.on) tlStop(); else tlStart(); });
+  $('tlSave').addEventListener('click', function () { if (TL.result) saveFile(TL.result, 'numotif-trace-timelapse-' + stamp() + (TL.result.type.indexOf('mp4') >= 0 ? '.mp4' : '.webm')); });
+  $('tlEvery').querySelectorAll('button').forEach(function (b) { b.addEventListener('click', function () { TL.every = +b.dataset.v; if (TL.on) { clearInterval(TL.timer); TL.timer = setInterval(tlGrab, TL.every); } syncUI(); }); });
+
+  // ---------- face guide on the base: the classic proportions inside the first head
+  function drawFaceGuide(x, b, sc) {
+    var n = S.heads || 9, hh = (b.box.y1 - b.box.y0) / n, top = b.box.y0;
+    // the drawn head: centre, width and tilt from the outline's pixels in the first head (image moments)
+    var d = b.canvas.getContext('2d').getImageData(0, Math.round(top), b.w, Math.max(1, Math.round(hh))).data;
+    var n0 = 0, sx = 0, sy = 0, sxx = 0, syy = 0, sxy = 0, minX = b.w, maxX = 0;
+    for (var yy = 0; yy < Math.round(hh); yy++) for (var xx = 0; xx < b.w; xx++) {
+      var p = (yy * b.w + xx) * 4; if (0.299 * d[p] + 0.587 * d[p + 1] + 0.114 * d[p + 2] >= 170) continue;
+      n0++; sx += xx; sy += yy; sxx += xx * xx; syy += yy * yy; sxy += xx * yy;
+      if (yy > hh * 0.3 && yy < hh * 0.7) { if (xx < minX) minX = xx; if (xx > maxX) maxX = xx; } }
+    var cx = n0 ? sx / n0 : (b.box.x0 + b.box.x1) / 2, cyl = n0 ? sy / n0 : hh / 2, tilt = 0;
+    if (n0 > 30) { var mx = sxx / n0 - cx * cx, my = syy / n0 - cyl * cyl, mxy = sxy / n0 - cx * cyl;
+      tilt = 0.5 * Math.atan2(2 * mxy, mx - my) - Math.PI / 2; if (tilt < -Math.PI / 2) tilt += Math.PI;   // major axis vs upright
+      if (Math.abs(tilt) > 0.6) tilt = 0; }
+    var span = maxX - minX, wHead = span > hh * 0.4 && span < hh * 1.1 ? span * Math.cos(tilt) : hh * 0.72;
+    var lw = 1.2 / sc, col = 'rgba(124,42,52,0.9)';
+    x.save(); x.translate(cx, top + hh / 2); x.rotate(tilt); x.translate(0, -hh / 2);
+    x.strokeStyle = col; x.lineWidth = lw; x.setLineDash([4 / sc, 3 / sc]);
+    x.beginPath(); x.ellipse(0, hh / 2, wHead / 2, hh / 2, 0, 0, Math.PI * 2); x.stroke();
+    x.beginPath(); x.moveTo(0, 0); x.lineTo(0, hh); x.stroke();
+    // hairline, brow, eyes (half way), nose base (3/4), mouth
+    [[0.18, 0.62], [0.45, 0.8], [0.5, 0.9], [0.73, 0.4], [0.82, 0.45]].forEach(function (r) {
+      var y = hh * r[0], half = wHead / 2 * r[1]; x.beginPath(); x.moveTo(-half, y); x.lineTo(half, y); x.stroke(); });
+    x.setLineDash([]); x.lineWidth = lw * 1.6;
+    [-1, 1].forEach(function (s2) { var ex = s2 * wHead * 0.22, ey = hh * 0.5; x.beginPath(); x.moveTo(ex - wHead * 0.1, ey); x.lineTo(ex + wHead * 0.1, ey); x.stroke(); });
+    x.restore();
+  }
+  $('faceSw').addEventListener('click', function () { S.faceGuide = !S.faceGuide; persist(); drawHeads.scale = 0; drawHeads(); placeBase(); syncUI(); });
+
+  function syncFashion2() {
+    $('isoSeg').querySelectorAll('button').forEach(function (b) { b.setAttribute('aria-pressed', b.dataset.v === S.iso ? 'true' : 'false'); });
+    $('isoClear').hidden = !(S.iso === 'pieces' && ISO.pieces.length);
+    $('isoNote').textContent = S.iso === 'clothes' ? 'Only the clothes show, in every view (photo, outlines, values).'
+      : S.iso === 'person' ? 'The background is hidden.' : S.iso === 'pieces' ? (ISO.pieces.length ? ISO.pieces.length + ' piece' + (ISO.pieces.length > 1 ? 's' : '') + ' picked. Tap the photo to add more; tap a picked piece to remove it.' : 'Close Tools and tap a garment piece on the photo.') : '';
+    $('isoRow').hidden = !img; $('poseCroquis').disabled = !img;
+    setSwitch('faceSw', !!S.faceGuide);
+    $('tlBtn').textContent = TL.on ? 'Stop and make video' : 'Start time-lapse'; $('tlBtn').classList.toggle('primary', !TL.on);
+    $('tlEvery').querySelectorAll('button').forEach(function (b) { b.setAttribute('aria-pressed', +b.dataset.v === TL.every ? 'true' : 'false'); });
+    $('tlSave').hidden = !TL.result;
+  }
+
   function setSwitch(id, on) { $(id).setAttribute('aria-checked', on ? 'true' : 'false'); }
   function syncUI() {
     if (S.view === 'stencil' && S.cumulative) S.view = 'layered'; if (S.view === 'layered' && !S.cumulative) S.view = 'stencil';
@@ -2063,7 +2612,7 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
     $('gridDot').style.background = 'rgb(' + COLORS[S.gridColor][1].join(',') + ')';
     $('gridCol').querySelector('span').textContent = 'Colour: ' + COLORS[S.gridColor][0];
     setSwitch('pauseSw', paused); setSwitch('torchSw', torchOn);
-    syncFashion();
+    syncFashion(); syncFashion2();
   }
   window.addEventListener('resize', function () {
     drawGridLayer(); drawGuides(); clampView(); placeWorld(); place();
