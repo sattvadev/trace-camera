@@ -41,7 +41,7 @@ and your chosen photo floats see-through on top, so you can draw while watching 
 ## For fashion designers (release 1)
 
 - **Base layer:** load your own croquis or flat block (front and back) under everything, fixed to the paper. Scanned paper is
-  lifted to white and blended away, so only the figure shows. **Head lines** (8, 9 or 10 heads) split the figure from crown to
+  lifted to white and turned see-through (alpha from darkness, colour un-mixed from white), so only the figure shows. **Head lines** (8, 9 or 10 heads) split the figure from crown to
   soles and are numbered down the side. Move it with **Move → Base**; undo/redo works per layer.
 - **Flats:** a centre-front line you can place (or line up with the base), and a **live mirror**: draw one half and your own
   pencil lines appear flipped on the other side, extracted from the camera 15 times a second (paper and desk are filtered out).
@@ -76,6 +76,18 @@ downloaded on first use and kept in Cache Storage. Nothing leaves the phone.
   1.5 mm), red is missing on the checked side, orange has no partner; gives a percentage.
 - **Time-lapse** (Export tab): a camera frame every 1, 2 or 5 seconds, played back at 30 frames a second (at least 3 s) and
   recorded with MediaRecorder to MP4 (WebM where MP4 is not available); saved through the share sheet.
+
+## For fashion designers (release 3)
+
+- **Grey markers** (View → Values → Markers): each value step is labelled with a marker number on the usual 0 (light) to
+  10 (dark) grey scale: cool C, neutral N, warm W, or % greys. The number comes from that step's real average tone in the
+  photo, not its position in the strip. Shown on the step buttons and in the step label.
+- **Sheen: leave white:** small, very bright, colourless spots well above their surroundings (shine on satin, leather,
+  sequins, glass) are hatched in blue on the values view, so the paper is kept white there.
+- **Lock to paper** (Camera tab): the sheet's corners are found about 7 times a second (Otsu threshold, largest bright
+  region, extreme corners), smoothed, and a perspective (homography) transform keeps the photo, base, head lines, grid on
+  the photo and ghost registered to the sheet when the phone or the paper moves. Holds still if the sheet is lost and says
+  so; turns off on rotation. Taps (Pick) are mapped back through it.
 
 Photos are processed on the device and never uploaded. Everything is in `index.html`; no build step.
 Needs https for camera access (GitHub Pages provides it).

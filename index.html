@@ -54,10 +54,11 @@ button, select, input { font: inherit; color: inherit; }
 /* fashion layers: the base (your croquis or flat block) and its head lines ride on their own placement;
    ghost and mirror are camera-space pictures of the paper; guides holds the centre-front line */
 #baseLayer, #headLayer { position: absolute; left: 50%; top: 50%; transform-origin: 50% 50%; pointer-events: none; will-change: transform, opacity; }
-#baseLayer { mix-blend-mode: multiply; }
 #ghostLayer, #mirrorLayer, #guideLayer, #symLayer { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
 #symLayer { visibility: hidden; }
-#ghostLayer { mix-blend-mode: multiply; }
+/* everything that belongs on the paper; follows the sheet when Lock to paper is on */
+#paperSpace { position: absolute; inset: 0; transform-origin: 0 0; pointer-events: none; }
+
 
 /* frosted pills */
 .glass { background: var(--glass); backdrop-filter: blur(14px) saturate(1.4); -webkit-backdrop-filter: blur(14px) saturate(1.4);
@@ -103,7 +104,7 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
 .step2 { display: inline-flex; border-radius: 999px; background: rgba(20,24,32,0.08); }
 .step2 button { border: 0; background: transparent; width: 46px; height: 36px; font-size: 1.3rem; cursor: pointer; }
 .step2 button + button { border-left: 1px solid var(--line); }
-.seg { display: inline-flex; border-radius: 999px; background: var(--gray-100); padding: 3px; }
+.seg { display: inline-flex; flex-wrap: wrap; max-width: 100%; border-radius: 18px; background: var(--gray-100); padding: 3px; }
 .seg button { border: 0; background: transparent; padding: 7px 13px; border-radius: 999px; cursor: pointer; color: var(--muted); font-weight: 500; white-space: nowrap; }
 .seg button[aria-pressed="true"] { background: #fff; color: var(--accent); font-weight: 600; box-shadow: var(--shadow-md); }
 .chip { border: 1px solid var(--line); background: #fff; font-weight: 600; border-radius: 999px; padding: 7px 13px; cursor: pointer; white-space: nowrap; }
@@ -118,6 +119,8 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
   box-shadow: inset 0 0 0 1px rgba(15,14,12,.16); display: grid; place-items: center; font-variant-numeric: tabular-nums; }
 .sbtn[aria-pressed="true"] { box-shadow: inset 0 0 0 3px var(--accent), inset 0 0 0 5px #fff; }
 .sbtn.all { background: #fff; color: var(--ink); font-size: .9rem; }
+.sbtn small { display: block; font-size: .62rem; font-weight: 700; line-height: 1; margin-top: 1px; opacity: .9; }
+.sbtn { line-height: 1.05; }
 .colChip { display: inline-flex; align-items: center; gap: 8px; }
 .colChip .swatchDot { width: 18px; height: 18px; }
 .chip.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
@@ -235,13 +238,15 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
 <div id="stage">
   <div id="world">
     <video id="video" playsinline muted autoplay></video>
-    <canvas id="ghostLayer"></canvas>
+    <div id="paperSpace">
+      <canvas id="ghostLayer"></canvas>
+      <canvas id="baseLayer"></canvas>
+      <canvas id="headLayer"></canvas>
+      <canvas id="overlay"></canvas>
+      <canvas id="photoGrid"></canvas>
+    </div>
     <canvas id="mirrorLayer"></canvas>
-    <canvas id="baseLayer"></canvas>
-    <canvas id="headLayer"></canvas>
-    <canvas id="overlay"></canvas>
     <canvas id="gridLayer"></canvas>
-    <canvas id="photoGrid"></canvas>
     <canvas id="guideLayer"></canvas>
     <canvas id="symLayer"></canvas>
   </div>
@@ -282,6 +287,19 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
       <button type="button" data-v="values" aria-pressed="false">Values</button>
     </div>
     <div class="grow" id="valuesRow" hidden><input id="values" type="range" min="3" max="7" step="1" value="5" aria-label="Number of values"><span>Values: <output id="valuesOut">5</output></span></div>
+    <div id="markerRow" style="display:grid;gap:8px" hidden>
+      <div class="row"><span class="sub">Markers</span>
+        <div class="seg" id="markerSeg" role="group" aria-label="Label each step with a grey marker">
+          <button type="button" data-v="off" aria-pressed="true">Off</button>
+          <button type="button" data-v="C" aria-pressed="false" aria-label="Cool grey C">C</button>
+          <button type="button" data-v="N" aria-pressed="false" aria-label="Neutral grey N">N</button>
+          <button type="button" data-v="W" aria-pressed="false" aria-label="Warm grey W">W</button>
+          <button type="button" data-v="P" aria-pressed="false" aria-label="Grey percent">%</button>
+        </div>
+      </div>
+      <div class="row"><button type="button" class="chip" id="sheenBtn" aria-pressed="false">Sheen: leave white</button><span class="note" style="flex:1 1 150px">Hatches the shine on satin, leather and glass so you keep the paper white there.</span></div>
+      <div class="note" id="markerNote" hidden>C cool, N neutral, W warm grey, or % greys. Numbers follow the usual 0 (lightest) to 10 (darkest) scale, matched to each step's real tone in the photo. Check against your own swatches.</div>
+    </div>
     <div class="grow" id="simplifyRow" hidden><input id="simplify" type="range" min="0" max="10" step="1" value="3" aria-label="Simplify"><span>Simplify: <output id="simplifyOut">3</output> <span class="note">(0 = most detail)</span></span></div>
     <div class="row" id="colourRow" hidden>
       <button type="button" class="chip colChip" id="lineCol"><i class="swatchDot" id="colDot"></i><span>Lines: black</span></button>
@@ -293,7 +311,7 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
           <button type="button" data-v="all" aria-pressed="true">All</button>
           <button type="button" data-v="clothes" aria-pressed="false">Clothes</button>
           <button type="button" data-v="person" aria-pressed="false">Person</button>
-          <button type="button" data-v="pieces" aria-pressed="false">Tap pieces</button>
+          <button type="button" data-v="pieces" aria-pressed="false" aria-label="Tap pieces">Pick</button>
         </div>
         <button type="button" class="chip" id="isoClear" hidden>Clear pieces</button>
       </div>
@@ -437,6 +455,10 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
       <div class="ctl"><button type="button" class="chip" id="resetZoom">Reset zoom</button><span class="note" id="zoomNote">Zoom 1.0×</span></div>
     </div>
     <div class="note">Pause freezes the camera picture. To zoom in for detail, turn Move off and pinch. Double-tap to zoom back out.</div>
+    <div class="row">
+      <div class="ctl"><button type="button" class="switch" id="paperSw" role="switch" aria-checked="false" aria-label="Lock to paper"></button></div>
+      <span style="flex:1 1 170px"><b>Lock to paper</b><br><span class="note" id="paperNote">Keeps your picture on the sheet when the phone or the paper moves. Place it first, then turn this on. Needs the whole sheet in view, on a darker surface.</span></span>
+    </div>
   </div>
 
   <div class="card glass" data-panel="light" hidden>
@@ -530,9 +552,10 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
       <li><b>Flats:</b> turn on the centre line, then <b>Mirror</b>: draw one half and your own lines appear flipped on the other side, live. <b>Ghost</b> keeps a faint copy of a finished sheet to draw the next look over.</li>
       <li><b>Boards</b> save your base, its place, head lines and guides, so every sheet of a collection matches. Your work is also saved on this phone as you go.</li>
       <li><b>Export:</b> photograph the finished sheet, drag the corners, and save clean lines as PNG or SVG, or use them as your next base.</li>
-      <li><b>Show</b> (Tools → View): <b>Clothes</b> keeps only the garments of a street or runway photo, in every view; <b>Tap pieces</b> lets you tap a single garment (a shirt, the trousers) to trace just that.</li>
+      <li><b>Show</b> (Tools → View): <b>Clothes</b> keeps only the garments of a street or runway photo, in every view; <b>Pick</b> lets you tap a single garment (a shirt, the trousers) to trace just that.</li>
       <li><b>Croquis from photo pose</b> (Tools → Base) draws a 9-head fashion figure in the pose of your photo and places it over it. <b>Face guide</b> marks the eye line, nose and mouth.</li>
       <li><b>Check symmetry</b> (Flats) compares both halves of your sheet: green matches, red is missing, orange has no partner. <b>Time-lapse</b> (Export) records your drawing as a short video.</li>
+      <li><b>Markers</b> (Values) labels each step with a grey marker number from the photo's real tones; <b>Sheen</b> hatches the shine to keep white. <b>Lock to paper</b> (Camera) keeps the picture on the sheet if the phone or paper moves.</li>
       <li><b>Hide</b> and <b>Opacity</b> help you check your drawing against the paper. Hide leaves the grid and guides showing.</li>
     </ul>
     <p class="note">Photos stay on your phone. AI sketch uses the Informative Drawings model by Caroline Chan, Frédo Durand and Phillip Isola (MIT License). Clothes, pose and piece finding use Google MediaPipe models (Apache License 2.0). All run on your phone; models download once.</p>
@@ -585,9 +608,9 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
 
   var S = { mode: 'photo', view: 'layered', values: 5, simplify: 3, hl: 0, lineStyle: 'ai', step: 1, opacity: 55, mirror: false,
             color: 0, grid: false, gridColor: 3, gridOpacity: 80, gridSize: 90, gridOn: 'photo', gridCells: 4, gridDiag: false, strobeSpeed: 4, aiView: 'layered', aiLayer: 1, cumulative: true,
-            baseOn: true, baseOpacity: 70, heads: 0, flatView: 'front', cfOn: false, cfX: 500, mirrorOn: false, mirrorSide: 'lr', mirrorStrength: 60, ghostOn: false, ghostOpacity: 35, iso: 'all', faceGuide: false };
+            baseOn: true, baseOpacity: 70, heads: 0, flatView: 'front', cfOn: false, cfX: 500, mirrorOn: false, mirrorSide: 'lr', mirrorStrength: 60, ghostOn: false, ghostOpacity: 35, iso: 'all', faceGuide: false, markers: 'off', sheen: false };
   var SAVED = ['mode', 'view', 'values', 'simplify', 'hl', 'lineStyle', 'opacity', 'mirror', 'color', 'grid', 'gridColor', 'gridOpacity', 'gridSize', 'gridOn', 'gridCells', 'gridDiag', 'strobeSpeed', 'aiView', 'aiLayer', 'cumulative',
-               'baseOn', 'baseOpacity', 'heads', 'flatView', 'cfOn', 'cfX', 'mirrorOn', 'mirrorSide', 'mirrorStrength', 'ghostOn', 'ghostOpacity', 'iso', 'faceGuide'];
+               'baseOn', 'baseOpacity', 'heads', 'flatView', 'cfOn', 'cfX', 'mirrorOn', 'mirrorSide', 'mirrorStrength', 'ghostOn', 'ghostOpacity', 'iso', 'faceGuide', 'markers', 'sheen'];
   try { var sv = JSON.parse(localStorage.getItem('trace-camera') || 'null');
     if (sv) SAVED.forEach(function (k) { if (k in sv) S[k] = sv[k]; });
     if (sv && !sv.v2) S.lineStyle = 'ai';   // one-time switch: AI sketch became the default outline style
@@ -944,7 +967,7 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
       octx.putImageData(inkImage(lineMap), 0, 0); place(); return;
     }
     if (!idx) { reprocess(function () { render(); syncUI(); }); return; }   // values are worked out on first need
-    octx.putImageData(buildImage(S.mode, S.view, S.step), 0, 0); place();
+    octx.putImageData(buildImage(S.mode, S.view, S.step), 0, 0); if (S.sheen) drawSheen(); place();
   }
   // The line drawing as an overlay: lines about 3 px wide at working size, transparent elsewhere.
   // Ink (0..1 per pixel) as an overlay in the chosen line colour.
@@ -1071,6 +1094,32 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
         render(); syncUI();
       });
   }
+  // ---------- sheen: small, very bright, colourless spots well above their surroundings (shine on satin, leather, glass)
+  function sheenMask() {
+    if (sheenMask.img === img) return sheenMask.c;
+    var w = img.w, h = img.h, N = w * h, L = img.lum, d = img.rgb, local = boxMean(L, w, h, Math.max(4, Math.round(Math.max(w, h) / 70)));
+    var srt = []; for (var i = 0; i < N; i += 11) srt.push(L[i]); srt.sort(function (a, b) { return a - b; });
+    var top = Math.max(0.78, srt[Math.floor(srt.length * 0.97)] - 0.02), m = new Float32Array(N), any = 0;
+    for (var j = 0, p = 0; j < N; j++, p += 4) {
+      var mx = Math.max(d[p], d[p + 1], d[p + 2]), mn = Math.min(d[p], d[p + 1], d[p + 2]), sat = mx ? (mx - mn) / mx : 0;
+      if (L[j] >= top && L[j] - local[j] > 0.07 && sat < 0.25) { m[j] = 1; any++; } }
+    var soft = boxMean(m, w, h, 1), c = document.createElement('canvas'); c.width = w; c.height = h;
+    var x = c.getContext('2d'), id = x.createImageData(w, h), o = id.data;
+    for (var k = 0, q = 0; k < N; k++, q += 4) o[q + 3] = soft[k] > 0.3 ? 255 : 0;
+    x.putImageData(id, 0, 0);
+    sheenMask.img = img; sheenMask.c = any > N * 0.0005 ? c : null; return sheenMask.c;
+  }
+  function drawSheen() {
+    var m = sheenMask(); if (!m) return;
+    var w = img.w, h = img.h, t = document.createElement('canvas'); t.width = w; t.height = h; var x = t.getContext('2d');
+    var pc = document.createElement('canvas'), ps = Math.max(6, Math.round(Math.max(w, h) / 140)); pc.width = ps; pc.height = ps;
+    var px = pc.getContext('2d'); px.strokeStyle = 'rgba(14,140,190,0.95)'; px.lineWidth = Math.max(1.2, ps / 5);
+    px.beginPath(); px.moveTo(0, ps); px.lineTo(ps, 0); px.stroke();
+    x.fillStyle = '#fff'; x.fillRect(0, 0, w, h); x.fillStyle = x.createPattern(pc, 'repeat'); x.fillRect(0, 0, w, h);
+    x.globalCompositeOperation = 'destination-in'; x.drawImage(m, 0, 0);
+    octx.drawImage(t, 0, 0);
+  }
+
   // ---------- step bar: the breakdown steps on the drawing screen, lightest first, then All
   var AI_NAMES = ['Main lines', 'Secondary lines', 'Light lines & texture'];
   function stepKind() {
@@ -1088,7 +1137,7 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
     persist(); render(); syncUI();
   }
   function buildStrip(kind) {
-    var strip = $('strip'), n = stepCount(kind), key = kind + n;
+    var strip = $('strip'), n = stepCount(kind), key = kind + n + (kind === 'values' ? S.markers + (stepTones.idx === idx ? 'i' : '') : '');
     if (strip.dataset.key === key && strip.children.length === n + 1) return;
     strip.innerHTML = ''; strip.dataset.key = key;
     for (var v = 0; v <= n; v++) {
@@ -1096,7 +1145,10 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
       if (v === 0) { b.className += ' all'; b.textContent = 'All'; b.setAttribute('aria-label', 'Show all steps'); }
       else {
         var gv = kind === 'ai' ? [43, 124, 211][v - 1] : greyOf(v, n);
-        b.textContent = v; b.style.background = 'rgb(' + gv + ',' + gv + ',' + gv + ')'; b.style.color = gv > 140 ? '#1b1f28' : '#f2f3f6';
+        var mk = kind === 'values' ? markerFor(v) : '';
+        if (mk) { b.innerHTML = ''; var bb = document.createElement('span'); bb.textContent = v; var sm = document.createElement('small'); sm.textContent = mk === 'paper' ? 'paper' : mk; b.appendChild(bb); b.appendChild(sm); }
+        else b.textContent = v;
+        b.style.background = 'rgb(' + gv + ',' + gv + ',' + gv + ')'; b.style.color = gv > 140 ? '#1b1f28' : '#f2f3f6';
         b.setAttribute('aria-label', 'Step ' + v + ', ' + (kind === 'ai' ? AI_NAMES[v - 1] : NAMES[n][v - 1]));
       }
       strip.appendChild(b);
@@ -1108,14 +1160,30 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
     var b = e.target.closest('.sbtn'); var kind = stepKind(); if (!b || !kind) return;
     pickStep(kind, +b.dataset.v);
   });
+  // ---------- grey markers: each value step's real tone in the photo, as a marker number on the 0 (light) to 10 (dark) scale
+  function stepTones() {
+    if (stepTones.idx === idx && stepTones.n === S.values) return stepTones.v;
+    var n = S.values, sum = new Float64Array(n + 1), cnt = new Float64Array(n + 1);
+    for (var i = 0; i < idx.length; i++) { sum[idx[i]] += img.lum[i]; cnt[idx[i]]++; }
+    var v = []; for (var k = 1; k <= n; k++) v.push(cnt[k] ? sum[k] / cnt[k] : 1 - (k - 1) / (n - 1));
+    stepTones.idx = idx; stepTones.n = n; stepTones.v = v; return v;
+  }
+  function markerFor(k) {
+    if (S.markers === 'off' || !idx) return '';
+    var t = stepTones()[k - 1], m = clamp(Math.round((0.93 - t) / 0.086), 0, 10);
+    if (k === 1 && t > 0.82) return 'paper';
+    return S.markers === 'P' ? clamp(m * 10, 10, 90) + '%' : S.markers + '-' + m;
+  }
   function stepText(kind) {
     var n = stepCount(kind), k = curStep(kind);
     if (isAll(kind)) return kind === 'ai' ? 'Whole sketch' : 'All ' + n + ' values';
     if (kind === 'ai') return S.cumulative ? (k === 1 ? 'Step 1 · ' + AI_NAMES[0].toLowerCase() : 'Step ' + k + ' · add ' + AI_NAMES[k - 1].toLowerCase())
       : 'Step ' + k + ' only · ' + AI_NAMES[k - 1].toLowerCase();
     var name = NAMES[n][k - 1].toLowerCase();
-    if (!S.cumulative) return 'Step ' + k + ' only · ' + name;
-    return k === 1 ? 'Step 1 · paper to keep white' : 'Step ' + k + ' · paint ' + name + (k < n ? ' and darker' : '');
+    var mk = markerFor(k), mks = mk && mk !== 'paper' ? ' · marker ' + mk : '';
+    if (!S.cumulative) return 'Step ' + k + ' only · ' + name + mks;
+    if (k === 1) return !mk || mk === 'paper' ? 'Step 1 · paper to keep white' : 'Step 1 · lightest tone' + mks;
+    return 'Step ' + k + ' · paint ' + name + (k < n ? ' and darker' : '') + mks;
   }
 
 
@@ -1345,6 +1413,7 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
     $('start').hidden = false; $('top').hidden = true; $('bottom').hidden = true; $('opacityPop').hidden = true;
     if (strobeOn) setStrobe(false);
     if (TL.on) tlStop();
+    if (PL.on) setPaperLock(false);
     saveSession(); syncStart(); showResume(); syncUI();
   }
   function goHome() {
@@ -1484,7 +1553,14 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
         if (0.299 * r + 0.587 * g + 0.114 * b < 170) { var px = j % w, py = (j / w) | 0;
           if (px < x0) x0 = px; if (px > x1) x1 = px; if (py < y0) y0 = py; if (py > y1) y1 = py; }
       }
-      x.putImageData(id, 0, 0);
+      // white becomes see-through: alpha from how dark the pixel is, colour un-mixed from white
+      // (the exact inverse of laying the ink on white paper, so it looks the same over the camera)
+      for (var u = 0; u < d.length; u += 4) {
+        var a = 1 - Math.min(d[u], d[u + 1], d[u + 2]) / 255;
+        if (a < 0.02) { d[u + 3] = 0; continue; }
+        d[u] = (d[u] - 255 * (1 - a)) / a; d[u + 1] = (d[u + 1] - 255 * (1 - a)) / a; d[u + 2] = (d[u + 2] - 255 * (1 - a)) / a; d[u + 3] = Math.round(255 * a);
+      }
+      x.clearRect(0, 0, w, h); x.putImageData(id, 0, 0);
       var box = x1 > x0 && y1 > y0 ? { x0: x0, y0: y0, x1: x1 + 1, y1: y1 + 1 } : { x0: 0, y0: 0, x1: w, y1: h };
       BASE[view] = { canvas: c, w: w, h: h, box: box, blob: blob, name: name || 'Base', thumb: thumbOf(c, 200) };
     });
@@ -2154,7 +2230,7 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
     if (ISO.clothes && ISO.person) { buildMaskCanvas(); return; }
     segMasks().then(function (r) {
       var N = img.w * img.h, cover = 0; for (var j = 0; j < N; j += 7) cover += r.clothes[j] > 0.5 ? 1 : 0;
-      if (S.iso === 'clothes' && cover < N / 7 * 0.01) toast('No clothes found in this photo. Try Person, or Tap pieces.');
+      if (S.iso === 'clothes' && cover < N / 7 * 0.01) toast('No clothes found in this photo. Try Person, or Pick and tap a garment.');
     }).catch(aiFail).then(function () { buildMaskCanvas(); render(); syncUI(); });
   }
   // One garment piece from a tap, by a competitive watershed over the clothes area:
@@ -2223,6 +2299,7 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
   function screenToPhoto(sx, sy) {
     if (!img) return null;
     var W = window.innerWidth, H = window.innerHeight, wx = (sx - V.x) / V.s, wy = (sy - V.y) / V.s;
+    if (PL.Hinv) { var hi = PL.Hinv, zz = hi[6] * wx + hi[7] * wy + 1, ux = (hi[0] * wx + hi[1] * wy + hi[2]) / zz, uy = (hi[3] * wx + hi[4] * wy + hi[5]) / zz; wx = ux; wy = uy; }
     var dx = wx - (W / 2 + T.x), dy = wy - (H / 2 + T.y), c = Math.cos(-T.rot), s = Math.sin(-T.rot);
     var lx = (dx * c - dy * s) / T.scale, ly = (dx * s + dy * c) / T.scale;
     if (S.mirror) lx = -lx;
@@ -2264,6 +2341,11 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
       if (S.iso === 'pieces' && !ISO.pieces.length) toast('Close Tools, then tap a garment piece on the photo.');
       ensureIso(); render(); syncUI();
     });
+  });
+  $('markerSeg').querySelectorAll('button').forEach(function (b) { b.addEventListener('click', function () { S.markers = b.dataset.v; persist(); $('strip').dataset.key = ''; syncUI(); }); });
+  $('sheenBtn').addEventListener('click', function () {
+    S.sheen = !S.sheen; persist(); render(); syncUI();
+    if (S.sheen && img && !sheenMask()) toast('No strong shine found in this photo.');
   });
   $('isoClear').addEventListener('click', function () { ISO.pieces = []; buildMaskCanvas(); render(); syncUI(); });
 
@@ -2523,7 +2605,7 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
     var d = b.canvas.getContext('2d').getImageData(0, Math.round(top), b.w, Math.max(1, Math.round(hh))).data;
     var n0 = 0, sx = 0, sy = 0, sxx = 0, syy = 0, sxy = 0, minX = b.w, maxX = 0;
     for (var yy = 0; yy < Math.round(hh); yy++) for (var xx = 0; xx < b.w; xx++) {
-      var p = (yy * b.w + xx) * 4; if (0.299 * d[p] + 0.587 * d[p + 1] + 0.114 * d[p + 2] >= 170) continue;
+      var p = (yy * b.w + xx) * 4; if (d[p + 3] < 90 || 0.299 * d[p] + 0.587 * d[p + 1] + 0.114 * d[p + 2] >= 170) continue;
       n0++; sx += xx; sy += yy; sxx += xx * xx; syy += yy * yy; sxy += xx * yy;
       if (yy > hh * 0.3 && yy < hh * 0.7) { if (xx < minX) minX = xx; if (xx > maxX) maxX = xx; } }
     var cx = n0 ? sx / n0 : (b.box.x0 + b.box.x1) / 2, cyl = n0 ? sy / n0 : hh / 2, tilt = 0;
@@ -2545,12 +2627,65 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
   }
   $('faceSw').addEventListener('click', function () { S.faceGuide = !S.faceGuide; persist(); drawHeads.scale = 0; drawHeads(); placeBase(); syncUI(); });
 
+  // ---------- lock to paper: find the sheet's corners ~7 times a second and keep the paper layers registered to it
+  var PL = { on: false, q0: null, q: null, timer: 0, lostSince: 0, warned: false, H: null, Hinv: null, work: document.createElement('canvas') };
+  function paperQuadWorld() {   // the sheet's corners in world (screen at zoom 1) pixels, or null
+    var W = window.innerWidth, H = window.innerHeight, m = videoCover(W, H); if (!m) return null;
+    var v = m.v, k = Math.min(1, 320 / Math.max(v.videoWidth, v.videoHeight));
+    PL.work.width = Math.round(v.videoWidth * k); PL.work.height = Math.round(v.videoHeight * k);
+    PL.work.getContext('2d').drawImage(v, 0, 0, PL.work.width, PL.work.height);
+    var q = findPaper(PL.work); if (!q) return null;
+    var sc = m.dw / PL.work.width;
+    return q.map(function (p) { return [m.dx + p[0] * sc, m.dy + p[1] * sc]; });
+  }
+  function quadSize(q) { return Math.hypot(q[0][0] - q[2][0], q[0][1] - q[2][1]) + Math.hypot(q[1][0] - q[3][0], q[1][1] - q[3][1]); }
+  function applyPaper() {
+    var el = $('paperSpace');
+    if (!PL.on || !PL.q0 || !PL.q) { el.style.transform = ''; PL.H = PL.Hinv = null; return; }
+    var h = homography(PL.q0, PL.q);   // maps where the sheet was when locked -> where it is now
+    PL.H = h; PL.Hinv = homography(PL.q, PL.q0);
+    el.style.transform = 'matrix3d(' + [h[0], h[3], 0, h[6], h[1], h[4], 0, h[7], 0, 0, 1, 0, h[2], h[5], 0, 1].join(',') + ')';
+  }
+  function paperTick() {
+    if (!PL.on || paused) return;
+    var q = paperQuadWorld(), now = Date.now();
+    if (!q || (PL.q && Math.abs(quadSize(q) / quadSize(PL.q) - 1) > 0.35)) {   // not found, or an implausible jump: hold still
+      if (!PL.lostSince) PL.lostSince = now;
+      if (now - PL.lostSince > 2500 && !PL.warned) { PL.warned = true; toast('Paper lost: keep the whole sheet in view.'); }
+      return;
+    }
+    PL.lostSince = 0; PL.warned = false;
+    if (!PL.q) PL.q = q;
+    else {   // smooth the corners: steady when still, quick when the sheet really moves
+      var moveAmt = 0; for (var i = 0; i < 4; i++) moveAmt = Math.max(moveAmt, Math.hypot(q[i][0] - PL.q[i][0], q[i][1] - PL.q[i][1]));
+      var a = moveAmt < 3 ? 0.25 : moveAmt < 20 ? 0.6 : 0.9;
+      PL.q = PL.q.map(function (p, j) { return [p[0] + (q[j][0] - p[0]) * a, p[1] + (q[j][1] - p[1]) * a]; });
+    }
+    applyPaper();
+  }
+  function setPaperLock(on) {
+    clearInterval(PL.timer); PL.on = false; PL.q0 = PL.q = null; applyPaper();
+    if (on) {
+      var q = paperQuadWorld();
+      if (!q) { toast('Could not find the sheet. Put the whole paper in view on a darker surface, then try again.'); syncUI(); return; }
+      PL.on = true; PL.q0 = q; PL.q = q; PL.lostSince = 0; PL.warned = false; PL.w = window.innerWidth; applyPaper();
+      PL.timer = setInterval(paperTick, 140);
+      toast('Locked to the paper. If the phone or the sheet moves, the picture follows.');
+    }
+    syncUI();
+  }
+  $('paperSw').addEventListener('click', function () { setPaperLock(!PL.on); });
+
   function syncFashion2() {
     $('isoSeg').querySelectorAll('button').forEach(function (b) { b.setAttribute('aria-pressed', b.dataset.v === S.iso ? 'true' : 'false'); });
     $('isoClear').hidden = !(S.iso === 'pieces' && ISO.pieces.length);
     $('isoNote').textContent = S.iso === 'clothes' ? 'Only the clothes show, in every view (photo, outlines, values).'
       : S.iso === 'person' ? 'The background is hidden.' : S.iso === 'pieces' ? (ISO.pieces.length ? ISO.pieces.length + ' piece' + (ISO.pieces.length > 1 ? 's' : '') + ' picked. Tap the photo to add more; tap a picked piece to remove it.' : 'Close Tools and tap a garment piece on the photo.') : '';
     $('isoRow').hidden = !img; $('poseCroquis').disabled = !img;
+    $('markerRow').hidden = S.mode !== 'values'; $('markerNote').hidden = S.markers === 'off';
+    $('markerSeg').querySelectorAll('button').forEach(function (b) { b.setAttribute('aria-pressed', b.dataset.v === S.markers ? 'true' : 'false'); });
+    $('sheenBtn').setAttribute('aria-pressed', S.sheen ? 'true' : 'false');
+    setSwitch('paperSw', PL.on);
     setSwitch('faceSw', !!S.faceGuide);
     $('tlBtn').textContent = TL.on ? 'Stop and make video' : 'Start time-lapse'; $('tlBtn').classList.toggle('primary', !TL.on);
     $('tlEvery').querySelectorAll('button').forEach(function (b) { b.setAttribute('aria-pressed', +b.dataset.v === TL.every ? 'true' : 'false'); });
@@ -2615,6 +2750,7 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
     syncFashion(); syncFashion2();
   }
   window.addEventListener('resize', function () {
+    if (PL.on && Math.abs(window.innerWidth - PL.w) > 2) setPaperLock(false);   // rotated: the sheet's place on screen changed
     drawGridLayer(); drawGuides(); clampView(); placeWorld(); place();
     if (!$('capture').hidden) { if (!$('capStep1').hidden) layoutCap(); else showResult(); }
   });
