@@ -51,6 +51,12 @@ button, select, input { font: inherit; color: inherit; }
 #overlay { position: absolute; left: 50%; top: 50%; transform-origin: 50% 50%; pointer-events: none; will-change: transform, opacity; }
 #gridLayer { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
 #photoGrid { position: absolute; left: 50%; top: 50%; transform-origin: 50% 50%; pointer-events: none; will-change: transform; }
+/* fashion layers: the base (your croquis or flat block) and its head lines ride on their own placement;
+   ghost and mirror are camera-space pictures of the paper; guides holds the centre-front line */
+#baseLayer, #headLayer { position: absolute; left: 50%; top: 50%; transform-origin: 50% 50%; pointer-events: none; will-change: transform, opacity; }
+#baseLayer { mix-blend-mode: multiply; }
+#ghostLayer, #mirrorLayer, #guideLayer { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+#ghostLayer { mix-blend-mode: multiply; }
 
 /* frosted pills */
 .glass { background: var(--glass); backdrop-filter: blur(14px) saturate(1.4); -webkit-backdrop-filter: blur(14px) saturate(1.4);
@@ -113,6 +119,29 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
 .sbtn.all { background: #fff; color: var(--ink); font-size: .9rem; }
 .colChip { display: inline-flex; align-items: center; gap: 8px; }
 .colChip .swatchDot { width: 18px; height: 18px; }
+.chip.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+.chip:disabled { opacity: .45; cursor: default; }
+.fileChip { position: relative; overflow: hidden; display: inline-flex; align-items: center; }
+.fileChip input { position: absolute; inset: 0; opacity: 0; cursor: pointer; font-size: 0; }
+.slots { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.slot { border: 1px solid var(--line); border-radius: var(--radius-control); background: #fff; padding: 8px; display: grid; gap: 6px; justify-items: center; text-align: center; min-width: 0; }
+.slot b { font-size: .85rem; }
+.slot .thumbBox { width: 100%; height: 76px; border-radius: var(--radius-xs); background: var(--gray-50); display: grid; place-items: center; overflow: hidden; }
+.slot .thumbBox img { max-width: 100%; max-height: 76px; display: block; }
+.slot .thumbBox span { font-size: .78rem; color: var(--muted); padding: 0 6px; }
+.slot .row { gap: 6px; justify-content: center; }
+.slot .chip { padding: 6px 10px; font-size: .82rem; }
+.boardList { display: grid; gap: 8px; }
+.board { display: grid; grid-template-columns: 52px 1fr auto; gap: 10px; align-items: center; border: 1px solid var(--line); border-radius: var(--radius-control); background: #fff; padding: 6px 8px; }
+.board[aria-current="true"] { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
+.board img, .board .noThumb { width: 52px; height: 52px; object-fit: contain; border-radius: var(--radius-xs); background: var(--gray-50); }
+.board .nm { font-weight: 700; overflow-wrap: anywhere; }
+.board .dt { font-size: .78rem; color: var(--muted); }
+.board .acts { display: flex; gap: 6px; }
+.board .acts .chip { padding: 6px 10px; font-size: .82rem; }
+.textIn { flex: 1 1 140px; min-width: 0; border: 1px solid var(--gray-200); border-radius: var(--radius-control); padding: 9px 12px; background: #fff; font-weight: 500; }
+.textIn:focus { outline: none; border-color: var(--accent); box-shadow: var(--focus-ring); }
+.sub { font-size: .78rem; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); }
 
 /* bottom bar */
 #bottom { position: fixed; z-index: 20; left: 0; right: 0; bottom: 0; display: grid; justify-items: center; gap: 10px;
@@ -147,6 +176,31 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
 .modal .btns button.primary { background: var(--accent); color: var(--accent-ink); }
 .modal .btns button.primary:hover { background: var(--accent-hover); }
 
+/* capture: straighten the photographed sheet, clean it to lines, export */
+#capture { position: fixed; inset: 0; z-index: 45; background: var(--gray-900); color: #fff; display: grid; grid-template-rows: auto 1fr auto;
+  padding: calc(10px + env(safe-area-inset-top)) max(12px, env(safe-area-inset-right)) calc(12px + env(safe-area-inset-bottom)) max(12px, env(safe-area-inset-left)); touch-action: none; }
+#capture header { display: flex; align-items: center; justify-content: space-between; gap: 10px; min-height: 46px; }
+#capture h2 { margin: 0; font-size: 1.05rem; font-weight: 700; }
+#capture .hint { font-size: .85rem; color: #cfc9bf; text-align: center; }
+#capStage { position: relative; min-height: 0; display: grid; place-items: center; overflow: hidden; }
+#capStage canvas { max-width: 100%; max-height: 100%; display: block; }
+#capQuad { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+.handle { position: absolute; width: 44px; height: 44px; margin: -22px 0 0 -22px; border-radius: 50%; border: 3px solid #fff; background: rgba(124,42,52,.55);
+  box-shadow: 0 0 0 1px rgba(0,0,0,.4), var(--shadow-md); touch-action: none; cursor: grab; }
+.handle::after { content: ""; position: absolute; left: 50%; top: 50%; width: 4px; height: 4px; margin: -2px 0 0 -2px; border-radius: 50%; background: #fff; }
+#capResultBox { max-width: 100%; max-height: 100%; background-color: #fff;
+  background-image: linear-gradient(45deg, #eee 25%, transparent 25%), linear-gradient(-45deg, #eee 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #eee 75%), linear-gradient(-45deg, transparent 75%, #eee 75%);
+  background-size: 18px 18px; background-position: 0 0, 0 9px, 9px -9px, -9px 0; border-radius: var(--radius-xs); }
+#capture .bar { display: grid; gap: 10px; padding-top: 10px; }
+#capture .bar .row { justify-content: center; }
+#capture .chip { background: rgba(255,255,255,.12); color: #fff; border-color: rgba(255,255,255,.25); }
+#capture .chip.primary { background: var(--accent); border-color: var(--accent); }
+#capture .seg { background: rgba(255,255,255,.12); }
+#capture .seg button { color: #cfc9bf; }
+#capture .seg button[aria-pressed="true"] { background: #fff; color: var(--accent); }
+#capture input[type=range] { accent-color: #E6B7BA; }
+#capture .grow > span { color: #cfc9bf; }
+
 /* start screen: warm paper, wine brand plate */
 #start { position: fixed; inset: 0; z-index: 40; display: grid; place-items: center; background: var(--paper); color: var(--ink);
   padding: max(20px, env(safe-area-inset-top)) max(20px, env(safe-area-inset-right)) max(20px, env(safe-area-inset-bottom)) max(20px, env(safe-area-inset-left)); overflow-y: auto; touch-action: pan-y; }
@@ -164,8 +218,13 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
 .big.primary:hover:not(:disabled) { background: var(--accent-hover); }
 .big:disabled { opacity: .4; cursor: default; }
 .big input[type=file] { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
-#thumbWrap { display: flex; align-items: center; gap: 12px; }
-#thumb { width: 64px; height: 64px; object-fit: cover; border-radius: var(--radius-control); }
+#thumbWrap { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+#thumbWrap figure { margin: 0; display: flex; align-items: center; gap: 8px; font-size: .85rem; color: var(--gray-700); }
+#resume { background: #fff; border: 1px solid var(--line); border-radius: var(--radius-panel); padding: 14px; display: grid; gap: 10px; box-shadow: var(--shadow-sm); }
+#resume .row { gap: 10px; }
+#resume img { width: 48px; height: 48px; object-fit: contain; border-radius: var(--radius-xs); background: var(--gray-50); }
+.or { text-align: center; font-size: .8rem; color: var(--muted); letter-spacing: .14em; text-transform: uppercase; }
+#thumb, #baseThumb { width: 56px; height: 56px; object-fit: contain; background: #fff; border: 1px solid var(--line); border-radius: var(--radius-control); }
 .msg { color: var(--danger); }
 .fine { font-size: .82rem; color: var(--muted) !important; }
 </style>
@@ -174,9 +233,14 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
 <div id="stage">
   <div id="world">
     <video id="video" playsinline muted autoplay></video>
+    <canvas id="ghostLayer"></canvas>
+    <canvas id="mirrorLayer"></canvas>
+    <canvas id="baseLayer"></canvas>
+    <canvas id="headLayer"></canvas>
     <canvas id="overlay"></canvas>
     <canvas id="gridLayer"></canvas>
     <canvas id="photoGrid"></canvas>
+    <canvas id="guideLayer"></canvas>
   </div>
 </div>
 
@@ -198,6 +262,10 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
 <section id="tools" hidden aria-label="Tools">
   <div id="tabs" role="tablist">
     <button type="button" role="tab" class="glass" data-tab="picture" aria-selected="true">View</button>
+    <button type="button" role="tab" class="glass" data-tab="base" aria-selected="false">Base</button>
+    <button type="button" role="tab" class="glass" data-tab="flats" aria-selected="false">Flats</button>
+    <button type="button" role="tab" class="glass" data-tab="boards" aria-selected="false">Boards</button>
+    <button type="button" role="tab" class="glass" data-tab="export" aria-selected="false">Export</button>
     <button type="button" role="tab" class="glass" data-tab="grid" aria-selected="false">Grid</button>
     <button type="button" role="tab" class="glass" data-tab="strobe" aria-selected="false">Strobe</button>
     <button type="button" role="tab" class="glass" data-tab="camera" aria-selected="false">Camera</button>
@@ -237,6 +305,77 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
         </div>
       </div>
     </details>
+  </div>
+
+  <div class="card glass" data-panel="base" hidden>
+    <div class="note">Your own croquis or flat block sits under everything, fixed to the paper. White paper in the image turns see-through.</div>
+    <div class="slots">
+      <div class="slot"><b>Front</b><div class="thumbBox" id="frontBox"><span>None yet</span></div>
+        <div class="row"><label class="chip fileChip">Choose<input type="file" id="frontFile" accept="image/*"></label><button type="button" class="chip" id="frontClear" hidden>Remove</button></div></div>
+      <div class="slot"><b>Back</b><div class="thumbBox" id="backBox"><span>Optional</span></div>
+        <div class="row"><label class="chip fileChip">Choose<input type="file" id="backFile" accept="image/*"></label><button type="button" class="chip" id="backClear" hidden>Remove</button></div></div>
+    </div>
+    <div class="row">
+      <div class="ctl"><button type="button" class="switch" id="baseSw" role="switch" aria-checked="true" aria-label="Show base"></button><span>Show base</span></div>
+      <div class="grow"><input id="baseOpacity" type="range" min="10" max="100" step="1" value="70" aria-label="Base opacity"><span>Base opacity</span></div>
+    </div>
+    <div class="row">
+      <span class="sub">Head lines</span>
+      <div class="seg" id="headsSeg" role="group" aria-label="Head lines on the base">
+        <button type="button" data-v="0" aria-pressed="true">Off</button>
+        <button type="button" data-v="8" aria-pressed="false">8</button>
+        <button type="button" data-v="9" aria-pressed="false">9</button>
+        <button type="button" data-v="10" aria-pressed="false">10</button>
+      </div>
+    </div>
+    <div class="row"><button type="button" class="chip" id="baseFit">Fit base to screen</button></div>
+    <div class="note">Head lines split the figure from the top of the head to the soles into equal heads, so every look in a line-up keeps the same proportions. To move the base, turn on <b>Move</b> and choose <b>Base</b> at the bottom.</div>
+  </div>
+
+  <div class="card glass" data-panel="flats" hidden>
+    <div class="row">
+      <span class="sub">View</span>
+      <div class="seg" id="flatSeg" role="group" aria-label="Front or back">
+        <button type="button" data-v="front" aria-pressed="true">Front</button>
+        <button type="button" data-v="back" aria-pressed="false">Back</button>
+      </div>
+      <span class="note" id="flatNote"></span>
+    </div>
+    <div class="row">
+      <div class="ctl"><button type="button" class="switch" id="cfSw" role="switch" aria-checked="false" aria-label="Centre-front line"></button><span>Centre line</span></div>
+      <div class="grow"><input id="cfX" type="range" min="150" max="850" step="1" value="500" aria-label="Centre line position"><span>Position</span></div>
+    </div>
+    <div class="row"><button type="button" class="chip" id="cfToBase">Line up with the base</button></div>
+    <div class="row">
+      <div class="ctl"><button type="button" class="switch" id="mirrorSw" role="switch" aria-checked="false" aria-label="Mirror my drawing"></button><span>Mirror</span></div>
+      <div class="seg" id="mirrorSideSeg" role="group" aria-label="Which half to copy">
+        <button type="button" data-v="lr" aria-pressed="true">Left → right</button>
+        <button type="button" data-v="rl" aria-pressed="false">Right → left</button>
+      </div>
+    </div>
+    <div class="grow"><input id="mirrorStrength" type="range" min="15" max="100" step="1" value="60" aria-label="Mirror strength"><span>Mirror strength</span></div>
+    <div class="note">Draw one half of the garment. Mirror shows your own pencil lines flipped across the centre line, live, so you can trace the other half and keep the flat symmetrical.</div>
+    <div class="row">
+      <span class="sub">Ghost</span>
+      <button type="button" class="chip" id="ghostGrab">Capture this sheet</button>
+      <div class="ctl"><button type="button" class="switch" id="ghostSw" role="switch" aria-checked="false" aria-label="Show ghost"></button></div>
+      <button type="button" class="chip" id="ghostClear" hidden>Clear</button>
+    </div>
+    <div class="grow" id="ghostOpRow" hidden><input id="ghostOpacity" type="range" min="10" max="80" step="1" value="35" aria-label="Ghost opacity"><span>Ghost opacity</span></div>
+    <div class="note">Ghost keeps a faint copy of the sheet under the camera. Swap in the next sheet and draw the next look over it, so the line-up matches.</div>
+  </div>
+
+  <div class="card glass" data-panel="boards" hidden>
+    <div class="note">A board keeps your base (front and back), where it sits and its size, head lines, centre line and grid. Use it for every sheet in a collection so the line-up matches. Boards stay on this phone.</div>
+    <div class="row"><input type="text" class="textIn" id="boardName" placeholder="Board name, e.g. SS27 womenswear" maxlength="60" autocomplete="off"><button type="button" class="chip primary" id="boardSave">Save</button></div>
+    <div class="note" id="boardCurrent"></div>
+    <div class="boardList" id="boardList"></div>
+  </div>
+
+  <div class="card glass" data-panel="export" hidden>
+    <div class="note">Photograph your finished sheet, straighten it, and save it as clean line art: a see-through PNG, or an SVG for Illustrator. You can also make it your base.</div>
+    <div class="row"><button type="button" class="chip primary" id="capStart">Capture sheet</button></div>
+    <div class="note">Tip: lay the paper flat on a darker surface so its corners are found automatically. Hide the overlays first if you only want your drawing.</div>
   </div>
 
   <div class="card glass" data-panel="strobe" hidden>
@@ -287,9 +426,13 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
 <div id="toast" hidden></div>
 
 <footer id="bottom" hidden>
-  <div id="opacityPop" class="glass" hidden><input id="opacity" type="range" min="10" max="100" step="1" value="55" aria-label="Picture opacity"><span>Picture opacity</span></div>
+  <div id="opacityPop" class="glass" hidden>
+    <div class="grow" id="opPhotoRow"><input id="opacity" type="range" min="10" max="100" step="1" value="55" aria-label="Picture opacity"><span>Photo opacity</span></div>
+    <div class="grow" id="opBaseRow" hidden><input id="opacityBase" type="range" min="10" max="100" step="1" value="70" aria-label="Base opacity"><span>Base opacity</span></div>
+  </div>
   <div id="targets" class="glass" role="group" aria-label="What your fingers move" hidden>
     <button type="button" data-t="picture" aria-pressed="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><rect x="3" y="4.5" width="18" height="15" rx="2.5"/><circle cx="8.5" cy="9.5" r="1.8"/><path d="M3.5 17l5-5 4 4 3-3 5 5"/></svg>Picture</button>
+    <button type="button" data-t="base" aria-pressed="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="4.5" r="2"/><path d="M12 6.5v7M8.5 9.5h7M12 13.5l-3 7M12 13.5l3 7"/></svg>Base</button>
     <button type="button" data-t="grid" aria-pressed="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M9 3v18M15 3v18M3 9h18M3 15h18"/></svg>Grid</button>
   </div>
   <div id="stepBar" class="glass" hidden>
@@ -311,6 +454,42 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
   </div>
 </div>
 
+<div id="ask" class="modal" hidden role="dialog" aria-modal="true" aria-labelledby="askTitle">
+  <div class="box">
+    <h2 id="askTitle"></h2>
+    <p id="askBody"></p>
+    <div class="btns"><button type="button" id="askNo">Cancel</button><button type="button" class="primary" id="askYes">OK</button></div>
+  </div>
+</div>
+
+<section id="capture" hidden aria-label="Capture sheet">
+  <header><button type="button" class="chip" id="capBack">Cancel</button><h2 id="capTitle">Line up the corners</h2><span style="width:72px"></span></header>
+  <div id="capStage">
+    <canvas id="capFrame"></canvas>
+    <svg id="capQuad" aria-hidden="true"><polygon id="capPoly" fill="rgba(124,42,52,.18)" stroke="#fff" stroke-width="2"/></svg>
+    <div class="handle" data-i="0" aria-label="Top-left corner"></div><div class="handle" data-i="1" aria-label="Top-right corner"></div>
+    <div class="handle" data-i="2" aria-label="Bottom-right corner"></div><div class="handle" data-i="3" aria-label="Bottom-left corner"></div>
+    <canvas id="capResultBox" hidden></canvas>
+  </div>
+  <div class="bar">
+    <div id="capStep1" class="bar">
+      <div class="hint">Drag the four circles onto the corners of your paper.</div>
+      <div class="row"><button type="button" class="chip" id="capAuto">Find paper</button><button type="button" class="chip primary" id="capNext">Straighten</button></div>
+    </div>
+    <div id="capStep2" class="bar" hidden>
+      <div class="row"><div class="seg" id="capKindSeg" role="group" aria-label="Output">
+        <button type="button" data-v="lines" aria-pressed="true">Clean lines</button><button type="button" data-v="photo" aria-pressed="false">Photo</button></div></div>
+      <div class="grow" id="capCleanRow"><input id="capClean" type="range" min="0" max="10" step="1" value="4" aria-label="Clean-up strength"><span>Clean-up: <output id="capCleanOut">4</output> <span>(higher drops faint marks)</span></span></div>
+      <div class="row">
+        <button type="button" class="chip primary" id="capPng" disabled>Save PNG</button>
+        <button type="button" class="chip" id="capSvg" disabled>Save SVG</button>
+        <button type="button" class="chip" id="capBase">Use as base</button>
+        <button type="button" class="chip" id="capRedo">Corners</button>
+      </div>
+    </div>
+  </div>
+</section>
+
 <div id="help" class="modal" hidden role="dialog" aria-modal="true" aria-labelledby="helpTitle">
   <div class="box">
     <h2 id="helpTitle">How to trace</h2>
@@ -321,7 +500,11 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
       <li><b>Steps:</b> in Values or AI outlines, tap a number at the bottom to jump to that step, lightest first. <b>All</b> shows everything.</li>
       <li><b>Tools</b> has the view (photo, outlines, values), grid, strobe, camera and flashlight. Tap <b>Done</b> or the picture to close it.</li>
       <li><b>Grid:</b> in Tools → Grid, put the grid on the photo. It sticks to the picture as you move, scale or turn it. Draw the same squares on your paper to keep proportions and angles right; Diagonals help with perspective.</li>
-      <li><b>Hide</b> and <b>Opacity</b> help you check your drawing against the paper. Hide leaves the grid showing.</li>
+      <li><b>Base:</b> load your own croquis or flat block (front and back) in Tools → Base. It sits under everything, fixed to the paper. Head lines (8, 9 or 10) keep proportions the same across a line-up.</li>
+      <li><b>Flats:</b> turn on the centre line, then <b>Mirror</b>: draw one half and your own lines appear flipped on the other side, live. <b>Ghost</b> keeps a faint copy of a finished sheet to draw the next look over.</li>
+      <li><b>Boards</b> save your base, its place, head lines and guides, so every sheet of a collection matches. Your work is also saved on this phone as you go.</li>
+      <li><b>Export:</b> photograph the finished sheet, drag the corners, and save clean lines as PNG or SVG, or use them as your next base.</li>
+      <li><b>Hide</b> and <b>Opacity</b> help you check your drawing against the paper. Hide leaves the grid and guides showing.</li>
     </ul>
     <p class="note">Photos stay on your phone. AI sketch uses the Informative Drawings model by Caroline Chan, Frédo Durand and Phillip Isola (MIT License), run on your phone.</p>
     <div class="btns"><button type="button" class="primary" id="helpClose">Got it</button></div>
@@ -334,15 +517,24 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
     <div class="eyebrow">Camera tracing</div>
     <h1 id="startTitle">NUMOTIFSTUDIO - Trace</h1>
     <p>Your picture floats over the live camera, so you can trace it onto paper while watching your pencil on screen.</p>
+    <div id="resume" hidden>
+      <div class="row"><span id="resumeThumbs" class="row"></span><span><b>Last session</b><br><span class="note" id="resumeNote"></span></span></div>
+      <button type="button" class="big primary" id="resumeGo">Continue where you left off</button>
+    </div>
     <ol class="steps">
       <li>Prop your phone 25–40 cm above the paper, camera facing down (a stand, a glass or a stack of books).</li>
-      <li>Choose a photo, then start the camera.</li>
+      <li>Choose a photo to trace, your own croquis or flat block, or both. Then start the camera.</li>
       <li>With <b>Move</b> on, drag and pinch the picture to fit the paper. Then turn <b>Move</b> off to lock it.</li>
       <li>Pinch to zoom in on details: the picture stays lined up with your paper.</li>
-      <li><b>Tools</b> has outlines, values, grid, strobe, camera and flashlight. Tap a number at the bottom to jump between value steps.</li>
+      <li><b>Tools</b> has outlines and values, your base with head lines, flats (centre line and live mirror), boards for a matching line-up, and export to PNG or SVG.</li>
     </ol>
-    <div id="thumbWrap" hidden><img id="thumb" alt="Chosen photo"><span id="thumbName"></span></div>
-    <label class="big" for="file">Choose a photo<input type="file" id="file" accept="image/*"></label>
+    <div class="or" id="orLine" hidden>or start fresh</div>
+    <div id="thumbWrap" hidden>
+      <figure id="photoFig" hidden><img id="thumb" alt="Chosen photo"><figcaption id="thumbName"></figcaption></figure>
+      <figure id="baseFig" hidden><img id="baseThumb" alt="Chosen base"><figcaption id="baseName"></figcaption></figure>
+    </div>
+    <label class="big" for="file">Choose a photo to trace<input type="file" id="file" accept="image/*"></label>
+    <label class="big" for="startBaseFile">Choose your croquis or flat block<input type="file" id="startBaseFile" accept="image/*"></label>
     <button type="button" class="big primary" id="go" disabled>Start camera</button>
     <p class="msg" id="err" hidden></p>
     <p class="fine">Photos stay on your phone. Nothing is uploaded.</p>
@@ -363,8 +555,10 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
     7: ['Paper', 'Pale', 'Light', 'Mid', 'Dark mid', 'Dark', 'Darkest'] };
 
   var S = { mode: 'photo', view: 'layered', values: 5, simplify: 3, hl: 0, lineStyle: 'ai', step: 1, opacity: 55, mirror: false,
-            color: 0, grid: false, gridColor: 3, gridOpacity: 80, gridSize: 90, gridOn: 'photo', gridCells: 4, gridDiag: false, strobeSpeed: 4, aiView: 'layered', aiLayer: 1, cumulative: true };
-  var SAVED = ['mode', 'view', 'values', 'simplify', 'hl', 'lineStyle', 'opacity', 'mirror', 'color', 'grid', 'gridColor', 'gridOpacity', 'gridSize', 'gridOn', 'gridCells', 'gridDiag', 'strobeSpeed', 'aiView', 'aiLayer', 'cumulative'];
+            color: 0, grid: false, gridColor: 3, gridOpacity: 80, gridSize: 90, gridOn: 'photo', gridCells: 4, gridDiag: false, strobeSpeed: 4, aiView: 'layered', aiLayer: 1, cumulative: true,
+            baseOn: true, baseOpacity: 70, heads: 0, flatView: 'front', cfOn: false, cfX: 500, mirrorOn: false, mirrorSide: 'lr', mirrorStrength: 60, ghostOn: false, ghostOpacity: 35 };
+  var SAVED = ['mode', 'view', 'values', 'simplify', 'hl', 'lineStyle', 'opacity', 'mirror', 'color', 'grid', 'gridColor', 'gridOpacity', 'gridSize', 'gridOn', 'gridCells', 'gridDiag', 'strobeSpeed', 'aiView', 'aiLayer', 'cumulative',
+               'baseOn', 'baseOpacity', 'heads', 'flatView', 'cfOn', 'cfX', 'mirrorOn', 'mirrorSide', 'mirrorStrength', 'ghostOn', 'ghostOpacity'];
   try { var sv = JSON.parse(localStorage.getItem('trace-camera') || 'null');
     if (sv) SAVED.forEach(function (k) { if (k in sv) S[k] = sv[k]; });
     if (sv && !sv.v2) S.lineStyle = 'ai';   // one-time switch: AI sketch became the default outline style
@@ -391,26 +585,12 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
 
   // ---------- photo
   $('file').addEventListener('change', function () {
-    var f = this.files && this.files[0]; if (!f) return;
-    var url = URL.createObjectURL(f), im = new Image();
-    im.onload = function () {
-      var sc = Math.min(1, MAX_SIDE / Math.max(im.naturalWidth, im.naturalHeight));
-      var w = Math.round(im.naturalWidth * sc), h = Math.round(im.naturalHeight * sc);
-      srcCanvas.width = w; srcCanvas.height = h;
-      var c = srcCanvas.getContext('2d'); c.drawImage(im, 0, 0, w, h);
-      var d = c.getImageData(0, 0, w, h).data, lum = new Float32Array(w * h);
-      for (var i = 0, p = 0; i < lum.length; i++, p += 4) lum[i] = (0.299 * d[p] + 0.587 * d[p + 1] + 0.114 * d[p + 2]) / 255;
-      img = { w: w, h: h, lum: lum, rgb: d };
-      $('thumb').src = url; $('thumbName').textContent = f.name; $('thumbWrap').hidden = false;
-      $('go').disabled = false; $('err').hidden = true;
-      S.step = 1; idx = null; lineMap = null; aiMap = null; $('strip').dataset.key = '';
-      undoStack = []; redoStack = []; updateUndo();
+    var f = this.files && this.files[0]; this.value = ''; if (!f) return;
+    loadPhoto(f, f.name).then(function () {
+      $('err').hidden = true;
       if (!$('start').hidden) return;
-      setMove(true); fit(); drawGridLayer(); render(); syncUI();
-    };
-    im.onerror = function () { showErr('That file could not be opened as a picture. Try a JPG, PNG or HEIC photo.'); };
-    im.src = url;
-    this.value = '';
+      target = 'picture'; setMove(true); fit(); drawGridLayer(); render(); syncUI(); scheduleSave();
+    }).catch(function (e) { showErr(e.message); toast(e.message); });
   });
   function showErr(t) { $('err').textContent = t; $('err').hidden = false; }
 
@@ -429,20 +609,26 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
         syncUI();
       });
   }
-  $('go').addEventListener('click', function () {
+  // Into the drawing screen: start the camera, put any layer not yet placed onto the paper, restore guides.
+  function enterDrawing() {
     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-      showErr('This browser cannot use the camera here. Open the page in Safari or Chrome over https.'); return;
+      showErr('This browser cannot use the camera here. Open the page in Safari or Chrome over https.'); return Promise.resolve();
     }
-    startCamera().then(function () {
-      $('start').hidden = true; $('top').hidden = false; $('bottom').hidden = false;
+    return startCamera().then(function () {
+      $('start').hidden = true; $('top').hidden = false; $('bottom').hidden = false; $('err').hidden = true;
       if (!drawing) { drawing = true; history.pushState({ tc: 'draw' }, ''); }
-      keepAwake(); setMove(true); fit(); drawGridLayer(); render(); syncUI();
+      keepAwake(); setMove(true);
+      if (img && !placed.picture) { fit(); placed.picture = true; }
+      renderBase(); if (hasBase() && !placed.base) fitBase();
+      if (!img && target === 'picture' && hasBase()) target = 'base';
+      drawGridLayer(); drawGuides(); render(); place(); syncUI(); scheduleSave();
     }).catch(function (e) {
       showErr(e && e.name === 'NotAllowedError'
         ? 'Camera access was blocked. Allow the camera for this site in your browser settings, then try again.'
         : 'The camera could not start (' + (e && e.name || 'error') + '). Close other apps using the camera and try again.');
     });
-  });
+  }
+  $('go').addEventListener('click', function () { enterDrawing(); });
   function keepAwake() {
     try { if (navigator.wakeLock) navigator.wakeLock.request('screen').then(function (l) { wake = l; }).catch(function () {}); } catch (e) {}
   }
@@ -909,13 +1095,14 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
     return { top: top, bot: bot };
   }
   function fit() {
-    if (!img) return;
+    if (!img) return; placed.picture = true;
     var W = window.innerWidth, H = window.innerHeight, b = barEdges(), avail = Math.max(120, b.bot - b.top - 16);
     T.scale = Math.min(W * 0.94 / img.w, avail / img.h); T.rot = 0; T.x = 0; T.y = (b.top + b.bot) / 2 - H / 2;
     place();
   }
   function place() {
-    if (!img) return;
+    placeBase();
+    if (!img) { overlay.style.visibility = 'hidden'; return; }
     overlay.style.width = img.w + 'px'; overlay.style.height = img.h + 'px';
     overlay.style.transform = 'translate(-50%, -50%) translate(' + T.x + 'px,' + T.y + 'px) rotate(' + T.rot + 'rad) scale(' + (S.mirror ? -T.scale : T.scale) + ',' + T.scale + ')';
     overlay.style.opacity = S.opacity / 100;
@@ -978,7 +1165,7 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
   // Move on + Picture/Grid: drag, pinch (and rotate, for the picture) that layer.
   // Move off, or Camera: pinch to zoom and drag to pan the whole view; the picture stays on the paper.
   // Move on: your fingers place the picture (or the grid). Move off: the picture is locked and a pinch magnifies the view.
-  function gestureKind() { return move ? (target === 'grid' ? 'grid' : 'picture') : 'view'; }
+  function gestureKind() { return move ? (target === 'grid' ? 'grid' : target === 'base' ? 'base' : 'picture') : 'view'; }
   var pts = new Map(), g = null, lastTap = 0, beforeT = null, beforeGrid = null;
   var stage = $('stage');
   function centre(a) { return a.length >= 2 ? { x: (a[0].x + a[1].x) / 2, y: (a[0].y + a[1].y) / 2 } : a[0]; }
@@ -988,13 +1175,13 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
     g = { kind: gestureKind(), n: Math.min(2, a.length), cx: c.x, cy: c.y,
           d: a.length >= 2 ? Math.hypot(a[1].x - a[0].x, a[1].y - a[0].y) : 0,
           ang: a.length >= 2 ? Math.atan2(a[1].y - a[0].y, a[1].x - a[0].x) : 0,
-          T: { x: T.x, y: T.y, scale: T.scale, rot: T.rot }, V: { x: V.x, y: V.y, s: V.s }, G: { x: G.x, y: G.y }, size: S.gridSize,
+          T: { x: T.x, y: T.y, scale: T.scale, rot: T.rot }, B: { x: B.x, y: B.y, scale: B.scale, rot: B.rot }, V: { x: V.x, y: V.y, s: V.s }, G: { x: G.x, y: G.y }, size: S.gridSize,
           moved: g ? g.moved : false };
   }
   stage.addEventListener('pointerdown', function (e) {
-    if (!img) return;
+    if (!img && !hasBase()) return;
     try { stage.setPointerCapture(e.pointerId); } catch (err) {}
-    if (!pts.size) { beforeT = { x: T.x, y: T.y, scale: T.scale, rot: T.rot }; beforeGrid = null; g = null; }
+    if (!pts.size) { beforeT = snap(gestureKind() === 'base' ? 'base' : 'picture'); beforeGrid = null; g = null; }
     pts.set(e.pointerId, { x: e.clientX, y: e.clientY }); startGesture();
   });
   stage.addEventListener('pointermove', function (e) {
@@ -1012,6 +1199,10 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
       T.x = g.T.x + dx / V.s; T.y = g.T.y + dy / V.s;
       if (ratio !== 1) { T.scale = Math.max(0.05, g.T.scale * ratio); T.rot = g.T.rot + ang - g.ang; }
       place();
+    } else if (g.kind === 'base') {
+      B.x = g.B.x + dx / V.s; B.y = g.B.y + dy / V.s;
+      if (ratio !== 1) { B.scale = Math.max(0.05, g.B.scale * ratio); B.rot = g.B.rot + ang - g.ang; }
+      placed.base = true; placeBase();
     } else {
       G.x = g.G.x + dx / V.s; G.y = g.G.y + dy / V.s;
       if (ratio !== 1) S.gridSize = Math.max(30, Math.min(200, Math.round(g.size * ratio)));
@@ -1023,7 +1214,7 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
     pts.delete(e.pointerId);
     if (pts.size) { startGesture(); return; }
     var wasMoved = g && g.moved, kind = g && g.kind; g = null;
-    if (kind === 'picture' && wasMoved && beforeT) pushUndo(beforeT);
+    if ((kind === 'picture' || kind === 'base') && wasMoved && beforeT) { pushUndo(beforeT); scheduleSave(); }
     if (kind === 'grid' && wasMoved) { persist(); syncUI(); }
     if (!wasMoved && (!$('tools').hidden || !$('opacityPop').hidden)) {   // a tap on the picture closes Tools and the slider
       if (!$('tools').hidden) closeTools(); $('opacityPop').hidden = true; syncUI(); lastTap = 0; return;
@@ -1035,10 +1226,12 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
   }
   stage.addEventListener('pointerup', endPointer); stage.addEventListener('pointercancel', endPointer);
   stage.addEventListener('wheel', function (e) {
-    if (!img) return; e.preventDefault();
-    if (move && gestureKind() !== 'picture') return;
+    if (!img && !hasBase()) return; e.preventDefault();
+    var gk = gestureKind();
+    if (move && gk === 'grid') return;
     var k = e.deltaY < 0 ? 1.08 : 1 / 1.08;
-    if (gestureKind() === 'picture') { T.scale *= k; place(); return; }
+    if (gk === 'picture') { T.scale *= k; place(); scheduleSave(); return; }
+    if (gk === 'base') { B.scale *= k; placeBase(); scheduleSave(); return; }
     var s = Math.min(8, Math.max(1, V.s * k)), wx = (e.clientX - V.x) / V.s, wy = (e.clientY - V.y) / V.s;
     V.s = s; V.x = e.clientX - wx * s; V.y = e.clientY - wy * s; clampView(); placeWorld();
   }, { passive: false });
@@ -1049,9 +1242,11 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
   // ---------- undo / redo for picture placement
   function pushUndo(prev) { undoStack.push(prev); if (undoStack.length > 60) undoStack.shift(); redoStack = []; updateUndo(); }
   function updateUndo() { $('undoBtn').disabled = !undoStack.length; $('redoBtn').disabled = !redoStack.length; }
-  function snap() { return { x: T.x, y: T.y, scale: T.scale, rot: T.rot }; }
-  $('undoBtn').addEventListener('click', function () { if (!undoStack.length) return; redoStack.push(snap()); var p = undoStack.pop(); T.x = p.x; T.y = p.y; T.scale = p.scale; T.rot = p.rot; place(); updateUndo(); });
-  $('redoBtn').addEventListener('click', function () { if (!redoStack.length) return; undoStack.push(snap()); var p = redoStack.pop(); T.x = p.x; T.y = p.y; T.scale = p.scale; T.rot = p.rot; place(); updateUndo(); });
+  function layerOf(l) { return l === 'base' ? B : T; }
+  function snap(l) { l = l || 'picture'; var o = layerOf(l); return { layer: l, x: o.x, y: o.y, scale: o.scale, rot: o.rot }; }
+  function applySnap(p) { var o = layerOf(p.layer); o.x = p.x; o.y = p.y; o.scale = p.scale; o.rot = p.rot; if (p.layer === 'base') placeBase(); else place(); scheduleSave(); }
+  $('undoBtn').addEventListener('click', function () { if (!undoStack.length) return; var p = undoStack.pop(); redoStack.push(snap(p.layer)); applySnap(p); updateUndo(); });
+  $('redoBtn').addEventListener('click', function () { if (!redoStack.length) return; var p = redoStack.pop(); undoStack.push(snap(p.layer)); applySnap(p); updateUndo(); });
 
   // ---------- strobe
   function setStrobe(on) {
@@ -1064,12 +1259,12 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
   function setMove(on) { move = on; syncUI(); }
   function setTarget(t) {
     target = t; syncUI();
-    toast(t === 'grid' ? 'Drag to move the grid, pinch to change its size.' : 'Drag, pinch and twist to place the picture.');
+    toast(t === 'grid' ? 'Drag to move the grid, pinch to change its size.' : t === 'base' ? 'Drag, pinch and twist to place your base.' : 'Drag, pinch and twist to place the picture.');
   }
   $('targets').querySelectorAll('button').forEach(function (b) { b.addEventListener('click', function () { setTarget(b.dataset.t); }); });
   function toggleMove() {
     setMove(!move);
-    toast(move ? (target === 'grid' ? 'Move on: drag the grid.' : 'Move on: drag, pinch and twist the picture.')
+    toast(move ? (target === 'grid' ? 'Move on: drag the grid.' : target === 'base' ? 'Move on: drag, pinch and twist the base.' : 'Move on: drag, pinch and twist the picture.')
       : 'Locked. Pinch to zoom in on details; the picture stays on your paper.');
   }
   $('moveBtn').addEventListener('click', toggleMove);
@@ -1087,18 +1282,18 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
   // ---------- top bar, Tools, Help and the back gesture
   // History: start  ->  draw  ->  (tools | help). Back closes the top layer first; back on the drawing asks before leaving.
   var drawing = false, goingHome = false;
-  function layerOpen() { return !$('tools').hidden ? 'tools' : !$('help').hidden ? 'help' : null; }
+  function layerOpen() { return !$('tools').hidden ? 'tools' : !$('help').hidden ? 'help' : !$('capture').hidden ? 'capture' : null; }
   function openLayer(name) {
     if (layerOpen() === name) return;
     var wasOpen = layerOpen();
-    $('tools').hidden = name !== 'tools'; $('help').hidden = name !== 'help';
+    $('tools').hidden = name !== 'tools'; $('help').hidden = name !== 'help'; $('capture').hidden = name !== 'capture';
     if (wasOpen) history.replaceState({ tc: name }, ''); else history.pushState({ tc: name }, '');
     syncUI();
   }
   function closeLayer() {
     if (!layerOpen()) return;
-    $('tools').hidden = true; $('help').hidden = true; syncUI();
-    if (history.state && (history.state.tc === 'tools' || history.state.tc === 'help')) history.back();
+    $('tools').hidden = true; $('help').hidden = true; $('capture').hidden = true; syncUI();
+    if (history.state && (history.state.tc === 'tools' || history.state.tc === 'help' || history.state.tc === 'capture')) history.back();
   }
   function closeTools() { if (!$('tools').hidden) closeLayer(); }
   $('toolsBtn').addEventListener('click', function () { if (!$('tools').hidden) closeLayer(); else openLayer('tools'); });
@@ -1109,17 +1304,18 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
     b.addEventListener('click', function () {
       $('tabs').querySelectorAll('button').forEach(function (o) { o.setAttribute('aria-selected', o === b ? 'true' : 'false'); });
       document.querySelectorAll('[data-panel]').forEach(function (p) { p.hidden = p.dataset.panel !== b.dataset.tab; });
+      if (b.dataset.tab === 'boards') renderBoards();
     });
   });
   function showStart() {
-    drawing = false; $('leave').hidden = true; $('tools').hidden = true; $('help').hidden = true;
+    drawing = false; $('leave').hidden = true; $('tools').hidden = true; $('help').hidden = true; $('capture').hidden = true;
     $('start').hidden = false; $('top').hidden = true; $('bottom').hidden = true; $('opacityPop').hidden = true;
     if (strobeOn) setStrobe(false);
-    syncUI();
+    saveSession(); syncStart(); showResume(); syncUI();
   }
   function goHome() {
     var st = history.state && history.state.tc;
-    var depth = st === 'tools' || st === 'help' ? 2 : st === 'draw' ? 1 : 0;
+    var depth = st === 'tools' || st === 'help' || st === 'capture' ? 2 : st === 'draw' ? 1 : 0;
     if (!depth) { showStart(); return; }
     goingHome = true; history.go(-depth);
   }
@@ -1130,14 +1326,14 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
   window.addEventListener('popstate', function (e) {
     var st = e.state && e.state.tc;
     if (goingHome) { goingHome = false; showStart(); return; }
-    if (st === 'draw') { $('tools').hidden = true; $('help').hidden = true; syncUI(); return; }   // back closed Tools or Help
+    if (st === 'draw') { $('tools').hidden = true; $('help').hidden = true; $('capture').hidden = true; syncUI(); return; }   // back closed Tools, Help or Capture
     if (drawing && !st) {   // back from the drawing itself: stay, and ask
       history.pushState({ tc: 'draw' }, ''); $('leave').hidden = false; $('leaveNo').focus();
     }
   });
   document.addEventListener('keydown', function (e) {
     if (e.key !== 'Escape') return;
-    if (!$('leave').hidden) $('leave').hidden = true; else if (layerOpen()) closeLayer(); else if (!$('opacityPop').hidden) { $('opacityPop').hidden = true; syncUI(); }
+    if (!$('ask').hidden) answer(false); else if (!$('leave').hidden) $('leave').hidden = true; else if (layerOpen()) closeLayer(); else if (!$('opacityPop').hidden) { $('opacityPop').hidden = true; syncUI(); }
   });
   // picture tab
   function setMode(m) { S.mode = m; if (m === 'values') S.step = 1; persist(); render(); syncUI(); }  // values always start at the lightest
@@ -1187,6 +1383,631 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
     track.applyConstraints({ advanced: [{ torch: torchOn }] }).catch(function () { torchOn = false; syncUI(); toast('The flashlight could not be turned on from the browser.'); });
   });
 
+  // ================= fashion tools: base layer, flats, boards, autosave, capture and export =================
+  var B = { x: 0, y: 0, scale: 1, rot: 0 };   // base placement, in world pixels (like T for the photo)
+  var BASE = { front: null, back: null };     // each: { canvas, w, h, box: {x0, y0, x1, y1}, blob, name, thumb }
+  var placed = { picture: false, base: false };   // has the layer been put on the paper yet (else it is fitted on start)
+  var photoBlob = null, photoName = '';
+  var ghost = null;                           // { canvas, blob }
+  var boardId = null, boardTitle = '';
+  var baseCanvas = $('baseLayer'), headCanvas = $('headLayer');
+  var WINE = [124, 42, 52];
+
+  function hasBase() { return !!(BASE.front || BASE.back); }
+  function curBase() { return BASE[S.flatView] || BASE.front || BASE.back; }
+  function backFallback() { return S.flatView === 'back' && !BASE.back && !!BASE.front; }
+  function clamp(v, a, b) { return Math.max(a, Math.min(b, v)); }
+  function smooth(a, b, v) { var u = clamp((v - a) / (b - a), 0, 1); return u * u * (3 - 2 * u); }
+
+  function loadImageBlob(blob) {
+    return new Promise(function (res, rej) {
+      var url = URL.createObjectURL(blob), im = new Image();
+      im.onload = function () { res(im); setTimeout(function () { URL.revokeObjectURL(url); }, 1000); };
+      im.onerror = function () { URL.revokeObjectURL(url); rej(new Error('That file could not be opened as a picture. Try a JPG or PNG.')); };
+      im.src = url;
+    });
+  }
+  function thumbOf(canvas, size) {
+    var k = Math.min(1, size / Math.max(canvas.width, canvas.height)), c = document.createElement('canvas');
+    c.width = Math.max(1, Math.round(canvas.width * k)); c.height = Math.max(1, Math.round(canvas.height * k));
+    var x = c.getContext('2d'); x.fillStyle = '#fff'; x.fillRect(0, 0, c.width, c.height); x.drawImage(canvas, 0, 0, c.width, c.height);
+    return c.toDataURL('image/jpeg', 0.8);
+  }
+
+  // ---------- the photo to trace (used by the file pickers and by "continue where you left off")
+  function loadPhoto(blob, name) {
+    return loadImageBlob(blob).then(function (im) {
+      var sc = Math.min(1, MAX_SIDE / Math.max(im.naturalWidth, im.naturalHeight));
+      var w = Math.round(im.naturalWidth * sc), h = Math.round(im.naturalHeight * sc);
+      srcCanvas.width = w; srcCanvas.height = h;
+      var c = srcCanvas.getContext('2d'); c.drawImage(im, 0, 0, w, h);
+      var d = c.getImageData(0, 0, w, h).data, lum = new Float32Array(w * h);
+      for (var i = 0, p = 0; i < lum.length; i++, p += 4) lum[i] = (0.299 * d[p] + 0.587 * d[p + 1] + 0.114 * d[p + 2]) / 255;
+      img = { w: w, h: h, lum: lum, rgb: d };
+      photoBlob = blob; photoName = name || 'Photo';
+      $('thumb').src = thumbOf(srcCanvas, 160); $('thumbName').textContent = photoName; $('photoFig').hidden = false; $('thumbWrap').hidden = false;
+      S.step = 1; idx = null; lineMap = null; aiMap = null; $('strip').dataset.key = '';
+      undoStack = []; redoStack = []; updateUndo(); placed.picture = false;
+      syncStart();
+    });
+  }
+
+  // ---------- base: your own croquis or flat block. White paper is lifted to pure white so it multiplies away over the camera.
+  function loadBase(blob, view, name) {
+    return loadImageBlob(blob).then(function (im) {
+      var sc = Math.min(1, 1400 / Math.max(im.naturalWidth, im.naturalHeight));
+      var w = Math.max(1, Math.round(im.naturalWidth * sc)), h = Math.max(1, Math.round(im.naturalHeight * sc));
+      var c = document.createElement('canvas'); c.width = w; c.height = h;
+      var x = c.getContext('2d'); x.fillStyle = '#fff'; x.fillRect(0, 0, w, h); x.drawImage(im, 0, 0, w, h);
+      var id = x.getImageData(0, 0, w, h), d = id.data, N = w * h, hist = new Uint32Array(256);
+      for (var i = 0, p = 0; i < N; i++, p += 4) hist[Math.round(0.299 * d[p] + 0.587 * d[p + 1] + 0.114 * d[p + 2])]++;
+      var acc = 0, paper = 255; for (var v = 0; v < 256; v++) { acc += hist[v]; if (acc >= N * 0.6) { paper = v; break; } }   // the paper's tone
+      var gain = 255 / Math.max(120, paper);
+      var x0 = w, y0 = h, x1 = -1, y1 = -1;
+      for (var j = 0, q = 0; j < N; j++, q += 4) {
+        var r = Math.min(255, d[q] * gain), g = Math.min(255, d[q + 1] * gain), b = Math.min(255, d[q + 2] * gain);
+        d[q] = r; d[q + 1] = g; d[q + 2] = b;
+        if (0.299 * r + 0.587 * g + 0.114 * b < 170) { var px = j % w, py = (j / w) | 0;
+          if (px < x0) x0 = px; if (px > x1) x1 = px; if (py < y0) y0 = py; if (py > y1) y1 = py; }
+      }
+      x.putImageData(id, 0, 0);
+      var box = x1 > x0 && y1 > y0 ? { x0: x0, y0: y0, x1: x1 + 1, y1: y1 + 1 } : { x0: 0, y0: 0, x1: w, y1: h };
+      BASE[view] = { canvas: c, w: w, h: h, box: box, blob: blob, name: name || 'Base', thumb: thumbOf(c, 200) };
+    });
+  }
+  function renderBase() {
+    var b = curBase();
+    if (!b) { baseCanvas.width = 1; baseCanvas.height = 1; headCanvas.width = 1; headCanvas.height = 1; drawHeads.scale = 0; placeBase(); return; }
+    baseCanvas.width = b.w; baseCanvas.height = b.h; baseCanvas.getContext('2d').drawImage(b.canvas, 0, 0);
+    drawHeads.scale = 0; drawHeads(); placeBase();
+  }
+  function placeBase() {
+    var b = curBase(), off = hidden || (strobeOn && !strobePhase);
+    baseCanvas.style.visibility = b && S.baseOn && !off ? 'visible' : 'hidden';
+    headCanvas.style.visibility = b && S.baseOn && S.heads ? 'visible' : 'hidden';
+    if (!b) return;
+    var tf = 'translate(-50%, -50%) translate(' + B.x + 'px,' + B.y + 'px) rotate(' + B.rot + 'rad) scale(' + B.scale + ')';
+    [baseCanvas, headCanvas].forEach(function (c) { c.style.width = b.w + 'px'; c.style.height = b.h + 'px'; c.style.transform = tf; });
+    baseCanvas.style.opacity = (backFallback() ? 0.6 : 1) * S.baseOpacity / 100;
+    if (S.heads && (!drawHeads.scale || Math.abs(B.scale / drawHeads.scale - 1) > 0.12)) drawHeads();
+  }
+  // Head lines: the figure from the top of the head to the soles, split into equal heads, numbered down the side.
+  function drawHeads() {
+    var b = curBase(), c = headCanvas;
+    if (!b || !S.heads) { c.width = 1; c.height = 1; drawHeads.scale = 0; return; }
+    var R = 2; c.width = b.w * R; c.height = b.h * R;
+    var x = c.getContext('2d'); x.setTransform(R, 0, 0, R, 0, 0); x.clearRect(0, 0, b.w, b.h);
+    var sc = B.scale || 1; drawHeads.scale = sc;
+    var bx = b.box, n = S.heads, hh = (bx.y1 - bx.y0) / n, lw = 1.4 / sc, pad = (bx.x1 - bx.x0) * 0.18;
+    var xa = Math.max(0, bx.x0 - pad), xb = Math.min(b.w, bx.x1 + pad);
+    x.strokeStyle = 'rgba(' + WINE.join(',') + ',0.85)'; x.lineWidth = lw;
+    for (var i = 0; i <= n; i++) {
+      var y = bx.y0 + i * hh;
+      x.setLineDash(i === 0 || i === n ? [] : [7 / sc, 5 / sc]);
+      x.beginPath(); x.moveTo(xa, y); x.lineTo(xb, y); x.stroke();
+    }
+    x.setLineDash([]);
+    var fs = 11 / sc; x.font = '700 ' + fs + 'px "DM Sans", system-ui, sans-serif'; x.textAlign = 'center'; x.textBaseline = 'middle';
+    for (var k = 1; k <= n; k++) {
+      var cy = bx.y0 + (k - 0.5) * hh, cx = xa + fs * 0.9;
+      x.fillStyle = 'rgba(255,255,255,0.9)'; x.beginPath(); x.arc(cx, cy, fs * 0.85, 0, Math.PI * 2); x.fill();
+      x.fillStyle = 'rgb(' + WINE.join(',') + ')'; x.fillText(String(k), cx, cy + fs * 0.04);
+    }
+  }
+  function fitBase() {
+    var b = curBase(); if (!b) return;
+    var W = window.innerWidth, H = window.innerHeight, e = barEdges(), avail = Math.max(120, e.bot - e.top - 16);
+    B.scale = Math.min(W * 0.94 / b.w, avail / b.h); B.rot = 0; B.x = 0; B.y = (e.top + e.bot) / 2 - H / 2;
+    placed.base = true; placeBase();
+  }
+  function afterBaseChange(view) {
+    if (view) { S.flatView = view; persist(); }
+    renderBase();
+    if (!placed.base && $('start').hidden) fitBase();
+    if (!$('start').hidden) syncStart();
+    syncUI(); scheduleSave();
+  }
+  function pickBase(file, view) {
+    if (!file) return;
+    loadBase(file, view, file.name).then(function () {
+      if (!S.baseOn) { S.baseOn = true; persist(); }
+      if ($('start').hidden) { target = 'base'; move = true; }
+      afterBaseChange(view);
+      if ($('start').hidden) toast(view === 'back' ? 'Back view added. Switch Front/Back in Flats.' : 'Base added. Turn on Move and choose Base to place it.');
+    }).catch(function (e) { toast(e.message); });
+  }
+  $('frontFile').addEventListener('change', function () { pickBase(this.files && this.files[0], 'front'); this.value = ''; });
+  $('backFile').addEventListener('change', function () { pickBase(this.files && this.files[0], 'back'); this.value = ''; });
+  $('startBaseFile').addEventListener('change', function () { pickBase(this.files && this.files[0], 'front'); this.value = ''; });
+  ['front', 'back'].forEach(function (v) {
+    $(v + 'Clear').addEventListener('click', function () {
+      ask('Remove the ' + v + ' base?', 'It stays in any board you saved it in.', 'Remove').then(function (yes) {
+        if (!yes) return; BASE[v] = null; if (!hasBase()) placed.base = false; afterBaseChange();
+      });
+    });
+  });
+  $('baseSw').addEventListener('click', function () { S.baseOn = !S.baseOn; persist(); placeBase(); syncUI(); });
+  $('baseOpacity').addEventListener('input', function () { S.baseOpacity = +this.value; persist(); placeBase(); $('opacityBase').value = S.baseOpacity; });
+  $('opacityBase').addEventListener('input', function () { S.baseOpacity = +this.value; persist(); placeBase(); $('baseOpacity').value = S.baseOpacity; });
+  $('headsSeg').querySelectorAll('button').forEach(function (b) { b.addEventListener('click', function () { S.heads = +b.dataset.v; persist(); drawHeads.scale = 0; drawHeads(); placeBase(); syncUI(); }); });
+  $('baseFit').addEventListener('click', function () { if (!hasBase()) { toast('Choose a base first.'); return; } pushUndo(snap('base')); fitBase(); scheduleSave(); });
+
+  // ---------- camera frame helpers: the video fills the world like CSS object-fit: cover
+  function videoCover(W, H) {
+    var v = $('video'), vw = v.videoWidth, vh = v.videoHeight;
+    if (!vw || !vh) return null;
+    var k = Math.max(W / vw, H / vh);
+    return { v: v, dw: vw * k, dh: vh * k, dx: (W - vw * k) / 2, dy: (H - vh * k) / 2 };
+  }
+  // Pencil lines from a picture of paper: divide by the paper's own brightness (removes shading), keep what is darker.
+  function inkFrom(canvas, strength) {
+    var w = canvas.width, h = canvas.height, d = canvas.getContext('2d').getImageData(0, 0, w, h).data, N = w * h, lum = new Float32Array(N);
+    for (var i = 0, p = 0; i < N; i++, p += 4) lum[i] = (0.299 * d[p] + 0.587 * d[p + 1] + 0.114 * d[p + 2]) / 255;
+    var r = Math.max(6, Math.round(Math.max(w, h) / 60)), bg = boxMean(boxMean(lum, w, h, r), w, h, r);
+    var lo = 0.05 + strength * 0.022, hi = lo + 0.16, ink = new Float32Array(N);
+    for (var j = 0; j < N; j++) ink[j] = smooth(lo, hi, 1 - Math.min(1, lum[j] / Math.max(0.05, bg[j])));
+    return ink;
+  }
+  function inkCanvas(ink, w, h, col) {
+    var c = document.createElement('canvas'); c.width = w; c.height = h;
+    var x = c.getContext('2d'), out = x.createImageData(w, h), o = out.data;
+    for (var j = 0, p = 0; j < w * h; j++, p += 4) { var a = ink[j]; if (!a) continue; o[p] = col[0]; o[p + 1] = col[1]; o[p + 2] = col[2]; o[p + 3] = Math.round(255 * a); }
+    x.putImageData(out, 0, 0); return c;
+  }
+
+  // ---------- flats: centre-front line, live mirror of your own drawing, front/back, ghost of a sheet
+  function drawGuides() {
+    var c = $('guideLayer'), dpr = Math.min(3, window.devicePixelRatio || 1), W = window.innerWidth, H = window.innerHeight;
+    c.width = Math.round(W * dpr); c.height = Math.round(H * dpr);
+    var x = c.getContext('2d'); x.setTransform(dpr, 0, 0, dpr, 0, 0); x.clearRect(0, 0, W, H);
+    if (!S.cfOn) return;
+    var cx = Math.round(S.cfX / 1000 * W) + 0.5;
+    x.strokeStyle = 'rgba(' + WINE.join(',') + ',0.9)'; x.lineWidth = 1.5; x.setLineDash([10, 6]);
+    x.beginPath(); x.moveTo(cx, 0); x.lineTo(cx, H); x.stroke(); x.setLineDash([]);
+    var ty = ($('top').hidden ? 12 : $('top').getBoundingClientRect().bottom + 12);
+    x.font = '700 11px "DM Sans", system-ui, sans-serif'; x.textAlign = 'center'; x.textBaseline = 'middle';
+    x.fillStyle = 'rgb(' + WINE.join(',') + ')'; x.beginPath(); x.roundRect ? x.roundRect(cx - 15, ty - 10, 30, 20, 10) : x.rect(cx - 15, ty - 10, 30, 20); x.fill();
+    x.fillStyle = '#fff'; x.fillText('CF', cx, ty + 0.5);
+  }
+  var mirrorRaf = 0, mirrorLast = 0, mirrorWork = document.createElement('canvas');
+  function mirrorActive() { return S.mirrorOn && S.cfOn && drawing && $('start').hidden && !hidden; }
+  // Each frame: copy one half of the camera picture, flipped across the centre line, at reduced size;
+  // keep only what is darker than the paper around it (your pencil lines), and show that in grey.
+  function mirrorTick(t) {
+    mirrorRaf = 0;
+    if (!mirrorActive()) { $('mirrorLayer').style.visibility = 'hidden'; return; }
+    mirrorRaf = requestAnimationFrame(mirrorTick);
+    if (t - mirrorLast < 66) return; mirrorLast = t;   // 15 frames a second keeps the phone cool
+    var W = window.innerWidth, H = window.innerHeight, m = videoCover(W, H);
+    if (!m) return;
+    var k = Math.min(1, 520 / Math.max(W, H)), sw = Math.round(W * k), sh = Math.round(H * k);
+    if (mirrorWork.width !== sw || mirrorWork.height !== sh) { mirrorWork.width = sw; mirrorWork.height = sh; }
+    var wx = mirrorWork.getContext('2d', { willReadFrequently: true }), cx = S.cfX / 1000 * W;
+    wx.setTransform(1, 0, 0, 1, 0, 0); wx.fillStyle = '#fff'; wx.fillRect(0, 0, sw, sh);
+    wx.setTransform(k, 0, 0, k, 0, 0); wx.save(); wx.beginPath();
+    if (S.mirrorSide === 'lr') wx.rect(cx, 0, W - cx, H); else wx.rect(0, 0, cx, H);
+    wx.clip(); wx.translate(2 * cx, 0); wx.scale(-1, 1); wx.drawImage(m.v, m.dx, m.dy, m.dw, m.dh); wx.restore();
+    var id = wx.getImageData(0, 0, sw, sh), d = id.data, N = sw * sh, lum = new Float32Array(N);
+    for (var i = 0, p = 0; i < N; i++, p += 4) lum[i] = (0.299 * d[p] + 0.587 * d[p + 1] + 0.114 * d[p + 2]) / 255;
+    var bg = boxMean(lum, sw, sh, Math.max(3, Math.round(Math.max(sw, sh) / 45)));
+    var x0 = S.mirrorSide === 'lr' ? Math.floor(cx * k) : 0, x1 = S.mirrorSide === 'lr' ? sw : Math.ceil(cx * k);
+    for (var y = 0; y < sh; y++) for (var x = 0; x < sw; x++) {
+      var j = y * sw + x, q = j * 4, a = 0;
+      if (x >= x0 && x < x1) a = smooth(0.1, 0.3, 1 - Math.min(1, lum[j] / Math.max(0.05, bg[j]))) * smooth(0.5, 0.68, bg[j]);   // only on paper, not the desk
+      d[q] = 40; d[q + 1] = 38; d[q + 2] = 36; d[q + 3] = Math.round(255 * a);
+    }
+    wx.putImageData(id, 0, 0);
+    var c = $('mirrorLayer'), dpr = Math.min(2, window.devicePixelRatio || 1), cw = Math.round(W * dpr), chh = Math.round(H * dpr);
+    if (c.width !== cw || c.height !== chh) { c.width = cw; c.height = chh; }
+    var x2 = c.getContext('2d'); x2.setTransform(1, 0, 0, 1, 0, 0); x2.clearRect(0, 0, cw, chh); x2.imageSmoothingQuality = 'high'; x2.drawImage(mirrorWork, 0, 0, cw, chh);
+    c.style.visibility = 'visible'; c.style.opacity = S.mirrorStrength / 100;
+  }
+  function syncMirror() { if (mirrorActive()) { if (!mirrorRaf) mirrorRaf = requestAnimationFrame(mirrorTick); } else { $('mirrorLayer').style.visibility = 'hidden'; } }
+  $('cfSw').addEventListener('click', function () { S.cfOn = !S.cfOn; if (!S.cfOn) S.mirrorOn = false; persist(); drawGuides(); syncMirror(); syncUI(); scheduleSave(); });
+  $('cfX').addEventListener('input', function () { S.cfX = +this.value; if (!S.cfOn) S.cfOn = true; persist(); drawGuides(); syncUI(); });
+  $('cfToBase').addEventListener('click', function () {
+    var b = curBase(); if (!b) { toast('Add a base first, then line the centre up with it.'); return; }
+    var W = window.innerWidth, cxImg = (b.box.x0 + b.box.x1) / 2, cyImg = (b.box.y0 + b.box.y1) / 2;
+    var ox = (cxImg - b.w / 2) * B.scale, oy = (cyImg - b.h / 2) * B.scale;
+    var wx = W / 2 + B.x + ox * Math.cos(B.rot) - oy * Math.sin(B.rot);
+    S.cfX = clamp(Math.round(wx / W * 1000), 150, 850); S.cfOn = true; persist(); drawGuides(); syncUI();
+  });
+  $('mirrorSw').addEventListener('click', function () {
+    S.mirrorOn = !S.mirrorOn; if (S.mirrorOn) S.cfOn = true; persist(); drawGuides(); syncMirror(); syncUI();
+    if (S.mirrorOn) toast('Draw one side; your lines appear flipped on the other side of the centre line.');
+  });
+  $('mirrorSideSeg').querySelectorAll('button').forEach(function (b) { b.addEventListener('click', function () { S.mirrorSide = b.dataset.v; persist(); syncUI(); }); });
+  $('mirrorStrength').addEventListener('input', function () { S.mirrorStrength = +this.value; persist(); });
+  $('flatSeg').querySelectorAll('button').forEach(function (b) {
+    b.addEventListener('click', function () {
+      S.flatView = b.dataset.v; persist(); renderBase(); syncUI(); scheduleSave();
+      if (backFallback()) toast('No back base yet: showing the front faintly. Add one in Base.');
+    });
+  });
+  function setGhost(canvas, blob) {
+    ghost = canvas ? { canvas: canvas, blob: blob || null } : null;
+    var g = $('ghostLayer');
+    if (!ghost) { g.width = 1; g.height = 1; } else { g.width = canvas.width; g.height = canvas.height; g.getContext('2d').drawImage(canvas, 0, 0); }
+    if (ghost && !ghost.blob) canvas.toBlob(function (bl) { if (ghost && ghost.canvas === canvas) { ghost.blob = bl; scheduleSave(); } }, 'image/png');
+    syncGhost();
+  }
+  function syncGhost() {
+    var g = $('ghostLayer');
+    g.style.visibility = ghost && S.ghostOn && !hidden ? 'visible' : 'hidden';
+    g.style.opacity = S.ghostOpacity / 100 * 2;   // the ghost is drawn at half strength already
+  }
+  $('ghostGrab').addEventListener('click', function () {
+    var W = window.innerWidth, H = window.innerHeight, m = videoCover(W, H);
+    if (!m) { toast('The camera is not ready yet.'); return; }
+    var k = Math.min(1.25, window.devicePixelRatio || 1), c = document.createElement('canvas');
+    c.width = Math.round(W * k); c.height = Math.round(H * k);
+    var x = c.getContext('2d'); x.setTransform(k, 0, 0, k, 0, 0); x.drawImage(m.v, m.dx, m.dy, m.dw, m.dh);
+    var ink = inkFrom(c, 4);
+    for (var i = 0; i < ink.length; i++) ink[i] *= 0.5;
+    setGhost(inkCanvas(ink, c.width, c.height, WINE));
+    S.ghostOn = true; persist(); syncGhost(); syncUI();
+    toast('Ghost captured. Put the next sheet down and draw over it.');
+  });
+  $('ghostSw').addEventListener('click', function () { if (!ghost) { toast('Capture a sheet first.'); return; } S.ghostOn = !S.ghostOn; persist(); syncGhost(); syncUI(); });
+  $('ghostOpacity').addEventListener('input', function () { S.ghostOpacity = +this.value; persist(); syncGhost(); });
+  $('ghostClear').addEventListener('click', function () { setGhost(null); S.ghostOn = false; persist(); syncUI(); scheduleSave(); });
+
+  // ---------- storage on this phone (IndexedDB): boards and the last session
+  var dbP = null;
+  function db() {
+    if (dbP) return dbP;
+    dbP = new Promise(function (res, rej) {
+      if (!window.indexedDB) { rej(new Error('no storage')); return; }
+      var r = indexedDB.open('numotif-trace', 1);
+      r.onupgradeneeded = function () { var d = r.result; d.createObjectStore('kv'); d.createObjectStore('boards', { keyPath: 'id' }); };
+      r.onsuccess = function () { res(r.result); };
+      r.onerror = function () { rej(r.error); };
+    });
+    dbP.catch(function () { dbP = null; });
+    return dbP;
+  }
+  function store(name, mode, fn) {
+    return db().then(function (d) {
+      return new Promise(function (res, rej) {
+        var tx = d.transaction(name, mode), out, q = fn(tx.objectStore(name));
+        if (q) q.onsuccess = function () { out = q.result; };
+        tx.oncomplete = function () { res(out); };
+        tx.onerror = tx.onabort = function () { rej(tx.error || new Error('storage failed')); };
+      });
+    });
+  }
+  function frac(o) { var W = window.innerWidth, H = window.innerHeight; return { x: o.x / W, y: o.y / H, s: o.scale / W, rot: o.rot }; }
+  function unfrac(o, f) { if (!f) return; var W = window.innerWidth, H = window.innerHeight; o.x = f.x * W; o.y = f.y * H; o.scale = f.s * W; o.rot = f.rot || 0; }
+
+  var saveTimer = null;
+  function scheduleSave() { clearTimeout(saveTimer); saveTimer = setTimeout(saveSession, 900); }
+  function saveSession() {
+    if (!img && !hasBase()) return;
+    var rec = { photo: photoBlob, photoName: photoName,
+      front: BASE.front && BASE.front.blob, frontName: BASE.front && BASE.front.name,
+      back: BASE.back && BASE.back.blob, backName: BASE.back && BASE.back.name,
+      ghost: ghost && ghost.blob, T: placed.picture ? frac(T) : null, B: placed.base ? frac(B) : null,
+      boardId: boardId, boardTitle: boardTitle, savedAt: Date.now() };
+    store('kv', 'readwrite', function (s) { return s.put(rec, 'session'); }).catch(function () {});
+  }
+  function ago(t) {
+    var m = Math.round((Date.now() - t) / 60000);
+    return m < 1 ? 'just now' : m < 60 ? m + ' min ago' : m < 1440 ? Math.round(m / 60) + ' h ago' : new Date(t).toLocaleDateString();
+  }
+  var lastSession = null;
+  function showResume() {
+    store('kv', 'readonly', function (s) { return s.get('session'); }).then(function (rec) {
+      lastSession = rec && (rec.photo || rec.front || rec.back) ? rec : null;
+      $('resume').hidden = !lastSession; $('orLine').hidden = !lastSession;
+      if (!lastSession) return;
+      var box = $('resumeThumbs'); box.innerHTML = '';
+      [rec.photo, rec.front, rec.back].forEach(function (bl) {
+        if (!bl) return; var im = document.createElement('img'); im.alt = ''; im.src = URL.createObjectURL(bl); box.appendChild(im);
+      });
+      var parts = []; if (rec.photo) parts.push('photo'); if (rec.front || rec.back) parts.push('base'); if (rec.boardTitle) parts.push('board “' + rec.boardTitle + '”');
+      $('resumeNote').textContent = parts.join(', ') + ' · ' + ago(rec.savedAt);
+    }).catch(function () { $('resume').hidden = true; $('orLine').hidden = true; });
+  }
+  $('resumeGo').addEventListener('click', function () {
+    var rec = lastSession; if (!rec) return;
+    var btn = this; btn.disabled = true;
+    var jobs = [];
+    BASE.front = null; BASE.back = null;
+    if (rec.photo) jobs.push(loadPhoto(rec.photo, rec.photoName));
+    if (rec.front) jobs.push(loadBase(rec.front, 'front', rec.frontName));
+    if (rec.back) jobs.push(loadBase(rec.back, 'back', rec.backName));
+    if (rec.ghost) jobs.push(loadImageBlob(rec.ghost).then(function (im) {
+      var c = document.createElement('canvas'); c.width = im.naturalWidth; c.height = im.naturalHeight; c.getContext('2d').drawImage(im, 0, 0); setGhost(c, rec.ghost);
+    }));
+    Promise.all(jobs).then(function () {
+      if (rec.T && img) { unfrac(T, rec.T); placed.picture = true; }
+      if (rec.B && hasBase()) { unfrac(B, rec.B); placed.base = true; }
+      boardId = rec.boardId || null; boardTitle = rec.boardTitle || '';
+      renderBase(); return enterDrawing();
+    }).catch(function (e) { showErr(e && e.message || 'The last session could not be opened.'); })
+      .then(function () { btn.disabled = false; });
+  });
+
+  // ---------- boards: a base, its placement and the guides, reused for every sheet in a line-up
+  function boardSettings() { return { heads: S.heads, cfOn: S.cfOn, cfX: S.cfX, mirrorSide: S.mirrorSide, baseOpacity: S.baseOpacity, baseOn: S.baseOn,
+    grid: S.grid, gridOn: S.gridOn, gridCells: S.gridCells, gridDiag: S.gridDiag, gridColor: S.gridColor, gridOpacity: S.gridOpacity, gridSize: S.gridSize }; }
+  function renderBoards() {
+    store('boards', 'readonly', function (s) { return s.getAll(); }).then(function (list) {
+      list = (list || []).sort(function (a, b) { return b.updated - a.updated; });
+      var box = $('boardList'); box.innerHTML = '';
+      if (!list.length) { var p = document.createElement('div'); p.className = 'note'; p.textContent = 'No boards yet. Place your base, set head lines and the centre line, then save.'; box.appendChild(p); }
+      list.forEach(function (rec) {
+        var row = document.createElement('div'); row.className = 'board'; row.setAttribute('aria-current', rec.id === boardId ? 'true' : 'false');
+        var th; if (rec.thumb) { th = document.createElement('img'); th.src = rec.thumb; th.alt = ''; } else { th = document.createElement('div'); th.className = 'noThumb'; }
+        var mid = document.createElement('div'), nm = document.createElement('div'), dt = document.createElement('div');
+        nm.className = 'nm'; nm.textContent = rec.name; dt.className = 'dt';
+        dt.textContent = (rec.front ? 'Front' : '') + (rec.back ? (rec.front ? ' + back' : 'Back') : '') + (rec.front || rec.back ? ' · ' : '') + ago(rec.updated);
+        mid.appendChild(nm); mid.appendChild(dt);
+        var acts = document.createElement('div'); acts.className = 'acts';
+        var use = document.createElement('button'); use.type = 'button'; use.className = 'chip primary'; use.textContent = rec.id === boardId ? 'Reload' : 'Use';
+        use.addEventListener('click', function () { applyBoard(rec); });
+        var del = document.createElement('button'); del.type = 'button'; del.className = 'chip'; del.textContent = 'Delete';
+        del.addEventListener('click', function () {
+          ask('Delete “' + rec.name + '”?', 'This removes the board from this phone. It cannot be undone.', 'Delete').then(function (yes) {
+            if (!yes) return;
+            store('boards', 'readwrite', function (s) { return s.delete(rec.id); }).then(function () {
+              if (boardId === rec.id) { boardId = null; boardTitle = ''; scheduleSave(); }
+              renderBoards(); syncUI(); toast('Board deleted.');
+            });
+          });
+        });
+        acts.appendChild(use); acts.appendChild(del);
+        row.appendChild(th); row.appendChild(mid); row.appendChild(acts); box.appendChild(row);
+      });
+    }).catch(function () { $('boardList').textContent = 'Boards need browser storage, which is turned off here.'; });
+  }
+  $('boardSave').addEventListener('click', function () {
+    var name = $('boardName').value.trim() || boardTitle || ('Board ' + new Date().toLocaleDateString());
+    var b = curBase(), now = Date.now();
+    var same = boardId && name === boardTitle;
+    var rec = { id: same ? boardId : 'b' + now.toString(36) + Math.random().toString(36).slice(2, 6), name: name, updated: now,
+      front: BASE.front && BASE.front.blob, frontName: BASE.front && BASE.front.name,
+      back: BASE.back && BASE.back.blob, backName: BASE.back && BASE.back.name,
+      B: hasBase() ? frac(B) : null, settings: boardSettings(), thumb: b ? b.thumb : null };
+    store('boards', 'readwrite', function (s) { return s.put(rec); }).then(function () {
+      boardId = rec.id; boardTitle = rec.name; $('boardName').value = rec.name;
+      renderBoards(); syncUI(); scheduleSave();
+      toast(same ? 'Board “' + name + '” updated.' : 'Board “' + name + '” saved.');
+    }).catch(function () { toast('This browser blocked saving. Check that it is not in private mode.'); });
+  });
+  function applyBoard(rec) {
+    var jobs = []; BASE.front = null; BASE.back = null;
+    if (rec.front) jobs.push(loadBase(rec.front, 'front', rec.frontName));
+    if (rec.back) jobs.push(loadBase(rec.back, 'back', rec.backName));
+    return Promise.all(jobs).then(function () {
+      var st = rec.settings || {}; Object.keys(st).forEach(function (k) { S[k] = st[k]; });
+      if (rec.B && hasBase()) { unfrac(B, rec.B); placed.base = true; } else placed.base = false;
+      S.flatView = 'front'; persist();
+      boardId = rec.id; boardTitle = rec.name; $('boardName').value = rec.name;
+      renderBase(); if (!placed.base) fitBase(); drawGridLayer(); drawGuides(); syncMirror(); renderBoards(); syncUI(); scheduleSave();
+      toast('Board “' + rec.name + '” ready: same figure, same place, same guides.');
+    }).catch(function (e) { toast('That board could not be opened: ' + (e && e.message || e)); });
+  }
+
+  // ---------- a small yes/no dialog
+  var askResolve = null;
+  function ask(title, body, yes) {
+    $('askTitle').textContent = title; $('askBody').textContent = body; $('askYes').textContent = yes || 'OK';
+    $('ask').hidden = false; $('askNo').focus();
+    return new Promise(function (res) { askResolve = res; });
+  }
+  function answer(v) { $('ask').hidden = true; var r = askResolve; askResolve = null; if (r) r(v); }
+  $('askYes').addEventListener('click', function () { answer(true); });
+  $('askNo').addEventListener('click', function () { answer(false); });
+  $('ask').addEventListener('click', function (e) { if (e.target === this) answer(false); });
+
+  // ---------- capture: photograph the sheet, drag the corners, straighten, clean to lines, export
+  var CAP = { src: null, quad: null, warp: null, out: null, kind: 'lines', png: null, svg: null, svgTimer: 0, svgJob: 0 };
+  var IMGTRACER = 'https://cdn.jsdelivr.net/npm/imagetracerjs@1.2.6/imagetracer_v1.2.6.js';
+  $('capStart').addEventListener('click', function () {
+    var v = $('video');
+    if (!v.videoWidth) { toast('The camera is not ready yet.'); return; }
+    var c = document.createElement('canvas'); c.width = v.videoWidth; c.height = v.videoHeight; c.getContext('2d').drawImage(v, 0, 0);
+    CAP.src = c; CAP.quad = findPaper(c) || defaultQuad(c); CAP.warp = null; CAP.out = null;
+    openLayer('capture'); capStep(1);
+  });
+  function defaultQuad(c) { var w = c.width, h = c.height, m = 0.08; return [[w * m, h * m], [w * (1 - m), h * m], [w * (1 - m), h * (1 - m)], [w * m, h * (1 - m)]]; }
+  // Paper is usually the largest bright patch: threshold (Otsu), keep the biggest connected region, take its four extreme corners.
+  function findPaper(c) {
+    var k = Math.min(1, 256 / Math.max(c.width, c.height)), w = Math.max(8, Math.round(c.width * k)), h = Math.max(8, Math.round(c.height * k));
+    var t = document.createElement('canvas'); t.width = w; t.height = h; var x = t.getContext('2d'); x.drawImage(c, 0, 0, w, h);
+    var d = x.getImageData(0, 0, w, h).data, N = w * h, L = new Uint8Array(N), hist = new Float64Array(256);
+    for (var i = 0, p = 0; i < N; i++, p += 4) { L[i] = Math.round(0.299 * d[p] + 0.587 * d[p + 1] + 0.114 * d[p + 2]); hist[L[i]]++; }
+    var sum = 0; for (var v = 0; v < 256; v++) sum += v * hist[v];
+    var sB = 0, wB = 0, best = 0, th = 128;
+    for (var u = 0; u < 256; u++) { wB += hist[u]; if (!wB) continue; var wF = N - wB; if (!wF) break; sB += u * hist[u];
+      var mB = sB / wB, mF = (sum - sB) / wF, between = wB * wF * (mB - mF) * (mB - mF); if (between > best) { best = between; th = u; } }
+    var lab = new Int32Array(N), bestLab = 0, bestN = 0, cur = 0, stack = new Int32Array(N);
+    for (var s = 0; s < N; s++) {
+      if (lab[s] || L[s] <= th) continue;
+      cur++; var n = 0, sp = 0; stack[sp++] = s; lab[s] = cur;
+      while (sp) { var q = stack[--sp]; n++; var qx = q % w, qy = (q / w) | 0;
+        if (qx > 0 && !lab[q - 1] && L[q - 1] > th) { lab[q - 1] = cur; stack[sp++] = q - 1; }
+        if (qx < w - 1 && !lab[q + 1] && L[q + 1] > th) { lab[q + 1] = cur; stack[sp++] = q + 1; }
+        if (qy > 0 && !lab[q - w] && L[q - w] > th) { lab[q - w] = cur; stack[sp++] = q - w; }
+        if (qy < h - 1 && !lab[q + w] && L[q + w] > th) { lab[q + w] = cur; stack[sp++] = q + w; } }
+      if (n > bestN) { bestN = n; bestLab = cur; }
+    }
+    if (bestN < N * 0.12 || bestN > N * 0.97) return null;   // nothing paper-like, or the paper fills the whole frame
+    var tl = [0, 0, 1e9], tr = [0, 0, -1e9], br = [0, 0, -1e9], bl = [0, 0, 1e9];
+    for (var j = 0; j < N; j++) { if (lab[j] !== bestLab) continue; var jx = j % w, jy = (j / w) | 0, a = jx + jy, b2 = jx - jy;
+      if (a < tl[2]) tl = [jx, jy, a]; if (a > br[2]) br = [jx, jy, a]; if (b2 > tr[2]) tr = [jx, jy, b2]; if (b2 < bl[2]) bl = [jx, jy, b2]; }
+    return [tl, tr, br, bl].map(function (pt) { return [(pt[0] + 0.5) / k, (pt[1] + 0.5) / k]; });
+  }
+  function capStep(n) {
+    $('capStep1').hidden = n !== 1; $('capStep2').hidden = n !== 2;
+    $('capFrame').hidden = n !== 1; $('capQuad').style.display = n === 1 ? '' : 'none';
+    document.querySelectorAll('#capture .handle').forEach(function (hd) { hd.hidden = n !== 1; });
+    $('capResultBox').hidden = n !== 2;
+    $('capTitle').textContent = n === 1 ? 'Line up the corners' : 'Save your sheet';
+    if (n === 1) layoutCap(); else showResult();
+  }
+  function capFit() {
+    var st = $('capStage').getBoundingClientRect(), c = CAP.src, f = Math.min(st.width / c.width, st.height / c.height);
+    return { f: f, ox: (st.width - c.width * f) / 2, oy: (st.height - c.height * f) / 2, st: st };
+  }
+  function layoutCap() {
+    if (!CAP.src) return;
+    var m = capFit(), cv = $('capFrame'), dpr = Math.min(2, window.devicePixelRatio || 1);
+    cv.width = Math.round(CAP.src.width * m.f * dpr); cv.height = Math.round(CAP.src.height * m.f * dpr);
+    cv.style.width = CAP.src.width * m.f + 'px'; cv.style.height = CAP.src.height * m.f + 'px';
+    cv.getContext('2d').drawImage(CAP.src, 0, 0, cv.width, cv.height);
+    positionHandles();
+  }
+  function positionHandles() {
+    var m = capFit(), pts = [];
+    document.querySelectorAll('#capture .handle').forEach(function (hd) {
+      var q = CAP.quad[+hd.dataset.i], x = m.ox + q[0] * m.f, y = m.oy + q[1] * m.f;
+      hd.style.left = x + 'px'; hd.style.top = y + 'px'; pts.push(x + ',' + y);
+    });
+    $('capPoly').setAttribute('points', pts.join(' '));
+  }
+  document.querySelectorAll('#capture .handle').forEach(function (hd) {
+    hd.addEventListener('pointerdown', function (e) { try { hd.setPointerCapture(e.pointerId); } catch (err) {} hd.dataset.drag = '1'; e.preventDefault(); });
+    hd.addEventListener('pointermove', function (e) {
+      if (hd.dataset.drag !== '1') return;
+      var m = capFit();
+      CAP.quad[+hd.dataset.i] = [clamp((e.clientX - m.st.left - m.ox) / m.f, 0, CAP.src.width), clamp((e.clientY - m.st.top - m.oy) / m.f, 0, CAP.src.height)];
+      positionHandles();
+    });
+    ['pointerup', 'pointercancel'].forEach(function (t) { hd.addEventListener(t, function () { hd.dataset.drag = ''; }); });
+  });
+  $('capAuto').addEventListener('click', function () {
+    var q = findPaper(CAP.src);
+    if (q) { CAP.quad = q; positionHandles(); toast('Paper found. Fine-tune the corners if needed.'); }
+    else toast('Could not find the paper edges. Put it on a darker surface, or drag the corners.');
+  });
+  $('capBack').addEventListener('click', function () { closeLayer(); });
+  $('capRedo').addEventListener('click', function () { capStep(1); });
+  $('capNext').addEventListener('click', function () {
+    toastSticky('Straightening…');
+    setTimeout(function () { CAP.warp = warpQuad(CAP.src, CAP.quad); $('toast').hidden = true; capStep(2); }, 30);
+  });
+  // Solve for the projective map that sends the output rectangle's corners to the four picked points.
+  function homography(dst, src) {
+    var A = [], bv = [];
+    for (var i = 0; i < 4; i++) { var u = dst[i][0], v = dst[i][1], x = src[i][0], y = src[i][1];
+      A.push([u, v, 1, 0, 0, 0, -u * x, -v * x]); bv.push(x); A.push([0, 0, 0, u, v, 1, -u * y, -v * y]); bv.push(y); }
+    for (var c = 0; c < 8; c++) {
+      var piv = c; for (var r = c + 1; r < 8; r++) if (Math.abs(A[r][c]) > Math.abs(A[piv][c])) piv = r;
+      var tA = A[c]; A[c] = A[piv]; A[piv] = tA; var tb = bv[c]; bv[c] = bv[piv]; bv[piv] = tb;
+      for (var r2 = c + 1; r2 < 8; r2++) { var fct = A[r2][c] / A[c][c]; for (var k = c; k < 8; k++) A[r2][k] -= fct * A[c][k]; bv[r2] -= fct * bv[c]; }
+    }
+    var hh = new Array(8);
+    for (var r3 = 7; r3 >= 0; r3--) { var sm = bv[r3]; for (var k2 = r3 + 1; k2 < 8; k2++) sm -= A[r3][k2] * hh[k2]; hh[r3] = sm / A[r3][r3]; }
+    return hh;
+  }
+  function warpQuad(src, q) {
+    var d = function (a, b) { return Math.hypot(a[0] - b[0], a[1] - b[1]); };
+    var ow = Math.max(d(q[0], q[1]), d(q[3], q[2])), oh = Math.max(d(q[0], q[3]), d(q[1], q[2]));
+    var k = Math.min(1.6, 2200 / Math.max(ow, oh)), W = Math.max(16, Math.round(ow * k)), H = Math.max(16, Math.round(oh * k));
+    var h = homography([[0, 0], [W - 1, 0], [W - 1, H - 1], [0, H - 1]], q);
+    var sw = src.width, sh = src.height, sd = src.getContext('2d').getImageData(0, 0, sw, sh).data;
+    var out = document.createElement('canvas'); out.width = W; out.height = H;
+    var ox = out.getContext('2d'), od = ox.createImageData(W, H), o = od.data;
+    for (var y = 0; y < H; y++) for (var x = 0; x < W; x++) {
+      var z = h[6] * x + h[7] * y + 1, fx = (h[0] * x + h[1] * y + h[2]) / z, fy = (h[3] * x + h[4] * y + h[5]) / z;
+      var x0 = Math.floor(fx), y0 = Math.floor(fy), ax = fx - x0, ay = fy - y0, p = (y * W + x) * 4;
+      if (x0 < 0 || y0 < 0 || x0 >= sw - 1 || y0 >= sh - 1) { o[p] = o[p + 1] = o[p + 2] = 255; o[p + 3] = 255; continue; }
+      var i00 = (y0 * sw + x0) * 4, i10 = i00 + 4, i01 = i00 + sw * 4, i11 = i01 + 4;
+      for (var ch = 0; ch < 3; ch++) o[p + ch] = (sd[i00 + ch] * (1 - ax) + sd[i10 + ch] * ax) * (1 - ay) + (sd[i01 + ch] * (1 - ax) + sd[i11 + ch] * ax) * ay;
+      o[p + 3] = 255;
+    }
+    ox.putImageData(od, 0, 0); return out;
+  }
+  function showResult() {
+    var w = CAP.warp; if (!w) return;
+    CAP.png = null; CAP.svg = null; clearTimeout(CAP.svgTimer); CAP.svgJob++;
+    $('capPng').disabled = true; $('capSvg').disabled = true;
+    $('capKindSeg').querySelectorAll('button').forEach(function (b) { b.setAttribute('aria-pressed', b.dataset.v === CAP.kind ? 'true' : 'false'); });
+    $('capCleanRow').hidden = CAP.kind !== 'lines'; $('capSvg').hidden = CAP.kind !== 'lines'; $('capBase').hidden = CAP.kind !== 'lines';
+    CAP.out = CAP.kind === 'lines' ? inkCanvas(inkFrom(w, +$('capClean').value), w.width, w.height, [15, 14, 12]) : w;
+    var st = $('capStage').getBoundingClientRect(), f = Math.min(st.width / w.width, st.height / w.height), box = $('capResultBox');
+    var dpr = Math.min(2, window.devicePixelRatio || 1);
+    box.width = Math.round(w.width * f * dpr); box.height = Math.round(w.height * f * dpr);
+    box.style.width = w.width * f + 'px'; box.style.height = w.height * f + 'px';
+    box.getContext('2d').clearRect(0, 0, box.width, box.height); box.getContext('2d').drawImage(CAP.out, 0, 0, box.width, box.height);
+    var job = CAP.svgJob, out = CAP.out;
+    out.toBlob(function (bl) { if (job !== CAP.svgJob) return; CAP.png = bl; $('capPng').disabled = !bl; }, CAP.kind === 'lines' ? 'image/png' : 'image/jpeg', 0.92);
+    if (CAP.kind === 'lines') { $('capSvg').textContent = 'Preparing SVG…'; CAP.svgTimer = setTimeout(function () { makeSvg(out, job); }, 350); }
+  }
+  // Vector outlines with ImageTracer (public domain), on a black-and-white copy of the clean lines.
+  function makeSvg(out, job) {
+    (window.ImageTracer ? Promise.resolve() : loadScript(IMGTRACER)).then(function () {
+      if (job !== CAP.svgJob) return;
+      var k = Math.min(1, 1600 / Math.max(out.width, out.height)), w = Math.round(out.width * k), h = Math.round(out.height * k);
+      var t = document.createElement('canvas'); t.width = w; t.height = h; var x = t.getContext('2d');
+      x.fillStyle = '#fff'; x.fillRect(0, 0, w, h); x.drawImage(out, 0, 0, w, h);
+      var id = x.getImageData(0, 0, w, h), d = id.data;
+      for (var p = 0; p < d.length; p += 4) { var v = d[p] < 140 ? 0 : 255; d[p] = d[p + 1] = d[p + 2] = v; d[p + 3] = 255; }
+      var svg = window.ImageTracer.imagedataToSVG(id, { ltres: 1, qtres: 1, pathomit: 10, colorsampling: 0, numberofcolors: 2,
+        pal: [{ r: 0, g: 0, b: 0, a: 255 }, { r: 255, g: 255, b: 255, a: 255 }], strokewidth: 0, linefilter: true, roundcoords: 1, viewbox: true, desc: false, blurradius: 0 });
+      svg = svg.replace(/<path[^>]*fill="rgb\(255,255,255\)"[^>]*\/>/g, '').replace(/fill="rgb\(0,0,0\)" stroke="rgb\(0,0,0\)"/g, 'fill="#0F0E0C" stroke="none"');
+      if (job !== CAP.svgJob) return;
+      CAP.svg = new Blob([svg], { type: 'image/svg+xml' }); $('capSvg').disabled = false; $('capSvg').textContent = 'Save SVG';
+    }).catch(function () { if (job === CAP.svgJob) $('capSvg').textContent = 'SVG needs a connection'; });
+  }
+  function stamp() { var d = new Date(), z = function (n) { return (n < 10 ? '0' : '') + n; }; return d.getFullYear() + z(d.getMonth() + 1) + z(d.getDate()) + '-' + z(d.getHours()) + z(d.getMinutes()); }
+  function saveFile(blob, name) {
+    var file = null; try { file = new File([blob], name, { type: blob.type }); } catch (e) {}
+    if (file && navigator.canShare && navigator.canShare({ files: [file] })) {
+      navigator.share({ files: [file], title: name }).catch(function (e) { if (e && e.name !== 'AbortError') download(blob, name); });
+      return;
+    }
+    download(blob, name);
+  }
+  function download(blob, name) {
+    var a = document.createElement('a'), url = URL.createObjectURL(blob); a.href = url; a.download = name;
+    document.body.appendChild(a); a.click(); a.remove(); setTimeout(function () { URL.revokeObjectURL(url); }, 4000);
+  }
+  $('capPng').addEventListener('click', function () { if (CAP.png) saveFile(CAP.png, 'numotif-trace-' + stamp() + (CAP.kind === 'lines' ? '.png' : '.jpg')); });
+  $('capSvg').addEventListener('click', function () { if (CAP.svg) saveFile(CAP.svg, 'numotif-trace-' + stamp() + '.svg'); });
+  $('capKindSeg').querySelectorAll('button').forEach(function (b) { b.addEventListener('click', function () { CAP.kind = b.dataset.v; showResult(); }); });
+  var cleanTimer = 0;
+  $('capClean').addEventListener('input', function () { $('capCleanOut').textContent = this.value; clearTimeout(cleanTimer); cleanTimer = setTimeout(showResult, 120); });
+  $('capBase').addEventListener('click', function () {
+    if (!CAP.out) return;
+    CAP.out.toBlob(function (bl) {
+      if (!bl) return;
+      loadBase(bl, S.flatView, 'Captured sheet').then(function () {
+        S.baseOn = true; persist(); placed.base = false; closeLayer(); afterBaseChange(); fitBase(); scheduleSave();
+        toast('Your sheet is now the base. Save it in Boards to reuse it.');
+      });
+    }, 'image/png');
+  });
+
+  function syncStart() {
+    $('go').disabled = !(img || hasBase());
+    var b = BASE.front || BASE.back;
+    $('baseFig').hidden = !b; if (b) { $('baseThumb').src = b.thumb; $('baseName').textContent = b.name; }
+    $('thumbWrap').hidden = !(img || b);
+  }
+  function syncFashion() {
+    ['front', 'back'].forEach(function (v) {
+      var b = BASE[v], box = $(v + 'Box');
+      box.innerHTML = '';
+      if (b) { var im = document.createElement('img'); im.src = b.thumb; im.alt = v + ' base'; box.appendChild(im); }
+      else { var sp = document.createElement('span'); sp.textContent = v === 'front' ? 'None yet' : 'Optional'; box.appendChild(sp); }
+      $(v + 'Clear').hidden = !b;
+    });
+    setSwitch('baseSw', S.baseOn); $('baseOpacity').value = S.baseOpacity; $('opacityBase').value = S.baseOpacity;
+    $('headsSeg').querySelectorAll('button').forEach(function (b) { b.setAttribute('aria-pressed', +b.dataset.v === S.heads ? 'true' : 'false'); });
+    $('flatSeg').querySelectorAll('button').forEach(function (b) { b.setAttribute('aria-pressed', b.dataset.v === S.flatView ? 'true' : 'false'); });
+    $('flatNote').textContent = backFallback() ? 'showing the front faintly' : (S.flatView === 'back' && !BASE.back ? 'no back base' : '');
+    setSwitch('cfSw', S.cfOn); $('cfX').value = S.cfX;
+    setSwitch('mirrorSw', S.mirrorOn); $('mirrorStrength').value = S.mirrorStrength;
+    $('mirrorSideSeg').querySelectorAll('button').forEach(function (b) { b.setAttribute('aria-pressed', b.dataset.v === S.mirrorSide ? 'true' : 'false'); });
+    setSwitch('ghostSw', !!ghost && S.ghostOn); $('ghostClear').hidden = !ghost; $('ghostOpRow').hidden = !ghost; $('ghostOpacity').value = S.ghostOpacity;
+    $('boardCurrent').textContent = boardId ? 'Using board “' + boardTitle + '”. Save again to update it, or type a new name to save a copy.' : '';
+    $('opPhotoRow').hidden = !img; $('opBaseRow').hidden = !hasBase();
+    syncGhost(); syncMirror();
+  }
+
   function setSwitch(id, on) { $(id).setAttribute('aria-checked', on ? 'true' : 'false'); }
   function syncUI() {
     if (S.view === 'stencil' && S.cumulative) S.view = 'layered'; if (S.view === 'layered' && !S.cumulative) S.view = 'stencil';
@@ -1218,10 +2039,11 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
       $('stepLabel').textContent = stepText(kind);
     }
     // bottom bar
-    var screenGrid = S.grid && S.gridOn === 'screen';
-    if (!screenGrid && target === 'grid') target = 'picture';
-    $('targets').hidden = !(move && screenGrid);
-    $('targets').querySelectorAll('button').forEach(function (b) { b.setAttribute('aria-pressed', b.dataset.t === target ? 'true' : 'false'); });
+    var screenGrid = S.grid && S.gridOn === 'screen', avail = [];
+    if (img) avail.push('picture'); if (hasBase()) avail.push('base'); if (screenGrid) avail.push('grid');
+    if (avail.length && avail.indexOf(target) < 0) target = avail[0];
+    $('targets').hidden = !(move && avail.length >= 2);
+    $('targets').querySelectorAll('button').forEach(function (b) { b.hidden = avail.indexOf(b.dataset.t) < 0; b.setAttribute('aria-pressed', b.dataset.t === target ? 'true' : 'false'); });
     $('moveBtn').setAttribute('aria-pressed', move ? 'true' : 'false');
     $('hideBtn').textContent = hidden ? 'Show' : 'Hide'; $('hideBtn').setAttribute('aria-pressed', hidden ? 'true' : 'false');
     $('opacityBtn').setAttribute('aria-pressed', $('opacityPop').hidden ? 'false' : 'true');
@@ -1241,10 +2063,16 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
     $('gridDot').style.background = 'rgb(' + COLORS[S.gridColor][1].join(',') + ')';
     $('gridCol').querySelector('span').textContent = 'Colour: ' + COLORS[S.gridColor][0];
     setSwitch('pauseSw', paused); setSwitch('torchSw', torchOn);
+    syncFashion();
   }
-  window.addEventListener('resize', function () { drawGridLayer(); clampView(); placeWorld(); if (img) place(); });
+  window.addEventListener('resize', function () {
+    drawGridLayer(); drawGuides(); clampView(); placeWorld(); place();
+    if (!$('capture').hidden) { if (!$('capStep1').hidden) layoutCap(); else showResult(); }
+  });
 
-  updateUndo(); syncUI();
+  // a reload (Safari does this after memory pressure) starts on the start screen: drop the stale drawing entry
+  if (history.state && history.state.tc) history.replaceState(null, '');
+  updateUndo(); syncUI(); syncStart(); showResume();
 })();
 </script>
 </body>

@@ -38,5 +38,22 @@ and your chosen photo floats see-through on top, so you can draw while watching 
 - Strobe blinks the picture to compare with your drawing; the grid has adjustable colour and opacity; Camera can pause or switch cameras; Flashlight turns on the torch where the browser allows it.
 - Opacity, mirror and line colour; the screen is kept awake.
 
+## For fashion designers (release 1)
+
+- **Base layer:** load your own croquis or flat block (front and back) under everything, fixed to the paper. Scanned paper is
+  lifted to white and blended away, so only the figure shows. **Head lines** (8, 9 or 10 heads) split the figure from crown to
+  soles and are numbered down the side. Move it with **Move → Base**; undo/redo works per layer.
+- **Flats:** a centre-front line you can place (or line up with the base), and a **live mirror**: draw one half and your own
+  pencil lines appear flipped on the other side, extracted from the camera 15 times a second (paper and desk are filtered out).
+  **Front/Back** switches the base; with no back base the front shows faintly. **Ghost** keeps a faint wine copy of a
+  finished sheet so the next look in a line-up is drawn to match.
+- **Boards:** save the base (front and back), its placement, head lines, centre line and grid under a name, and reuse it for
+  every sheet of a collection. Stored on the phone (IndexedDB).
+- **Autosave:** the photo, bases, ghost and placements are saved as you work; the start screen offers *Continue where you left off*.
+- **Export:** capture the sheet, the paper's corners are found automatically (Otsu threshold, largest bright region) and can be
+  dragged; the sheet is straightened with a perspective (homography) warp and cleaned to lines by dividing out the paper's own
+  shading. Save a transparent PNG, an SVG (vectorised with imagetracerjs 1.2.6, public domain, loaded from jsDelivr on demand),
+  the straightened photo as JPG, or use the lines as your next base. Files go through the share sheet on iPhone.
+
 Photos are processed on the device and never uploaded. Everything is in `index.html`; no build step.
 Needs https for camera access (GitHub Pages provides it).
