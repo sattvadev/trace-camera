@@ -76,6 +76,18 @@ body.screenMode .camOnly, body:not(.screenMode) .screenOnly { display: none !imp
 #drawRail .dot { display: block; border-radius: 50%; background: currentColor; }
 #drawRail .swatch { display: block; width: 22px; height: 22px; border-radius: 6px; border: 1px solid rgba(0,0,0,.25); }
 
+/* AI sketch from photos (Meta Muse Image) */
+#muse { z-index: 45; }   /* above the start screen (40) */
+#ask { z-index: 50; }    /* confirmations sit above everything, the AI dialog included */
+#muse .box { width: min(560px, 100%); }
+#muse .row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+#musePicked { min-height: 0; }
+#musePicked:empty { display: none; }
+.museResults { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 10px; }
+.museResults:empty { display: none; }
+.museResults button { border: 1px solid var(--gray-200); border-radius: var(--radius-xs); background: #fff; padding: 4px; cursor: pointer; display: grid; gap: 4px; font: 600 .75rem/1.2 var(--font); color: var(--gray-700); }
+.museResults img { width: 100%; aspect-ratio: 2 / 3; object-fit: contain; background: #fff; }
+
 /* frosted pills */
 .glass { background: var(--glass); backdrop-filter: blur(14px) saturate(1.4); -webkit-backdrop-filter: blur(14px) saturate(1.4);
   border: 1px solid rgba(255,255,255,0.7); box-shadow: var(--shadow-lg); }
@@ -386,6 +398,9 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
         </div>
         <p class="samplesHead">Sample designs</p>
         <div class="samples" id="toolSamples" role="group" aria-label="Sample designs"></div>
+        <p class="samplesHead" id="toolMineHead" hidden>My AI sketches <span class="fine">(hold one to delete it)</span></p>
+        <div class="samples" id="toolMine" role="group" aria-label="My AI sketches" hidden></div>
+        <div class="row"><button type="button" class="chip primary" id="toolMuse">AI sketch from photos</button><span class="note" style="flex:1 1 160px">Turns dress photos into a fashion sketch with Meta's Muse Image.</span></div>
       </div>
     </details>
   </div>
@@ -614,6 +629,32 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
   </div>
 </section>
 
+<div id="muse" class="modal" hidden role="dialog" aria-modal="true" aria-labelledby="museTitle">
+  <div class="box">
+    <h2 id="museTitle">AI sketch from photos</h2>
+    <p>Turn dress photos into a fashion sketch you can trace and improve. Uses Meta's Muse Image: the photos you pick are sent to Meta, and each sketch costs about $0.01 on your Meta account.</p>
+    <div id="museKeyRow">
+      <div class="row"><input class="textIn" type="password" id="museKey" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Paste your Meta Model API key" aria-label="Meta Model API key">
+        <button type="button" class="chip primary" id="museKeySave">Save key</button></div>
+      <p class="fine">Kept only on this device and sent only to Meta (api.meta.ai). Get a key at dev.meta.ai.</p>
+    </div>
+    <div class="row" id="museKeySet" hidden><span class="note" style="flex:1 1 150px">Meta key saved on this device.</span><button type="button" class="chip" id="museKeyForget">Forget key</button></div>
+    <div class="row"><label class="chip fileChip">Choose photos<input type="file" id="museFiles" accept="image/*" multiple></label>
+      <button type="button" class="chip" id="museUseCurrent">Use the current picture</button></div>
+    <div class="lineup" id="musePicked" aria-label="Photos to send"></div>
+    <div class="row"><span class="sub">Make</span><div class="seg" id="museMode" role="group" aria-label="How to use the photos">
+      <button type="button" data-v="each" aria-pressed="true">One per photo</button><button type="button" data-v="combine" aria-pressed="false">One look from all</button></div></div>
+    <div class="row"><span class="sub">Style</span><div class="seg" id="museStyle" role="group" aria-label="Sketch style">
+      <button type="button" data-v="line" aria-pressed="true">Line art</button><button type="button" data-v="pencil" aria-pressed="false">Pencil</button><button type="button" data-v="flat" aria-pressed="false">Flat</button></div></div>
+    <div class="row"><span class="sub">Versions</span><div class="seg" id="museN" role="group" aria-label="Versions of each sketch">
+      <button type="button" data-v="1" aria-pressed="true">1</button><button type="button" data-v="2" aria-pressed="false">2</button><button type="button" data-v="4" aria-pressed="false">4</button></div></div>
+    <p class="note" id="museCost">Choose one or more photos.</p>
+    <p class="msg" id="museErr" hidden></p>
+    <div class="museResults" id="museResults" aria-label="Sketches made"></div>
+    <div class="btns"><button type="button" id="museClose">Close</button><button type="button" class="primary" id="museGo" disabled>Make sketches</button></div>
+  </div>
+</div>
+
 <div id="help" class="modal" hidden role="dialog" aria-modal="true" aria-labelledby="helpTitle">
   <div class="box">
     <h2 id="helpTitle">How to trace</h2>
@@ -667,10 +708,13 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
     <button type="button" class="textBtn" id="startBuiltIn">or use the built-in 9-head croquis</button>
     <p class="samplesHead">Or try a sample design</p>
     <div class="samples" id="startSamples" role="group" aria-label="Sample designs"></div>
+    <p class="samplesHead" id="startMineHead" hidden>My AI sketches <span class="fine">(hold one to delete it)</span></p>
+    <div class="samples" id="startMine" role="group" aria-label="My AI sketches" hidden></div>
+    <button type="button" class="textBtn" id="startMuse">Make a sketch from your own dress photos (AI)</button>
     <button type="button" class="big primary" id="go" disabled>Start camera</button>
     <button type="button" class="big" id="goScreen">Draw on screen with Apple Pencil</button>
     <p class="msg" id="err" hidden></p>
-    <p class="fine">Photos stay on your phone. Nothing is uploaded. After your first visit it also works offline.</p>
+    <p class="fine">Photos stay on your phone. Nothing is uploaded, except the photos you choose to send to Meta for an AI sketch. After your first visit it also works offline.</p>
     <p class="fine">AI sketch uses the Informative Drawings model by Caroline Chan, Frédo Durand and Phillip Isola (MIT License), run on your phone.</p>
   </div>
 </section>
@@ -765,6 +809,187 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
     });
   }
   buildSamples($('startSamples')); buildSamples($('toolSamples'));
+
+  // ---------- AI sketch from photos: Meta Muse Image (muse-image-1.0) via the Meta Model API, called from this device.
+  // The key is the designer's own, kept in this browser only and sent only to api.meta.ai. Photos leave the device only
+  // here, after the designer picks them and taps Make sketches.
+  var MUSE = { url: 'https://api.meta.ai/v1/images/edits', model: 'muse-image-1.0', keyName: 'trace-meta-key',
+               pics: [], mode: 'each', style: 'line', n: 1, busy: false, mine: [], MAX_MINE: 40 };
+  var MUSE_STYLE = {
+    line: 'Redraw it as a professional fashion design sketch: clean, confident black ink line art on a pure white background, ' +
+          'worn by an elegant 9-head fashion croquis standing straight and facing front, full figure from head to feet, faceless head, ' +
+          'no colour, no shading, no background, no text, no logos.',
+    pencil: 'Redraw it as a fashion illustration in graphite pencil on pure white paper: crisp outlines with soft grey shading for folds ' +
+            'and volume, worn by an elegant 9-head fashion croquis standing straight and facing front, full figure from head to feet, ' +
+            'faceless head, no colour, no background, no text, no logos.',
+    flat: 'Redraw it as a technical fashion flat: the garment alone, front view, laid flat and symmetrical, crisp black outlines of even ' +
+          'weight on pure white, topstitching as fine dashed lines, no figure, no shading, no colour, no text, no logos.'
+  };
+  var MUSE_KEEP = ' Keep the garment exactly as in the photo: silhouette, length, neckline, collar, sleeves, waist, seams, darts, pleats, ' +
+                  'gathers, buttons, pockets, trims and how the fabric drapes.';
+  function museKey() { try { return localStorage.getItem(MUSE.keyName) || ''; } catch (e) { return ''; } }
+  function openMuse() {
+    $('muse').hidden = false; $('museErr').hidden = true; syncMuse();
+    if (!museKey()) $('museKey').focus();
+  }
+  function closeMuse() { if (MUSE.busy) return; $('muse').hidden = true; }
+  $('startMuse').addEventListener('click', openMuse); $('toolMuse').addEventListener('click', function () { closeTools(); openMuse(); });
+  $('museClose').addEventListener('click', closeMuse);
+  $('muse').addEventListener('click', function (e) { if (e.target === this) closeMuse(); });
+  $('museKeySave').addEventListener('click', function () {
+    var k = $('museKey').value.trim(); if (!k) return;
+    try { localStorage.setItem(MUSE.keyName, k); } catch (e) { museErr('This browser would not keep the key (private browsing?).'); return; }
+    $('museKey').value = ''; syncMuse();
+  });
+  $('museKeyForget').addEventListener('click', function () {
+    ask('Forget the Meta key?', 'It is removed from this device. You can paste it again any time.', 'Forget').then(function (yes) {
+      if (!yes) return; try { localStorage.removeItem(MUSE.keyName); } catch (e) {} syncMuse();
+    });
+  });
+  function addMusePic(blob, name) {
+    if (MUSE.pics.length >= 10) { museErr('Up to 10 photos at a time.'); return; }
+    MUSE.pics.push({ blob: blob, name: name || 'Photo', url: URL.createObjectURL(blob) }); syncMuse();
+  }
+  $('museFiles').addEventListener('change', function () {
+    var fs = Array.from(this.files || []); this.value = ''; $('museErr').hidden = true;
+    fs.forEach(function (f) { addMusePic(f, f.name); });
+  });
+  $('museUseCurrent').addEventListener('click', function () { if (photoBlob) addMusePic(photoBlob, photoName); });
+  [['museMode', 'mode'], ['museStyle', 'style'], ['museN', 'n']].forEach(function (pr) {
+    $(pr[0]).querySelectorAll('button').forEach(function (b) {
+      b.addEventListener('click', function () { MUSE[pr[1]] = pr[1] === 'n' ? +b.dataset.v : b.dataset.v; syncMuse(); });
+    });
+  });
+  function museErr(t) { $('museErr').textContent = t; $('museErr').hidden = !t; }
+  function museCount() { var k = MUSE.pics.length; return k ? (MUSE.mode === 'combine' ? 1 : k) * MUSE.n : 0; }
+  function syncMuse() {
+    var has = !!museKey();
+    $('museKeyRow').hidden = has; $('museKeySet').hidden = !has;
+    $('museUseCurrent').hidden = !photoBlob || MUSE.pics.some(function (p) { return p.blob === photoBlob; });
+    var box = $('musePicked'); box.innerHTML = '';
+    MUSE.pics.forEach(function (p, i) {
+      var el = document.createElement('div'); el.className = 'look';
+      var im = document.createElement('img'); im.src = p.url; im.alt = p.name;
+      var x = document.createElement('button'); x.type = 'button'; x.textContent = '×'; x.setAttribute('aria-label', 'Remove ' + p.name);
+      x.addEventListener('click', function () { URL.revokeObjectURL(p.url); MUSE.pics.splice(i, 1); syncMuse(); });
+      var sp = document.createElement('span'); sp.textContent = 'Photo ' + (i + 1);
+      el.appendChild(im); el.appendChild(x); el.appendChild(sp); box.appendChild(el);
+    });
+    [['museMode', MUSE.mode], ['museStyle', MUSE.style], ['museN', String(MUSE.n)]].forEach(function (pr) {
+      $(pr[0]).querySelectorAll('button').forEach(function (b) { b.setAttribute('aria-pressed', b.dataset.v === pr[1] ? 'true' : 'false'); });
+    });
+    $('museMode').closest('.row').hidden = MUSE.pics.length < 2;
+    var n = museCount();
+    if (!MUSE.busy) $('museCost').textContent = n ? n + (n === 1 ? ' sketch' : ' sketches') + ', about $' + (n * 0.01).toFixed(2) + ' on your Meta account.' : 'Choose one or more photos.';
+    $('museGo').disabled = MUSE.busy || !n || !has;
+    $('museGo').textContent = MUSE.busy ? 'Making…' : 'Make sketches';
+    $('museClose').disabled = MUSE.busy;
+  }
+  function museDataUrl(blob) {   // a JPEG at most 1536 px on its long side keeps the upload small
+    return loadImageBlob(blob).then(function (im) {
+      var k = Math.min(1, 1536 / Math.max(im.naturalWidth, im.naturalHeight)), c = document.createElement('canvas');
+      c.width = Math.round(im.naturalWidth * k); c.height = Math.round(im.naturalHeight * k);
+      var x = c.getContext('2d'); x.fillStyle = '#fff'; x.fillRect(0, 0, c.width, c.height); x.drawImage(im, 0, 0, c.width, c.height);
+      return c.toDataURL('image/jpeg', 0.88);
+    });
+  }
+  function museRequest(urls, combine) {
+    var prompt = (combine ? 'These photos show garments to combine into one outfit. ' : 'This photo shows a garment. ') + MUSE_STYLE[MUSE.style] + MUSE_KEEP;
+    var body = { model: MUSE.model, prompt: prompt, images: urls.map(function (u) { return { image_url: u }; }), n: MUSE.n,
+                 size: '1024x1536', response_format: 'b64_json', output_format: 'png',
+                 tool_enablement: { enable_image_search: false, enable_web_search: false, enable_shell: false } };
+    function attempt(tries) {
+      var ctl = new AbortController(), timer = setTimeout(function () { ctl.abort(); }, 180000);
+      return fetch(MUSE.url, { method: 'POST', signal: ctl.signal,
+        headers: { 'Authorization': 'Bearer ' + museKey(), 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
+        .catch(function (e) { clearTimeout(timer); throw new Error(e && e.name === 'AbortError' ? 'Meta took too long to answer. Try again.' : 'Could not reach Meta. Check your connection.'); })
+        .then(function (r) {
+          clearTimeout(timer);
+          if (r.status === 429 && tries < 2) {
+            var wait = (+r.headers.get('Retry-After') || 4) * 1000 + Math.random() * 1000;
+            return new Promise(function (res) { setTimeout(res, wait); }).then(function () { return attempt(tries + 1); });
+          }
+          return r.json().catch(function () { return {}; }).then(function (j) {
+            if (r.ok) return (j.data || []).map(function (d) { return d.b64_json; }).filter(Boolean);
+            var code = j.error && (j.error.code || j.error.type), msg = j.error && j.error.message;
+            if (r.status === 401 || r.status === 403) throw new Error(r.status === 401 ? 'Meta did not accept the key. Check it, or paste it again.' : 'This key cannot use Muse Image here' + (msg ? ': ' + msg : '.'));
+            if (code === 'content_policy_violation') throw new Error('Meta declined this photo under its content rules. Try a different photo.');
+            if (r.status === 429) throw new Error('Too many requests right now. Wait a minute and try again.');
+            throw new Error('Meta could not make the sketch' + (msg ? ': ' + msg : ' (error ' + r.status + ').'));
+          });
+        });
+    }
+    return attempt(0);
+  }
+  function b64Blob(b64) {
+    var bin = atob(b64), u = new Uint8Array(bin.length); for (var i = 0; i < bin.length; i++) u[i] = bin.charCodeAt(i);
+    return new Blob([u], { type: 'image/png' });
+  }
+  $('museGo').addEventListener('click', function () {
+    if (MUSE.busy || !museCount() || !museKey()) return;
+    MUSE.busy = true; museErr(''); $('museResults').innerHTML = ''; syncMuse();
+    var pics = MUSE.pics.slice(), combine = MUSE.mode === 'combine' && pics.length > 1;
+    var jobs = combine ? [pics] : pics.map(function (p) { return [p]; }), made = 0, total = museCount(), failed = null;
+    function label(job) { return combine ? 'Combined look' : job[0].name.replace(/\.[a-z0-9]+$/i, ''); }
+    var chain = Promise.resolve();
+    jobs.forEach(function (job, ji) {
+      chain = chain.then(function () {
+        $('museCost').textContent = 'Making ' + (jobs.length > 1 ? 'sketch ' + (ji + 1) + ' of ' + jobs.length : 'the sketch') + '… this can take up to a minute.';
+        return Promise.all(job.map(function (p) { return museDataUrl(p.blob); })).then(function (urls) { return museRequest(urls, combine); })
+          .then(function (list) {
+            list.forEach(function (b64, vi) {
+              var blob = b64Blob(b64), name = 'AI sketch · ' + label(job) + (list.length > 1 ? ' ' + (vi + 1) : '');
+              made++; museShowResult(blob, name); saveMine(blob, name);
+            });
+          }).catch(function (e) { failed = failed || e; if (/key|declined this key|cannot use/i.test(e.message)) throw e; });
+      });
+    });
+    chain.catch(function (e) { failed = e; }).then(function () {
+      MUSE.busy = false; syncMuse();
+      $('museCost').textContent = made ? made + (made === 1 ? ' sketch' : ' sketches') + ' made. Tap one to trace it. They are also kept in My AI sketches.' : $('museCost').textContent;
+      if (failed) museErr(failed.message + (made && made < total ? ' (' + made + ' of ' + total + ' were made.)' : ''));
+    });
+  });
+  function museShowResult(blob, name) {
+    var b = document.createElement('button'); b.type = 'button';
+    var im = document.createElement('img'); im.src = URL.createObjectURL(blob); im.alt = name;
+    var sp = document.createElement('span'); sp.textContent = 'Trace this';
+    b.appendChild(im); b.appendChild(sp); $('museResults').appendChild(b);
+    b.addEventListener('click', function () { closeMuse(); usePhoto(blob, name); });
+  }
+  // My AI sketches: kept on this device (IndexedDB), newest first, shown with the samples
+  function saveMine(blob, name) {
+    MUSE.mine.unshift({ id: Date.now().toString(36) + Math.random().toString(36).slice(2, 5), blob: blob, name: name });
+    if (MUSE.mine.length > MUSE.MAX_MINE) MUSE.mine.length = MUSE.MAX_MINE;
+    store('kv', 'readwrite', function (st) { return st.put(MUSE.mine, 'aiSketches'); }).catch(function () {});
+    renderMine();
+  }
+  function renderMine() {
+    ['start', 'tool'].forEach(function (w) {
+      var box = $(w + 'Mine'); box.innerHTML = '';
+      MUSE.mine.forEach(function (m) {
+        var b = document.createElement('button'); b.type = 'button'; b.className = 'sample'; b.setAttribute('aria-pressed', photoName === m.name ? 'true' : 'false');
+        var im = document.createElement('img'); var u = URL.createObjectURL(m.blob); im.src = u; im.alt = '';
+        im.onload = function () { setTimeout(function () { URL.revokeObjectURL(u); }, 500); };
+        var sp = document.createElement('span'); sp.textContent = m.name.replace(/^AI sketch · /, '');
+        b.appendChild(im); b.appendChild(sp); box.appendChild(b);
+        var lp = 0, longDone = false;
+        function del() {
+          ask('Delete this AI sketch?', 'It is removed from My AI sketches on this device.', 'Delete').then(function (yes) {
+            if (!yes) return; MUSE.mine = MUSE.mine.filter(function (x) { return x.id !== m.id; });
+            store('kv', 'readwrite', function (st) { return st.put(MUSE.mine, 'aiSketches'); }).catch(function () {}); renderMine();
+          });
+        }
+        // hold for a moment to delete (iPhone and iPad have no right-click); a normal tap traces it
+        b.addEventListener('pointerdown', function () { longDone = false; clearTimeout(lp); lp = setTimeout(function () { longDone = true; del(); }, 650); });
+        ['pointerup', 'pointerleave', 'pointercancel'].forEach(function (t) { b.addEventListener(t, function () { clearTimeout(lp); }); });
+        b.addEventListener('contextmenu', function (e) { e.preventDefault(); });
+        b.addEventListener('click', function () { if (longDone) { longDone = false; return; } usePhoto(m.blob, m.name); });
+      });
+      box.hidden = !MUSE.mine.length; $(w + 'MineHead').hidden = !MUSE.mine.length;
+    });
+  }
+  store('kv', 'readonly', function (st) { return st.get('aiSketches'); }).then(function (list) { if (list && list.length) { MUSE.mine = list; renderMine(); } }).catch(function () {});
 
   // ---------- offline: a service worker saves the app, croquis and samples, so it opens without a connection
   if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost' || location.hostname === '127.0.0.1')) {
@@ -1913,7 +2138,7 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
   });
   document.addEventListener('keydown', function (e) {
     if (e.key !== 'Escape') return;
-    if (!$('ask').hidden) answer(false); else if (!$('leave').hidden) $('leave').hidden = true; else if (layerOpen()) closeLayer(); else if (!$('opacityPop').hidden) { $('opacityPop').hidden = true; syncUI(); }
+    if (!$('ask').hidden) answer(false); else if (!$('muse').hidden) closeMuse(); else if (!$('leave').hidden) $('leave').hidden = true; else if (layerOpen()) closeLayer(); else if (!$('opacityPop').hidden) { $('opacityPop').hidden = true; syncUI(); }
   });
   // picture tab
   function setMode(m) { S.mode = m; if (m === 'values') S.step = 1; persist(); if (S.iso !== 'all') buildMaskCanvas(); render(); syncUI(); }  // values always start at the lightest
@@ -2028,7 +2253,7 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
       $('thumb').src = thumbOf(srcCanvas, 160); $('thumbName').textContent = photoName; $('photoFig').hidden = false; $('thumbWrap').hidden = false;
       S.step = 1; idx = null; lineMap = null; aiMap = null; $('strip').dataset.key = ''; resetIso();
       undoStack = []; redoStack = []; updateUndo(); placed.picture = false;
-      syncStart(); syncSamples();
+      syncStart(); syncSamples(); if (MUSE.mine.length) renderMine();
     });
   }
 

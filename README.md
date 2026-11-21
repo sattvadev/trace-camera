@@ -40,6 +40,12 @@ and your chosen photo floats see-through on top, so you can draw while watching 
 
 ## For fashion designers (release 1)
 
+- **AI sketch from photos (Meta Muse Image):** start screen link or Tools → View. Pick up to 10 dress photos; make one
+  sketch per photo or one combined look; style line art, pencil or technical flat; 1, 2 or 4 versions. Calls
+  `POST https://api.meta.ai/v1/images/edits` (model `muse-image-1.0`, JSON with base64 images, web/image search turned off)
+  straight from the browser (Meta allows it), about $0.01 per sketch. The designer's own Meta Model API key is kept in
+  this browser only (localStorage) and sent only to api.meta.ai; it is never in this repository. Photos leave the device
+  only here, after the designer taps Make sketches. Results are kept on the device in My AI sketches (hold one to delete).
 - **Draw on screen (iPad + Apple Pencil):** the start screen's second button skips the camera and makes the screen
   the paper. The Pencil draws over the picture, croquis and guides with pressure (wider line) and tilt (shading);
   tools on the left: pencil, liner, grey marker (the grey of the chosen value step), eraser, three sizes and Mirror
