@@ -735,9 +735,9 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
   var S = { mode: 'photo', view: 'layered', values: 5, simplify: 3, hl: 0, lineStyle: 'ai', step: 1, opacity: 55, mirror: false,
             color: 0, grid: false, gridColor: 3, gridOpacity: 80, gridSize: 90, gridOn: 'photo', gridCells: 4, gridDiag: false, strobeSpeed: 4, aiView: 'layered', aiLayer: 1, cumulative: true, valuesCum: false,
             baseOn: true, baseOpacity: 70, heads: 0, flatView: 'front', cfOn: false, cfX: 500, mirrorOn: false, mirrorSide: 'lr', mirrorStrength: 60, ghostOn: false, ghostOpacity: 35, iso: 'all', faceGuide: false, markers: 'off', sheen: false,
-            inkTool: 'pencil', inkSize: 1, fingerDraw: false, markerStep: 3 };
+            inkTool: 'pencil', inkSize: 1, fingerDraw: false, fingerChoice: null, markerStep: 3 };
   var SAVED = ['mode', 'view', 'values', 'simplify', 'hl', 'lineStyle', 'opacity', 'mirror', 'color', 'grid', 'gridColor', 'gridOpacity', 'gridSize', 'gridOn', 'gridCells', 'gridDiag', 'strobeSpeed', 'aiView', 'aiLayer', 'cumulative', 'valuesCum',
-               'baseOn', 'baseOpacity', 'heads', 'flatView', 'cfOn', 'cfX', 'mirrorOn', 'mirrorSide', 'mirrorStrength', 'ghostOn', 'ghostOpacity', 'iso', 'faceGuide', 'markers', 'sheen', 'inkTool', 'inkSize', 'fingerDraw', 'markerStep'];
+               'baseOn', 'baseOpacity', 'heads', 'flatView', 'cfOn', 'cfX', 'mirrorOn', 'mirrorSide', 'mirrorStrength', 'ghostOn', 'ghostOpacity', 'iso', 'faceGuide', 'markers', 'sheen', 'inkTool', 'inkSize', 'fingerDraw', 'fingerChoice', 'markerStep'];
   try { var sv = JSON.parse(localStorage.getItem('trace-camera') || 'null');
     if (sv) SAVED.forEach(function (k) { if (k in sv) S[k] = sv[k]; });
     if (sv && !sv.v2) S.lineStyle = 'ai';   // one-time switch: AI sketch became the default outline style
@@ -1732,6 +1732,9 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
     eraser: { col: '0,0,0', a: 1, w: 20, pMin: 0.6, pMax: 1.3, smooth: 0.5, erase: true }
   };
   var INK_SIZES = [[0.6, 'Fine'], [1, 'Medium'], [1.8, 'Bold']];
+  var IS_PHONE = /iPhone|iPod|Android.+Mobile/.test(navigator.userAgent) || Math.min(screen.width, screen.height) < 600;
+  if (S.fingerChoice == null) S.fingerDraw = IS_PHONE;   // a phone has no Apple Pencil: the finger draws, unless the designer chose otherwise
+  if (IS_PHONE) $('goScreen').textContent = 'Draw on screen with your finger';
   var inkLayer = $('inkLayer');
   function inkDpr() { return Math.min(2, window.devicePixelRatio || 1); }
   function markerGrey() {
@@ -1757,7 +1760,11 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
     if (!img && target === 'picture' && hasBase()) target = 'base';
     if (!INK.W) { INK.W = window.innerWidth; INK.H = window.innerHeight; }
     drawGridLayer(); drawGuides(); ensureIso(); render(); place(); placeWorld(); syncUI(); scheduleSave(); inkInvalidate();
-    if (!INK.welcomed) { INK.welcomed = true; toast('Draw with Apple Pencil. Two fingers move and zoom the page; tap with two fingers to undo.'); }
+    if (!INK.welcomed) {
+      INK.welcomed = true;
+      toast((move ? 'Place the picture, then tap Lock to draw. ' : '') + (S.fingerDraw ? 'Draw with your finger or a stylus.' : 'Draw with Apple Pencil.') +
+            ' Two fingers move and zoom the page; tap with two fingers to undo.');
+    }
     return Promise.resolve();
   }
   $('goScreen').addEventListener('click', function () { enterScreen(); });
@@ -1835,6 +1842,7 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
     INK.live = { t: S.inkTool, c: col, a: a, e: !!t.erase, p: [] };
     INK.liveM = S.mirrorOn && S.cfOn ? { t: S.inkTool, c: col, a: a, e: !!t.erase, p: [] } : null;
     INK.ptr = e.pointerId; INK.kind = e.pointerType; INK.last = null; INK.tool = t;
+    if (e.pointerType === 'pen') INK.penSeen = true;
     if (e.pointerType === 'pen' && pts.size) { pts.clear(); g = null; INK.held = []; }   // a palm had started a pinch: the pencil wins
     try { stage.setPointerCapture(e.pointerId); } catch (err) {}
     addPoint(e);
@@ -1892,7 +1900,10 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
         try { stage.setPointerCapture(e.pointerId); } catch (err) {}
         e.stopImmediatePropagation(); return;
       }
-      if (INK.ptr != null && INK.kind === 'touch') { endStroke(true); INK.held = [{ id: INK.touches.keys().next().value, x: e.clientX, y: e.clientY }]; }
+      if (INK.ptr != null && INK.kind === 'touch') {   // a second finger: the first finger's line was the start of a pinch, not a stroke
+        var fid = INK.ptr, ft = INK.touches.get(fid) || {}; endStroke(true);
+        INK.held = [{ id: fid, x: ft.cx != null ? ft.cx : ft.x, y: ft.cy != null ? ft.cy : ft.y }];
+      }
       promoteHeld(); return;                                                                   // two fingers: move and zoom the page
     }
     if (e.pointerType === 'pen' || (e.pointerType === 'mouse' && !move && e.button === 0)) {
@@ -1904,6 +1915,7 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
     if (!screenMode) return;
     if (e.pointerType === 'touch' && INK.touches.has(e.pointerId)) {
       var t0 = INK.touches.get(e.pointerId); if (Math.hypot(e.clientX - t0.x, e.clientY - t0.y) > 12) INK.tapMoved = true;
+      t0.cx = e.clientX; t0.cy = e.clientY;
     }
     if (e.pointerId === INK.ptr) { addPoint(e); e.stopImmediatePropagation(); return; }
     if (INK.held.some(function (h) { return h.id === e.pointerId; })) { e.stopImmediatePropagation(); return; }
@@ -1918,7 +1930,12 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
         if (quick && INK.tapMax === 2) { if (!$('undoBtn').disabled) { $('undoBtn').click(); toast('Undo'); } INK.suppressTap = pts.size > 0; }
         else if (quick && INK.tapMax === 3) { if (!$('redoBtn').disabled) { $('redoBtn').click(); toast('Redo'); } INK.suppressTap = pts.size > 0; }
         else if (INK.tapMax === 1 && !S.fingerDraw && !move && !INK.hinted && INK.held.length) {
-          INK.hinted = true; toast('Draw with Apple Pencil. To draw with a finger, turn on Finger draws in Tools → Draw.');
+          INK.hinted = true;
+          if (S.fingerChoice == null && !INK.penSeen) {
+            ask('Draw with your finger?', 'Apple Pencil draws by default, so a hand resting on the screen leaves no marks. ' +
+                'Turn on finger drawing? Two fingers still move and zoom. You can change this any time in Tools → Draw.', 'Draw with finger')
+              .then(function (yes) { S.fingerChoice = yes ? 'on' : 'off'; S.fingerDraw = !!yes; persist(); syncDraw(); if (yes) toast('Finger drawing on.'); });
+          } else toast('Draw with Apple Pencil. To draw with a finger, turn on Finger draws in Tools → Draw.');
         }
       }
     }
@@ -1942,7 +1959,7 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
     var on = !(S.mirrorOn && S.cfOn); S.mirrorOn = on; if (on) S.cfOn = true; persist(); drawGuides(); syncUI();
     toast(on ? 'Mirror on: what you draw is copied across the centre line. Move the line in Tools → Flats.' : 'Mirror off.');
   });
-  $('fingerSw').addEventListener('click', function () { S.fingerDraw = !S.fingerDraw; persist(); syncDraw(); });
+  $('fingerSw').addEventListener('click', function () { S.fingerDraw = !S.fingerDraw; S.fingerChoice = S.fingerDraw ? 'on' : 'off'; persist(); syncDraw(); });
   $('inkClear').addEventListener('click', function () {
     if (!INK.strokes.length) return;
     ask('Clear the drawing?', 'Removes everything you drew on screen. Undo brings it back.', 'Clear').then(function (yes) {
