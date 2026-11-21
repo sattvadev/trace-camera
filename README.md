@@ -91,9 +91,21 @@ and your chosen photo floats see-through on top, so you can draw while watching 
   libraries and fonts the first time they are used (the AI models are cached by the page). The page is fetched fresh
   when online, so updates still arrive. `manifest.webmanifest` lets it be added to the Home Screen. Bump `VERSION` in
   `sw.js` when the list of app files changes.
-- **Every start is a new canvas:** Home saves the project and resets the start screen (no photo, base, drawing or undo
-  history), so whatever starts next is blank. "Continue where you left off" reopens the last project; the first save of a
-  new project keeps the one it replaces as `session-previous`, shown as "or open the one before" (opening it swaps the two).
+- **Every start is a new canvas, Recent projects:** Home saves the project and resets the start screen (no photo, base,
+  drawing or undo history), so whatever starts next is blank. Each project is saved under its own id (`project:<id>` in
+  IndexedDB kv) with an index of the 20 most recent (`projects`: name, note, small thumbnail). "Continue where you left
+  off" opens the latest; Recent projects shows the rest; hold a tile to delete it. Older single `session` /
+  `session-previous` saves are moved into the list on first run.
+- **Prints that follow the body:** Wrap round the body (Fill panel, default 60%) squeezes a print towards each side of the
+  shape row by row and curves bands, like cloth on a cylinder. Drape the print (Fill panel → Drape) pushes the print where
+  you drag (size and strength sliders); "Straighten the print I tap next" removes wrap and drape. Both are saved with the
+  fill and sampled from the repeating tile. Your prints: a library of up to 16 (hold one to delete).
+- **Brush extras:** Dab spacing and Scatter (stipple, beads, texture), Colour variation (each stroke a slightly different
+  shade), and My brushes: save a brush with its settings under a name (Settings → Save as my brush; Save changes updates
+  it; hold it in Brushes to delete). Soft-edged lines look soft while drawing (a blurred shadow), not only after lifting.
+- **SVG export is complete:** lines stay vector (soft lines with a blur filter; pencil, charcoal and pastel filled with
+  their paper-grain pattern); watercolour, airbrush, shading, fills and prints and soft erasing are embedded as pictures
+  at 2 px per point, in layer order, with erasers as masks.
 - **Keyboard:** Cmd/Ctrl+Z undo; Shift+Cmd/Ctrl+Z or Ctrl+Y redo (ignored while typing in a text field).
 - **Update banner:** the page carries its build number (`<meta name="app-build">`) and `version.json` on the server holds
   the newest. The app checks when it opens, when it comes back to the front and every 30 minutes; if the server is
