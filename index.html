@@ -7,7 +7,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="NUMOTIFSTUDIO - Trace">
 <meta name="application-name" content="NUMOTIFSTUDIO - Trace">
-<meta name="app-build" content="2026-11-21.04">
+<meta name="app-build" content="2026-11-21.05">
 <title>NUMOTIFSTUDIO - Trace</title>
 <link rel="icon" type="image/png" sizes="32x32" href="assets/favicon-32.png">
 <link rel="icon" type="image/png" sizes="192x192" href="assets/icon-192.png">
@@ -802,6 +802,7 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
     <div id="resume" hidden>
       <div class="row"><span id="resumeThumbs" class="row"></span><span><b>Last session</b><br><span class="note" id="resumeNote"></span></span></div>
       <button type="button" class="big primary" id="resumeGo">Continue where you left off</button>
+      <button type="button" class="textBtn" id="resumePrev" hidden>or open the one before</button>
     </div>
     <ol class="steps">
       <li>Prop your phone 25–40 cm above the paper, camera facing down (a stand, a glass or a stack of books).</li>
@@ -3132,7 +3133,22 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
     if (strobeOn) setStrobe(false);
     if (TL.on) tlStop();
     if (PL.on) setPaperLock(false);
-    saveSession(); syncStart(); showResume(); syncUI();
+    var saved = saveSession();
+    freshProject();   // whatever starts next starts on a blank canvas; this one is kept under "Continue where you left off"
+    Promise.resolve(saved).then(showResume); syncUI();
+  }
+  // a new project: no photo, no base, no drawing, no undo history. The first save of a new project keeps the session
+  // it replaces as 'session-previous', so the drawing before is still one tap away on the start screen.
+  var PROJ = { fresh: true };
+  function freshProject() {
+    PROJ.fresh = true;
+    img = null; idx = null; lineMap = null; aiMap = null; photoBlob = null; photoName = '';
+    $('photoFig').hidden = true; $('file').value = ''; $('startBaseFile').value = '';
+    BASE.front = null; BASE.back = null; placed.picture = false; placed.base = false;
+    setGhost(null); boardId = null; boardTitle = '';
+    if (INK) { INK.strokes = []; INK.W = 0; INK.H = 0; INK.dirty = true; INK.live = null; INK.liveM = null; }
+    undoStack = []; redoStack = []; updateUndo();
+    renderBase(); syncStart(); syncSamples(); syncFashion(); if (MUSE.mine.length) renderMine();
   }
   function goHome() {
     var st = history.state && history.state.tc;
@@ -3151,6 +3167,17 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
     if (drawing && !st) {   // back from the drawing itself: stay, and ask
       history.pushState({ tc: 'draw' }, ''); $('leave').hidden = false; $('leaveNo').focus();
     }
+  });
+  // keyboard: Cmd/Ctrl+Z undo, Shift+Cmd/Ctrl+Z or Ctrl+Y redo (Mac, iPad with a keyboard, Windows)
+  document.addEventListener('keydown', function (e) {
+    if (!(e.metaKey || e.ctrlKey) || e.altKey) return;
+    var k = (e.key || '').toLowerCase(), redo = (k === 'z' && e.shiftKey) || (k === 'y' && !e.metaKey), undo = k === 'z' && !e.shiftKey;
+    if (!undo && !redo) return;
+    var t = e.target, typing = t && (t.isContentEditable || t.tagName === 'TEXTAREA' || (t.tagName === 'INPUT' && !/^(range|checkbox|radio|button|color|file)$/i.test(t.type)));
+    if (typing || !drawing || !$('start').hidden || !$('ask').hidden || !$('muse').hidden || !$('leave').hidden) return;
+    e.preventDefault();
+    if (INK && INK.ptr != null) return;   // not in the middle of a stroke
+    var b = $(undo ? 'undoBtn' : 'redoBtn'); if (!b.disabled) b.click();
   });
   document.addEventListener('keydown', function (e) {
     if (e.key !== 'Escape') return;
@@ -3560,16 +3587,29 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
       ghost: ghost && ghost.blob, T: placed.picture ? frac(T) : null, B: placed.base ? frac(B) : null,
       boardId: boardId, boardTitle: boardTitle, savedAt: Date.now(),
       screen: screenMode, ink: inkForSave(), inkW: INK.W, inkH: INK.H };
-    return store('kv', 'readwrite', function (s) { return s.put(rec, 'session'); }).catch(function () {});
+    var rotate = PROJ.fresh; PROJ.fresh = false;
+    return store('kv', 'readwrite', function (s) {
+      if (rotate) {   // the first save of a new project: keep the session it replaces
+        var g = s.get('session');
+        g.onsuccess = function () { var old = g.result; if (hasWork(old)) s.put(old, 'session-previous'); };
+      }
+      return s.put(rec, 'session');
+    }).catch(function () {});
   }
+  function hasWork(rec) { return !!(rec && (rec.photo || rec.front || rec.back || (rec.ink && rec.ink.length))); }
   function ago(t) {
     var m = Math.round((Date.now() - t) / 60000);
     return m < 1 ? 'just now' : m < 60 ? m + ' min ago' : m < 1440 ? Math.round(m / 60) + ' h ago' : new Date(t).toLocaleDateString();
   }
-  var lastSession = null;
+  var lastSession = null, prevSession = null;
   function showResume() {
+    store('kv', 'readonly', function (s) { return s.get('session-previous'); }).then(function (rec) {
+      prevSession = hasWork(rec) ? rec : null;
+      $('resumePrev').hidden = !prevSession;
+      if (prevSession) $('resumePrev').textContent = 'or open the one before (' + ago(rec.savedAt) + ')';
+    }).catch(function () { $('resumePrev').hidden = true; });
     store('kv', 'readonly', function (s) { return s.get('session'); }).then(function (rec) {
-      lastSession = rec && (rec.photo || rec.front || rec.back || (rec.ink && rec.ink.length)) ? rec : null;
+      lastSession = hasWork(rec) ? rec : null;
       $('resume').hidden = !lastSession; $('orLine').hidden = !lastSession;
       if (!lastSession) return;
       var box = $('resumeThumbs'); box.innerHTML = '';
@@ -3580,9 +3620,13 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
       $('resumeNote').textContent = parts.join(', ') + ' · ' + ago(rec.savedAt);
     }).catch(function () { $('resume').hidden = true; $('orLine').hidden = true; });
   }
-  $('resumeGo').addEventListener('click', function () {
-    var rec = lastSession; if (!rec) return;
-    var btn = this; btn.disabled = true;
+  $('resumeGo').addEventListener('click', function () { openSession(lastSession, this, false); });
+  // the one before: opening it makes it the current session, and the latest moves to "the one before"
+  $('resumePrev').addEventListener('click', function () { openSession(prevSession, this, true); });
+  function openSession(rec, btn, swap) {
+    if (!rec) return;
+    freshProject(); PROJ.fresh = swap;
+    btn.disabled = true;
     var jobs = [];
     BASE.front = null; BASE.back = null;
     if (rec.photo) jobs.push(loadPhoto(rec.photo, rec.photoName));
@@ -3599,7 +3643,7 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
       renderBase(); return rec.screen ? enterScreen() : enterDrawing();
     }).catch(function (e) { showErr(e && e.message || 'The last session could not be opened.'); })
       .then(function () { btn.disabled = false; });
-  });
+  }
 
   // ---------- boards: a base, its placement and the guides, reused for every sheet in a line-up
   function boardSettings() { return { heads: S.heads, cfOn: S.cfOn, cfX: S.cfX, mirrorSide: S.mirrorSide, baseOpacity: S.baseOpacity, baseOn: S.baseOn,

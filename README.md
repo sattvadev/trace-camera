@@ -91,6 +91,10 @@ and your chosen photo floats see-through on top, so you can draw while watching 
   libraries and fonts the first time they are used (the AI models are cached by the page). The page is fetched fresh
   when online, so updates still arrive. `manifest.webmanifest` lets it be added to the Home Screen. Bump `VERSION` in
   `sw.js` when the list of app files changes.
+- **Every start is a new canvas:** Home saves the project and resets the start screen (no photo, base, drawing or undo
+  history), so whatever starts next is blank. "Continue where you left off" reopens the last project; the first save of a
+  new project keeps the one it replaces as `session-previous`, shown as "or open the one before" (opening it swaps the two).
+- **Keyboard:** Cmd/Ctrl+Z undo; Shift+Cmd/Ctrl+Z or Ctrl+Y redo (ignored while typing in a text field).
 - **Update banner:** the page carries its build number (`<meta name="app-build">`) and `version.json` on the server holds
   the newest. The app checks when it opens, when it comes back to the front and every 30 minutes; if the server is
   newer it offers "A new version of Trace is ready. Update". Update saves the open drawing first and waits while a
