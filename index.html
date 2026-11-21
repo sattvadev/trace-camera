@@ -93,6 +93,11 @@ body.screenMode.paperWater #stage { background: #fbf8f2 var(--paperTex) repeat; 
 .brushBtn small { font-weight: 500; font-size: .7rem; color: var(--muted); }
 .brushBtn[aria-pressed="true"] { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent); }
 .swRow { display: flex; flex-wrap: wrap; gap: 6px; }
+.printGrid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+.printBtn { display: grid; justify-items: center; gap: 2px; border: 1px solid var(--gray-200); background: #fff; border-radius: 10px; padding: 4px 2px; cursor: pointer; font: 600 .62rem/1.1 var(--font); color: var(--gray-700); }
+.printBtn img { width: 40px; height: 40px; border-radius: 6px; display: block; }
+.printBtn[aria-pressed="true"] { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent); }
+#groundRow .chip[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
 .sw { width: 30px; height: 30px; border-radius: 8px; border: 1px solid rgba(0,0,0,.18); cursor: pointer; padding: 0; }
 .sw[aria-pressed="true"] { box-shadow: 0 0 0 2px #fff, 0 0 0 4px var(--accent); }
 .curRow { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
@@ -586,6 +591,7 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
 <nav id="drawRail" class="glass" aria-label="Drawing tools" hidden>
   <button type="button" id="railBrush" aria-pressed="true" aria-label="Brush"><span id="railBrushIcon"></span><span id="railBrushName">Pencil</span></button>
   <button type="button" id="railEraser" aria-pressed="false" aria-label="Eraser"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8.5 19.5h11"/><path d="M4.6 14.6l8.8-8.8 5.6 5.6-8 8H9.5z"/><path d="M9 10.2l5.6 5.6"/></svg>Eraser</button>
+  <button type="button" id="railFill" aria-pressed="false" aria-label="Fill and prints"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 11l7-7 7 7-7 7z"/><path d="M19.5 15.5c0 1.5 1 2.5 1 3.5a1.5 1.5 0 01-3 0c0-1 1-2 2-3.5z"/></svg>Fill</button>
   <div class="sep"></div>
   <button type="button" id="railColour" aria-expanded="false" aria-label="Colour"><span class="swatch" id="railSwatch"></span>Colour</button>
   <button type="button" id="railSize" aria-expanded="false" aria-label="Size and opacity"><span class="dotBox"><span class="dot" id="inkSizeDot"></span></span>Size</button>
@@ -601,12 +607,31 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
       <label class="chip fileChip">More colours<input type="color" id="colourInput" aria-label="Any colour"></label></div>
     <button type="button" class="chip primary" id="pickFromPhoto">Pick colour from photo</button>
     <div id="paletteBox"></div>
+    <div id="recolourSec" hidden style="display:grid;gap:8px">
+      <div class="popSub">Recolour this drawing</div>
+      <div class="swRow" id="recolourRow"></div>
+      <p class="fine" id="recolourNote" style="margin:0">Tap a colour used in your drawing, then the new colour.</p>
+      <button type="button" class="chip" id="recolourLineup">Add this colourway to the line-up</button>
+    </div>
   </div>
   <div id="pop_settings" hidden>
     <div class="popTitle" id="setTitle">Pencil</div>
     <div class="grow"><input id="brushSize" type="range" min="-2" max="2" step="0.05" aria-label="Brush size"><span>Size <output id="brushSizeOut"></output></span></div>
     <div class="grow"><input id="brushOp" type="range" min="5" max="100" step="1" aria-label="Brush opacity"><span>Opacity <output id="brushOpOut"></output></span></div>
     <div class="row" id="eraserSoftRow"><div class="ctl"><button type="button" class="switch" id="eraserSoftSw" role="switch" aria-checked="false" aria-label="Soft eraser"></button><span>Soft edge</span></div></div>
+  </div>
+  <div id="pop_fill" hidden>
+    <div class="popTitle">Fill</div>
+    <p class="fine" style="margin:0">Tap inside a closed outline to fill it. Fills go on the Colour layer, under your lines, in the current colour.</p>
+    <div id="printGrid" class="printGrid"></div>
+    <div id="printOptions" style="display:grid;gap:8px">
+      <div class="popSub">Ground</div><div class="row" id="groundRow"></div>
+      <div class="grow"><input id="fillScale" type="range" min="-1.5" max="2" step="0.05" aria-label="Print size"><span>Print size <output id="fillScaleOut"></output></span></div>
+      <button type="button" class="chip" id="ownPrintChange" hidden>Change your print</button>
+    </div>
+    <div class="grow"><input id="fillGap" type="range" min="0" max="8" step="1" aria-label="Close gaps"><span>Close gaps <output id="fillGapOut"></output></span></div>
+    <div class="row"><div class="ctl"><button type="button" class="switch" id="fillCroquisSw" role="switch" aria-checked="false" aria-label="Croquis lines are edges"></button><span>Croquis lines are edges</span></div></div>
+    <input type="file" id="ownPrintFile" accept="image/*" hidden>
   </div>
   <div id="pop_layers" hidden>
     <div class="popTitle">Layers</div>
@@ -788,10 +813,11 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
             color: 0, grid: false, gridColor: 3, gridOpacity: 80, gridSize: 90, gridOn: 'photo', gridCells: 4, gridDiag: false, strobeSpeed: 4, aiView: 'layered', aiLayer: 1, cumulative: true, valuesCum: false,
             baseOn: true, baseOpacity: 70, heads: 0, flatView: 'front', cfOn: false, cfX: 500, mirrorOn: false, mirrorSide: 'lr', mirrorStrength: 60, ghostOn: false, ghostOpacity: 35, iso: 'all', faceGuide: false, markers: 'off', sheen: false,
             inkTool: 'pencil', inkSize: 1, fingerDraw: false, fingerChoice: null, markerStep: 3,
-            inkBrush: 'pencil', inkColor: '#2f2c29', recentColors: [], brushSet: {}, layerSet: {}, activeLayer: 'sketch', paper: 'plain', inkErase: false, eraserSoft: false };
+            inkBrush: 'pencil', inkColor: '#2f2c29', recentColors: [], brushSet: {}, layerSet: {}, activeLayer: 'sketch', paper: 'plain', inkErase: false, eraserSoft: false,
+            inkFill: false, fillPrint: 'solid', fillGround: 'white', fillScale: 1, fillGap: 2, fillCroquis: false };
   var SAVED = ['mode', 'view', 'values', 'simplify', 'hl', 'lineStyle', 'opacity', 'mirror', 'color', 'grid', 'gridColor', 'gridOpacity', 'gridSize', 'gridOn', 'gridCells', 'gridDiag', 'strobeSpeed', 'aiView', 'aiLayer', 'cumulative', 'valuesCum',
                'baseOn', 'baseOpacity', 'heads', 'flatView', 'cfOn', 'cfX', 'mirrorOn', 'mirrorSide', 'mirrorStrength', 'ghostOn', 'ghostOpacity', 'iso', 'faceGuide', 'markers', 'sheen', 'inkTool', 'inkSize', 'fingerDraw', 'fingerChoice', 'markerStep',
-               'inkBrush', 'inkColor', 'recentColors', 'brushSet', 'layerSet', 'activeLayer', 'paper', 'inkErase', 'eraserSoft'];
+               'inkBrush', 'inkColor', 'recentColors', 'brushSet', 'layerSet', 'activeLayer', 'paper', 'inkErase', 'eraserSoft', 'inkFill', 'fillPrint', 'fillGround', 'fillScale', 'fillGap', 'fillCroquis'];
   try { var sv = JSON.parse(localStorage.getItem('trace-camera') || 'null');
     if (sv) SAVED.forEach(function (k) { if (k in sv) S[k] = sv[k]; });
     if (sv && !sv.v2) S.lineStyle = 'ai';   // one-time switch: AI sketch became the default outline style
@@ -1792,9 +1818,11 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
     water:   { name: 'Watercolour', layer: 'colour', w: 22, op: 0.8, pMin: 0.6, pMax: 1.3, smooth: 0.65, kind: 'water', blend: 'multiply' },
     gouache: { name: 'Gouache', layer: 'colour', w: 14, op: 1, pMin: 0.8, pMax: 1.2, smooth: 0.6, kind: 'solid' },
     air:     { name: 'Airbrush', layer: 'colour', w: 34, op: 0.3, pMin: 0.6, pMax: 1.3, smooth: 0.7, kind: 'air' },
+    shadow:  { name: 'Shadow', layer: 'colour', w: 26, op: 0.55, pMin: 0.6, pMax: 1.3, smooth: 0.7, kind: 'shade', blend: 'multiply', fixed: '120,116,146' },
+    light:   { name: 'Highlight', layer: 'colour', w: 22, op: 0.55, pMin: 0.6, pMax: 1.3, smooth: 0.7, kind: 'shade', blend: 'screen', fixed: '255,255,255' },
     eraser:  { name: 'Eraser', w: 20, op: 1, pMin: 0.6, pMax: 1.3, smooth: 0.5, kind: 'erase' }
   };
-  var BRUSH_ORDER = ['pencil', 'pen', 'brush', 'marker', 'water', 'gouache', 'air'];
+  var BRUSH_ORDER = ['pencil', 'pen', 'brush', 'marker', 'water', 'gouache', 'air', 'shadow', 'light'];
   var BRUSH_ICON = {
     pencil: '<path d="M4.5 19.5l1-4.2L16 4.8l3.2 3.2L8.7 18.5z"/><path d="M13.8 7l3.2 3.2"/>',
     pen: '<path d="M5 19l1.6-4.6 9.2-9.2 3 3-9.2 9.2z"/><path d="M5 19l2.4-.8"/>',
@@ -1803,7 +1831,10 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
     water: '<path d="M12 3.5c3 4 5.5 7 5.5 10a5.5 5.5 0 01-11 0c0-3 2.5-6 5.5-10z"/><path d="M9.5 14.5a2.5 2.5 0 002.5 2.5"/>',
     gouache: '<rect x="5" y="9" width="14" height="10" rx="2"/><path d="M8 9V6.5A1.5 1.5 0 019.5 5h5A1.5 1.5 0 0116 6.5V9"/>',
     air: '<circle cx="9" cy="14" r="4.5"/><path d="M13 11l6-6"/><path d="M16.5 5h2.5v2.5"/><circle cx="18" cy="13" r=".6"/><circle cx="16" cy="16.5" r=".6"/>',
-    eraser: '<path d="M8.5 19.5h11"/><path d="M4.6 14.6l8.8-8.8 5.6 5.6-8 8H9.5z"/><path d="M9 10.2l5.6 5.6"/>'
+    eraser: '<path d="M8.5 19.5h11"/><path d="M4.6 14.6l8.8-8.8 5.6 5.6-8 8H9.5z"/><path d="M9 10.2l5.6 5.6"/>',
+    shadow: '<circle cx="12" cy="12" r="8"/><path d="M12 4a8 8 0 010 16z" fill="currentColor"/>',
+    light: '<circle cx="12" cy="12" r="4"/><path d="M12 3v2.5M12 18.5V21M3 12h2.5M18.5 12H21M5.6 5.6l1.8 1.8M16.6 16.6l1.8 1.8M5.6 18.4l1.8-1.8M16.6 7.4l1.8-1.8"/>',
+    fill: '<path d="M5 11l7-7 7 7-7 7z"/><path d="M19.5 15.5c0 1.5 1 2.5 1 3.5a1.5 1.5 0 01-3 0c0-1 1-2 2-3.5z"/>'
   };
   // a fashion palette: neutrals, skin tones, and the colours that come up season after season
   var PALETTE = {
@@ -1922,15 +1953,18 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
     if (a < 0) q = [q[6], q[7], q[4], q[5], q[2], q[3], q[0], q[1]];
     return q;
   }
-  function kindOf(st) { return st.e ? (st.soft ? 'softErase' : 'erase') : (BRUSHES[st.t] || BRUSHES.pen).kind; }
-  function isRaster(st) { var k = kindOf(st); return k === 'water' || k === 'air' || k === 'softErase'; }
-  function strokeLayer(st) { return st.L || (st.e ? 'sketch' : (BRUSHES[st.t] || BRUSHES.pen).layer || 'lines'); }
+  function kindOf(st) { return st.t === 'fill' ? 'fill' : st.e ? (st.soft ? 'softErase' : 'erase') : (BRUSHES[st.t] || BRUSHES.pen).kind; }
+  function isRaster(st) { var k = kindOf(st); return k === 'water' || k === 'air' || k === 'softErase' || k === 'shade' || k === 'fill'; }
+  // a copy of a stroke without its render caches (for undo-safe edits, saving and rotation)
+  function cloneStroke(st, over) { var o = {}; Object.keys(st).forEach(function (k) { if (k.charAt(0) !== '_') o[k] = st[k]; }); if (st.m) o.m = Object.assign({}, st.m); return Object.assign(o, over || {}); }
+  function strokeLayer(st) { return st.L || (st.t === 'fill' ? 'colour' : st.e ? 'sketch' : (BRUSHES[st.t] || BRUSHES.pen).layer || 'lines'); }
   function strokeBox(st) {
+    if (st.m) return { x0: st.m.x, y0: st.m.y, x1: st.m.x + st.m.w, y1: st.m.y + st.m.h };
     var p = st.p, x0 = 1e9, y0 = 1e9, x1 = -1e9, y1 = -1e9;
     for (var i = 0; i < p.length; i += 3) { var r = p[i + 2] / 2; x0 = Math.min(x0, p[i] - r); y0 = Math.min(y0, p[i + 1] - r); x1 = Math.max(x1, p[i] + r); y1 = Math.max(y1, p[i + 1] + r); }
     return { x0: x0, y0: y0, x1: x1, y1: y1 };
   }
-  function avgWidth(st) { var s = 0, n = 0; for (var i = 2; i < st.p.length; i += 3) { s += st.p[i]; n++; } return n ? s / n : 1; }
+  function avgWidth(st) { if (!st.p) return 1; var s = 0, n = 0; for (var i = 2; i < st.p.length; i += 3) { s += st.p[i]; n++; } return n ? s / n : 1; }
   // separable box blur of an alpha field, run twice (close to a gaussian)
   function blurField(a, w, h, r) {
     if (r < 1) return a;
@@ -1953,7 +1987,7 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
     if (c && Math.abs(c.req - k) < 1e-6) return c;
     var req = k;
     var kind = kindOf(st), bx = strokeBox(st), aw = avgWidth(st);
-    var blurW = kind === 'water' ? Math.max(1.2, aw * 0.22) : Math.max(2, aw * 0.45);   // in world px
+    var blurW = kind === 'water' ? Math.max(1.2, aw * 0.22) : Math.max(2, aw * (kind === 'shade' ? 0.35 : 0.45));   // in world px
     var pad = blurW * 3 + 2, ox = bx.x0 - pad, oy = bx.y0 - pad;
     var w = Math.max(1, Math.ceil((bx.x1 - bx.x0 + 2 * pad) * k)), h = Math.max(1, Math.ceil((bx.y1 - bx.y0 + 2 * pad) * k));
     if (w * h > 6e6) { var f = Math.sqrt(6e6 / (w * h)); k *= f; w = Math.ceil(w * f); h = Math.ceil(h * f); }   // very large, zoomed-in strokes
@@ -1980,6 +2014,19 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
   // draw one stroke into ctx whose world→device transform is (k, tx, ty)
   function renderStroke(x, st, k, tx, ty, preview) {
     var kind = kindOf(st), b = BRUSHES[st.t] || {};
+    if (kind === 'fill') {
+      var fc = fillCanvas(st); if (!fc) return;
+      x.setTransform(k, 0, 0, k, tx, ty); x.globalAlpha = st.a; x.imageSmoothingEnabled = true;
+      x.drawImage(fc, st.m.x, st.m.y, st.m.w, st.m.h); x.globalAlpha = 1; return;
+    }
+    if (kind === 'shade' && !preview) {   // shadow / highlight: a soft stroke that only changes paint already on its layer
+      var rr = rasterStroke(st, k), dx = rr.ox * k + tx, dy = rr.oy * k + ty, dw = rr.w * k / rr.k, dh = rr.h * k / rr.k;
+      var t2 = document.createElement('canvas'); t2.width = Math.max(1, Math.ceil(dw)); t2.height = Math.max(1, Math.ceil(dh));
+      var tx2 = t2.getContext('2d'); tx2.drawImage(rr.cv, 0, 0, dw, dh);
+      tx2.globalCompositeOperation = 'destination-in'; tx2.drawImage(x.canvas, -dx, -dy);
+      x.setTransform(1, 0, 0, 1, 0, 0); x.globalCompositeOperation = b.blend; x.drawImage(t2, dx, dy);
+      x.globalCompositeOperation = 'source-over'; return;
+    }
     if (!preview && (kind === 'water' || kind === 'air' || kind === 'softErase')) {
       var r = rasterStroke(st, k);
       x.setTransform(1, 0, 0, 1, 0, 0);
@@ -1993,7 +2040,7 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
     if (kind === 'erase' || kind === 'softErase') { x.globalCompositeOperation = 'destination-out'; x.globalAlpha = kind === 'softErase' ? 0.5 : 1; x.fillStyle = '#000'; }
     else {
       x.globalCompositeOperation = b.blend || 'source-over';
-      x.globalAlpha = preview && kind === 'water' ? st.a * 0.55 : preview && kind === 'air' ? st.a * 0.6 : st.a;
+      x.globalAlpha = preview && kind === 'water' ? st.a * 0.55 : preview && (kind === 'air' || kind === 'shade') ? st.a * 0.6 : st.a;
       x.fillStyle = kind === 'grain' ? grainPattern(x, st.c) : 'rgb(' + st.c + ')';
     }
     x.fill(P);
@@ -2050,7 +2097,7 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
   function inkActive() { return screenMode && drawing && $('start').hidden && $('tools').hidden && $('capture').hidden && $('help').hidden && $('muse').hidden; }
   function startStroke(e) {
     var key = curBrush(), b = BRUSHES[key], set = S.brushSet[key];
-    var col = key === 'eraser' ? '0,0,0' : key === 'pencil' && S.inkColor.toLowerCase() === '#2f2c29' ? '47,44,41' : hexRgb(S.inkColor);
+    var col = key === 'eraser' ? '0,0,0' : b.fixed ? b.fixed : key === 'pencil' && S.inkColor.toLowerCase() === '#2f2c29' ? '47,44,41' : hexRgb(S.inkColor);
     var L = key === 'eraser' ? S.activeLayer : (INK.layers[S.activeLayer] ? S.activeLayer : b.layer);
     var mk = function () { return { t: key, c: col, a: Math.max(0.03, set.op / 100), e: key === 'eraser', soft: key === 'eraser' && !!S.eraserSoft, L: L, p: [] }; };
     INK.live = mk(); INK.liveM = S.mirrorOn && S.cfOn ? mk() : null;
@@ -2071,6 +2118,7 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
     var t = INK.tool, size = INK.size || 1;
     list.forEach(function (ev) {
       var w0 = toWorld(ev.clientX, ev.clientY), pr = pressureOf(ev);
+      INK.raw = { x: w0.x, y: w0.y };
       var wid = t.w * size * (t.pMin + (t.pMax - t.pMin) * Math.pow(pr, 0.75));
       if (t.tilt && ev.pointerType === 'pen') {   // pencil on its side: a wider, shading line
         var tilt = Math.min(90, Math.hypot(ev.tiltX || 0, ev.tiltY || 0)); wid *= 1 + 2.4 * smooth(35, 72, tilt);
@@ -2095,6 +2143,13 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
     var st = INK.live, sm = INK.liveM; INK.live = null; INK.liveM = null; INK.ptr = null; INK.last = null;
     if (INK.kind === 'pen') INK.penUp = Date.now();
     if (cancel || !st || !st.p.length) { inkShow(); return; }
+    // smoothing trails the pencil a little: finish exactly where it lifted, so outlines close
+    var rw = INK.raw, n3 = st.p.length;
+    if (rw && Math.hypot(rw.x - st.p[n3 - 3], rw.y - st.p[n3 - 2]) > 0.3) {
+      var lw = st.p[n3 - 1], r2 = function (v) { return Math.round(v * 100) / 100; };
+      st.p.push(r2(rw.x), r2(rw.y), lw); if (sm) sm.p.push(r2(2 * cfWorldX() - rw.x), r2(rw.y), lw);
+    }
+    INK.raw = null;
     if ((BRUSHES[st.t] || {}).taper) { taperEnd(st); if (sm) taperEnd(sm); }
     st._path = null; if (sm) sm._path = null;
     pushUndo(snap('ink'));
@@ -2126,9 +2181,10 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
     return rgbHex(r / n, g2 / n, b / n);
   }
   function setColour(hex, quiet) {
+    if (INK.recolourFrom) { var from = INK.recolourFrom; INK.recolourFrom = null; recolour(from, hexRgb(hex.toLowerCase())); $('recolourNote').textContent = 'Tap a colour used in your drawing, then the new colour.'; }
     S.inkColor = hex.toLowerCase(); if (S.inkErase) S.inkErase = false;
     S.recentColors = [S.inkColor].concat(S.recentColors.filter(function (c) { return c !== S.inkColor; })).slice(0, 10);
-    persist(); syncDraw(); if (!quiet) renderColourPop();
+    persist(); syncDraw(); if (!quiet) renderColourPop(); if (INK.pop === 'fill') renderFillPop();
   }
   stage.addEventListener('pointerdown', function (e) {
     if (!inkActive()) return;
@@ -2146,7 +2202,7 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
       if (Date.now() - INK.penUp < 350) { e.stopImmediatePropagation(); return; }              // palm just after a stroke
       if (move) return;                                                                        // placing the picture: fingers move it
       if (INK.touches.size === 1) {
-        if (S.fingerDraw) { startStroke(e); e.stopImmediatePropagation(); return; }
+        if (S.fingerDraw && !S.inkFill) { startStroke(e); e.stopImmediatePropagation(); return; }
         INK.held = [{ id: e.pointerId, x: e.clientX, y: e.clientY }];                          // one finger: wait for a second
         try { stage.setPointerCapture(e.pointerId); } catch (err) {}
         e.stopImmediatePropagation(); return;
@@ -2159,6 +2215,7 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
     }
     if (e.pointerType === 'pen' || (e.pointerType === 'mouse' && !move && e.button === 0)) {
       if (INK.ptr != null) { e.stopImmediatePropagation(); return; }
+      if (S.inkFill) { closeInkPop(); doFill(e.clientX, e.clientY); e.stopImmediatePropagation(); return; }
       startStroke(e); e.stopImmediatePropagation();
     }
   }, true);
@@ -2178,9 +2235,10 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
       INK.touches.delete(e.pointerId);
       if (!INK.touches.size) {   // every finger lifted: two- and three-finger taps undo and redo
         var quick = Date.now() - INK.tapT0 < 400 && !INK.tapMoved;
-        if (quick && INK.tapMax === 2) { if (!$('undoBtn').disabled) { $('undoBtn').click(); toast('Undo'); } INK.suppressTap = pts.size > 0; }
+        if (INK.tapMax === 1 && !INK.tapMoved && S.inkFill && !move && INK.held.length) { closeInkPop(); doFill(e.clientX, e.clientY); }   // a finger tap fills
+        else if (quick && INK.tapMax === 2) { if (!$('undoBtn').disabled) { $('undoBtn').click(); toast('Undo'); } INK.suppressTap = pts.size > 0; }
         else if (quick && INK.tapMax === 3) { if (!$('redoBtn').disabled) { $('redoBtn').click(); toast('Redo'); } INK.suppressTap = pts.size > 0; }
-        else if (INK.tapMax === 1 && !S.fingerDraw && !move && !INK.hinted && INK.held.length) {
+        else if (INK.tapMax === 1 && !S.fingerDraw && !S.inkFill && !move && !INK.hinted && INK.held.length) {
           INK.hinted = true;
           if (S.fingerChoice == null && !INK.penSeen) {
             ask('Draw with your finger?', 'Apple Pencil draws by default, so a hand resting on the screen leaves no marks. ' +
@@ -2196,13 +2254,248 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
   }
   stage.addEventListener('pointerup', inkUp, true); stage.addEventListener('pointercancel', inkUp, true);
 
+  // ----- fill and fabric prints: tap inside a closed outline (Sketch + Lines layers, and the croquis if chosen)
+  // The region is found on a 1.5× copy of the page; small gaps in the outline are bridged, and the fill reaches a
+  // little under the lines so no white halo shows. Fills go on the Colour layer, under the lines.
+  var PRINTS = [['solid', 'Solid'], ['stripes', 'Stripes'], ['breton', 'Breton'], ['pinstripe', 'Pinstripe'], ['gingham', 'Gingham'],
+                ['plaid', 'Plaid'], ['dots', 'Polka dots'], ['floral', 'Floral'], ['houndstooth', 'Houndstooth'], ['denim', 'Denim'],
+                ['leopard', 'Leopard'], ['own', 'Your print']];
+  var GROUNDS = [['none', 'None', null], ['white', 'White', '255,255,255'], ['ecru', 'Ecru', '240,232,214'], ['black', 'Black', '20,20,22'], ['navy', 'Navy', '31,47,79']];
+  if (!PRINTS.some(function (p) { return p[0] === S.fillPrint; })) S.fillPrint = 'solid';
+  if (!GROUNDS.some(function (g2) { return g2[0] === S.fillGround; })) S.fillGround = 'white';
+  if (!(S.fillScale > 0)) S.fillScale = 1;
+  if (S.fillGap == null) S.fillGap = 2;
+  var OWN_PRINT = { url: null, im: null };
+  try { OWN_PRINT.url = localStorage.getItem('trace-own-print'); } catch (e) {}
+  var printImages = {};   // data URL → Image, for your own prints
+  function printImage(url) {
+    var im = printImages[url]; if (im) return im.complete && im.naturalWidth ? im : null;
+    im = printImages[url] = new Image();
+    im.onload = function () { INK.strokes.forEach(function (st) { if (st.img === url) st._fc = null; }); INK.dirty = true; inkShow(); renderFillPop(); };
+    im.src = url; return null;
+  }
+  // one tile of a print, px pixels square, drawn in tile units (0..1)
+  function printTile(pat, motif, ground, px, img2) {
+    var c = document.createElement('canvas'); c.width = c.height = Math.max(4, Math.round(px)); var x = c.getContext('2d'), s = c.width;
+    var M = 'rgb(' + motif + ')', Ma = function (a) { return 'rgba(' + motif + ',' + a + ')'; };
+    if (ground) { x.fillStyle = 'rgb(' + ground + ')'; x.fillRect(0, 0, s, s); }
+    x.save(); x.scale(s, s); x.fillStyle = M; x.strokeStyle = M;
+    switch (pat) {
+      case 'stripes': x.fillRect(0, 0, 0.42, 1); break;
+      case 'breton': x.fillRect(0, 0.3, 1, 0.28); break;
+      case 'pinstripe': x.fillRect(0.47, 0, 0.06, 1); break;
+      case 'gingham': x.fillStyle = Ma(0.45); x.fillRect(0, 0, 0.5, 1); x.fillRect(0, 0, 1, 0.5); break;
+      case 'plaid':
+        x.fillStyle = Ma(0.35); x.fillRect(0, 0, 0.36, 1); x.fillRect(0, 0, 1, 0.36);
+        x.fillStyle = Ma(0.55); x.fillRect(0.6, 0, 0.06, 1); x.fillRect(0, 0.6, 1, 0.06);
+        x.fillStyle = Ma(0.8); x.fillRect(0.16, 0, 0.03, 1); x.fillRect(0, 0.16, 1, 0.03); break;
+      case 'dots': [[0.25, 0.25], [0.75, 0.75]].forEach(function (d) { x.beginPath(); x.arc(d[0], d[1], 0.13, 0, 7); x.fill(); }); break;
+      case 'floral':
+        [[0.28, 0.3, 0.12], [0.76, 0.72, 0.1]].forEach(function (f) {
+          for (var i = 0; i < 5; i++) { var a = i / 5 * Math.PI * 2; x.beginPath(); x.ellipse(f[0] + Math.cos(a) * f[2] * 0.9, f[1] + Math.sin(a) * f[2] * 0.9, f[2] * 0.62, f[2] * 0.4, a, 0, 7); x.fill(); }
+          x.fillStyle = ground ? 'rgb(' + ground + ')' : '#fff'; x.beginPath(); x.arc(f[0], f[1], f[2] * 0.35, 0, 7); x.fill(); x.fillStyle = M;
+        });
+        x.fillStyle = Ma(0.55); [[0.62, 0.18], [0.12, 0.8], [0.45, 0.55]].forEach(function (d) { x.beginPath(); x.ellipse(d[0], d[1], 0.06, 0.025, 0.8, 0, 7); x.fill(); }); break;
+      case 'houndstooth':   // woven like the real cloth: 4 dark / 4 light threads each way in a 2/2 twill
+        for (var hy = 0; hy < 8; hy++) for (var hx = 0; hx < 8; hx++) {
+          var warpOnTop = ((hx - hy + 16) & 3) < 2, dark = warpOnTop ? hx < 4 : hy < 4;
+          if (dark) x.fillRect(hx / 8, hy / 8, 1 / 8 + 0.002, 1 / 8 + 0.002);
+        } break;
+      case 'denim':   // a 3/1 twill: indigo warp on top three times in four, so white weft shows as fine diagonals
+        x.fillStyle = 'rgb(236,236,232)'; x.fillRect(0, 0, 1, 1);
+        for (var dy2 = 0; dy2 < 16; dy2++) for (var dx2 = 0; dx2 < 16; dx2++) {
+          if (((dx2 + dy2) & 3) === 3) continue;
+          var v = GRAIN.v[(dy2 * 16 + dx2) * 7 % GRAIN.v.length];
+          x.fillStyle = 'rgba(' + motif + ',' + (0.78 + 0.22 * v) + ')'; x.fillRect(dx2 / 16, dy2 / 16, 1 / 16 + 0.002, 1 / 16 + 0.002);
+        } break;
+      case 'leopard':
+        [[0.25, 0.3, 0.13, 0.6], [0.72, 0.22, 0.1, 2.1], [0.55, 0.7, 0.14, 1.2], [0.12, 0.8, 0.09, 0.3]].forEach(function (r) {
+          x.save(); x.translate(r[0], r[1]); x.rotate(r[3]);
+          x.fillStyle = Ma(0.5); x.beginPath(); x.ellipse(0, 0, r[2], r[2] * 0.75, 0, 0, 7); x.fill();
+          x.fillStyle = M; for (var q = 0; q < 4; q++) { x.beginPath(); x.arc(Math.cos(q * 1.7) * r[2] * 1.05, Math.sin(q * 1.7) * r[2] * 0.8, r[2] * 0.28, 0, 7); x.fill(); }
+          x.restore();
+        }); break;
+      case 'own': if (img2) { x.restore(); x.drawImage(img2, 0, 0, s, s); return c; } break;
+    }
+    x.restore(); return c;
+  }
+  function groundRgb() { return (GROUNDS.filter(function (g2) { return g2[0] === S.fillGround; })[0] || GROUNDS[0])[2]; }
+  // the painted fill: its colour or print, cut to the region; prints are anchored to the page so neighbouring fills match
+  function fillCanvas(st) {
+    if (st._fc) return st._fc;
+    var m = st.m, c = document.createElement('canvas'); c.width = m.mw; c.height = m.mh;
+    var x = c.getContext('2d'), k = m.mw / m.w, id = x.createImageData(m.mw, m.mh), d = id.data, a = m.a;
+    for (var i = 0; i < a.length; i++) d[i * 4 + 3] = a[i];
+    x.putImageData(id, 0, 0);
+    x.globalCompositeOperation = 'source-in';
+    if (!st.pat || st.pat === 'solid') { x.fillStyle = 'rgb(' + st.c + ')'; x.fillRect(0, 0, m.mw, m.mh); }
+    else {
+      var img2 = st.pat === 'own' && st.img ? printImage(st.img) : null;
+      if (st.pat === 'own' && !img2) return null;   // your print is still loading: drawn when it arrives
+      var tileW = 24 * (st.sc || 1) * ({ pinstripe: 0.6, denim: 0.45, houndstooth: 0.7, floral: 1.6, leopard: 1.8, own: 2.4 }[st.pat] || 1);
+      var tile = printTile(st.pat, st.c, st.c2, tileW * k, img2);
+      var pat = x.createPattern(tile, 'repeat');
+      x.setTransform(1, 0, 0, 1, -m.x * k, -m.y * k); x.fillStyle = pat; x.fillRect(m.x * k, m.y * k, m.mw, m.mh);
+    }
+    return (st._fc = c);
+  }
+  function binDilate(src, w, h, r) {   // binary dilation by a square of radius r (two sliding windows)
+    if (r < 1) return src;
+    var t = new Uint8Array(w * h), o = new Uint8Array(w * h);
+    for (var y = 0; y < h; y++) { var cnt = 0, row = y * w;
+      for (var x = 0; x <= Math.min(r, w - 1); x++) cnt += src[row + x];
+      for (x = 0; x < w; x++) { t[row + x] = cnt > 0 ? 1 : 0; var add = x + r + 1, sub = x - r; if (add < w) cnt += src[row + add]; if (sub >= 0) cnt -= src[row + sub]; } }
+    for (x = 0; x < w; x++) { cnt = 0;
+      for (y = 0; y <= Math.min(r, h - 1); y++) cnt += t[y * w + x];
+      for (y = 0; y < h; y++) { o[y * w + x] = cnt > 0 ? 1 : 0; var a2 = y + r + 1, s2 = y - r; if (a2 < h) cnt += t[a2 * w + x]; if (s2 >= 0) cnt -= t[s2 * w + x]; } }
+    return o;
+  }
+  function fillRegion(cx, cy) {
+    var W = window.innerWidth, H = window.innerHeight, k = 1.5, w = Math.round(W * k), h = Math.round(H * k);
+    var c = document.createElement('canvas'); c.width = w; c.height = h; var x = c.getContext('2d');
+    ['sketch', 'lines'].forEach(function (L) {   // the outlines: the shown Sketch and Lines layers as drawn
+      if (!S.layerSet[L].on) return;
+      var lc = document.createElement('canvas'); lc.width = w; lc.height = h; var lx = lc.getContext('2d');
+      INK.strokes.forEach(function (st) { if (strokeLayer(st) === L) renderStroke(lx, st, k, 0, 0); });
+      x.setTransform(1, 0, 0, 1, 0, 0); x.drawImage(lc, 0, 0);
+    });
+    var b = curBase();
+    if (S.fillCroquis && b && S.baseOn) {   // the croquis outline as edges too
+      x.setTransform(k, 0, 0, k, 0, 0); x.translate(W / 2 + B.x, H / 2 + B.y); x.rotate(B.rot); x.scale(B.scale, B.scale);
+      x.drawImage(b.canvas, -b.w / 2, -b.h / 2); x.setTransform(1, 0, 0, 1, 0, 0);
+    }
+    var d = x.getImageData(0, 0, w, h).data, N = w * h, wall0 = new Uint8Array(N);
+    for (var i = 0; i < N; i++) wall0[i] = d[i * 4 + 3] > 70 ? 1 : 0;
+    var gap = Math.round((S.fillGap || 0) * k), wall = binDilate(wall0, w, h, gap);
+    var wp = toWorld(cx, cy), sx = Math.round(wp.x * k), sy = Math.round(wp.y * k);
+    if (sx < 0 || sy < 0 || sx >= w || sy >= h) return { err: 'Tap inside the page.' };
+    var seed = sy * w + sx;
+    if (wall[seed]) {   // a tap right on a line: use the nearest open spot
+      seed = -1;
+      for (var rr = 1; rr < 10 * k && seed < 0; rr++) for (var a = 0; a < 16 && seed < 0; a++) {
+        var px = Math.round(sx + Math.cos(a / 16 * 6.283) * rr), py = Math.round(sy + Math.sin(a / 16 * 6.283) * rr);
+        if (px >= 0 && py >= 0 && px < w && py < h && !wall[py * w + px]) seed = py * w + px;
+      }
+      if (seed < 0) return { err: 'That is a line. Tap inside the shape you want to fill.' };
+    }
+    var reg = new Uint8Array(N), stack = new Int32Array(N), sp = 0, edge = false, n = 0;
+    reg[seed] = 1; stack[sp++] = seed;
+    while (sp) {
+      var p = stack[--sp], px2 = p % w, py2 = (p - px2) / w; n++;
+      if (px2 === 0 || py2 === 0 || px2 === w - 1 || py2 === h - 1) edge = true;
+      if (px2 > 0 && !reg[p - 1] && !wall[p - 1]) { reg[p - 1] = 1; stack[sp++] = p - 1; }
+      if (px2 < w - 1 && !reg[p + 1] && !wall[p + 1]) { reg[p + 1] = 1; stack[sp++] = p + 1; }
+      if (py2 > 0 && !reg[p - w] && !wall[p - w]) { reg[p - w] = 1; stack[sp++] = p - w; }
+      if (py2 < h - 1 && !reg[p + w] && !wall[p + w]) { reg[p + w] = 1; stack[sp++] = p + w; }
+    }
+    if (edge) return { err: 'This shape is not closed, so the fill would spill. Close the outline, or raise Close gaps in the Fill panel.' };
+    // reach under the lines (and across the bridged gaps) so no white rim shows; never into another open area
+    var grown = binDilate(reg, w, h, gap + 2), x0 = w, y0 = h, x1 = -1, y1 = -1;
+    for (i = 0; i < N; i++) { if (grown[i] && !(reg[i] || wall[i])) grown[i] = 0; if (grown[i]) { var gx = i % w, gy = (i - gx) / w; if (gx < x0) x0 = gx; if (gx > x1) x1 = gx; if (gy < y0) y0 = gy; if (gy > y1) y1 = gy; } }
+    var mw = x1 - x0 + 1, mh = y1 - y0 + 1, out = new Uint8Array(mw * mh);
+    for (var yy = 0; yy < mh; yy++) for (var xx = 0; xx < mw; xx++) out[yy * mw + xx] = grown[(yy + y0) * w + xx + x0] ? 255 : 0;
+    return { m: { x: x0 / k, y: y0 / k, w: mw / k, h: mh / k, mw: mw, mh: mh, a: out } };
+  }
+  function doFill(cx, cy) {
+    toastSticky('Filling…');
+    setTimeout(function () {
+      var r; try { r = fillRegion(cx, cy); } catch (err) { r = { err: 'The fill could not be made: ' + (err && err.message || err) }; }
+      if (r.err) { toast(r.err); return; }
+      $('toast').hidden = true;
+      var pat = S.fillPrint === 'own' && !OWN_PRINT.url ? 'solid' : S.fillPrint;
+      var st = { t: 'fill', L: 'colour', c: hexRgb(S.inkColor), a: Math.max(0.05, (S.brushSet.fill ? S.brushSet.fill.op : 100) / 100), pat: pat, c2: pat === 'solid' ? null : groundRgb(),
+                 sc: S.fillScale, img: pat === 'own' ? OWN_PRINT.url : null, m: r.m, p: [] };
+      pushUndo(snap('ink')); INK.strokes = INK.strokes.concat([st]); inkChanged();
+    }, 20);
+  }
+  function renderFillPop() {
+    var box = $('printGrid'); if (!box) return; box.innerHTML = '';
+    var own = OWN_PRINT.url ? printImage(OWN_PRINT.url) : null;
+    PRINTS.forEach(function (pr) {
+      var b = document.createElement('button'); b.type = 'button'; b.className = 'printBtn'; b.setAttribute('aria-pressed', pr[0] === S.fillPrint ? 'true' : 'false');
+      var cv = printTile(pr[0] === 'solid' ? 'stripes' : pr[0], hexRgb(S.inkColor), pr[0] === 'solid' ? null : groundRgb(), 44, own);
+      if (pr[0] === 'solid') { var cx2 = cv.getContext('2d'); cx2.fillStyle = S.inkColor; cx2.fillRect(0, 0, 44, 44); }
+      if (pr[0] === 'own' && !own) { var cx3 = cv.getContext('2d'); cx3.fillStyle = '#eee'; cx3.fillRect(0, 0, 44, 44); cx3.fillStyle = '#888'; cx3.font = '700 22px sans-serif'; cx3.textAlign = 'center'; cx3.fillText('+', 22, 30); }
+      var im = document.createElement('img'); im.src = cv.toDataURL(); im.alt = '';
+      var sp = document.createElement('span'); sp.textContent = pr[1];
+      b.appendChild(im); b.appendChild(sp); box.appendChild(b);
+      b.addEventListener('click', function () {
+        if (pr[0] === 'own' && !OWN_PRINT.url) { $('ownPrintFile').click(); return; }
+        S.fillPrint = pr[0]; persist(); renderFillPop(); syncDraw();
+      });
+    });
+    var gb = $('groundRow'); gb.innerHTML = '';
+    GROUNDS.forEach(function (g2) {
+      var b = document.createElement('button'); b.type = 'button'; b.className = 'chip'; b.textContent = g2[1]; b.setAttribute('aria-pressed', g2[0] === S.fillGround ? 'true' : 'false');
+      b.addEventListener('click', function () { S.fillGround = g2[0]; persist(); renderFillPop(); });
+      gb.appendChild(b);
+    });
+    $('printOptions').hidden = S.fillPrint === 'solid';
+    $('fillScale').value = Math.log2(S.fillScale); $('fillScaleOut').textContent = Math.round(S.fillScale * 100) + '%';
+    $('fillGap').value = S.fillGap; $('fillGapOut').textContent = S.fillGap;
+    setSwitch('fillCroquisSw', !!S.fillCroquis); $('ownPrintChange').hidden = !OWN_PRINT.url;
+  }
+  $('railFill').addEventListener('click', function () {
+    if (!S.inkFill) { S.inkFill = true; S.inkErase = false; persist(); syncDraw(); }
+    openInkPop('fill');
+  });
+  $('fillScale').addEventListener('input', function () { S.fillScale = Math.round(Math.pow(2, +this.value) * 100) / 100; $('fillScaleOut').textContent = Math.round(S.fillScale * 100) + '%'; persist(); });
+  $('fillGap').addEventListener('input', function () { S.fillGap = +this.value; $('fillGapOut').textContent = S.fillGap; persist(); });
+  $('fillCroquisSw').addEventListener('click', function () { S.fillCroquis = !S.fillCroquis; persist(); renderFillPop(); });
+  $('ownPrintChange').addEventListener('click', function () { $('ownPrintFile').click(); });
+  $('ownPrintFile').addEventListener('change', function () {   // your own print: a square from the middle of the photo, 256 px
+    var f = this.files && this.files[0]; this.value = ''; if (!f) return;
+    loadImageBlob(f).then(function (im) {
+      var s = Math.min(im.naturalWidth, im.naturalHeight), c = document.createElement('canvas'); c.width = c.height = 256;
+      c.getContext('2d').drawImage(im, (im.naturalWidth - s) / 2, (im.naturalHeight - s) / 2, s, s, 0, 0, 256, 256);
+      OWN_PRINT.url = c.toDataURL('image/jpeg', 0.86);
+      try { localStorage.setItem('trace-own-print', OWN_PRINT.url); } catch (e) {}
+      S.fillPrint = 'own'; persist(); printImage(OWN_PRINT.url); renderFillPop(); syncDraw();
+      toast('Your print is ready. Tap inside a shape to fill it.');
+    }).catch(function (e) { toast(e.message); });
+  });
+
+  // ----- recolour: swap one colour for another across the drawing (colourways)
+  function usedColours() {
+    var seen = {}, out = [];
+    INK.strokes.forEach(function (st) {
+      if (st.e || (BRUSHES[st.t] || {}).fixed) return;
+      [st.c, st.c2].forEach(function (c) { if (c && !seen[c]) { seen[c] = 1; out.push(c); } });
+    });
+    return out;
+  }
+  function renderRecolour() {
+    var box = $('recolourRow'); box.innerHTML = '';
+    var used = usedColours();
+    $('recolourSec').hidden = !used.length;
+    used.forEach(function (rgb) {
+      var p = rgb.split(',').map(Number), hex = rgbHex(p[0], p[1], p[2]);
+      var b = document.createElement('button'); b.type = 'button'; b.className = 'sw'; b.style.background = hex; b.title = 'Recolour ' + hex.toUpperCase();
+      b.setAttribute('aria-pressed', INK.recolourFrom === rgb ? 'true' : 'false');
+      b.addEventListener('click', function () { INK.recolourFrom = INK.recolourFrom === rgb ? null : rgb; renderRecolour(); $('recolourNote').textContent = INK.recolourFrom ? 'Now tap the new colour above (or More colours).' : 'Tap a colour used in your drawing, then the new colour.'; });
+      box.appendChild(b);
+    });
+  }
+  function recolour(fromRgb, toRgb) {
+    if (fromRgb === toRgb) return;
+    pushUndo(snap('ink'));
+    var n = 0;
+    INK.strokes = INK.strokes.map(function (st) {
+      if (st.e || (BRUSHES[st.t] || {}).fixed || (st.c !== fromRgb && st.c2 !== fromRgb)) return st;
+      n++; return cloneStroke(st, { c: st.c === fromRgb ? toRgb : st.c, c2: st.c2 === fromRgb ? toRgb : st.c2 });
+    });
+    inkChanged(); toast('Recoloured ' + n + (n === 1 ? ' stroke' : ' strokes') + '. Add this colourway to the line-up in Tools → Draw.');
+  }
+  $('recolourLineup').addEventListener('click', function () { closeInkPop(); $('inkLineup').click(); });
+
   // ----- the rail and its panels: brushes, colour, size/opacity, layers
   function iconSvg(k) { return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">' + BRUSH_ICON[k] + '</svg>'; }
   function openInkPop(which) {
     if (INK.pop === which) { closeInkPop(); return; }
     INK.pop = which; $('inkPop').hidden = false;
-    ['brushes', 'colour', 'settings', 'layers'].forEach(function (n) { $('pop_' + n).hidden = n !== which; });
+    ['brushes', 'colour', 'settings', 'layers', 'fill'].forEach(function (n) { $('pop_' + n).hidden = n !== which; });
     if (which === 'colour') renderColourPop();
+    if (which === 'fill') renderFillPop();
     if (which === 'brushes') renderBrushPop();
     syncDraw();
     var r = $('drawRail').getBoundingClientRect(), p = $('inkPop');   // beside the rail, kept on screen
@@ -2211,8 +2504,8 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
     p.style.top = Math.round(top) + 'px';
   }
   function closeInkPop() { if (!INK.pop) return; INK.pop = ''; $('inkPop').hidden = true; syncDraw(); }
-  $('railBrush').addEventListener('click', function () { if (S.inkErase) { S.inkErase = false; persist(); syncDraw(); } openInkPop('brushes'); });
-  $('railEraser').addEventListener('click', function () { S.inkErase = !S.inkErase; persist(); closeInkPop(); syncDraw(); toast(S.inkErase ? 'Eraser on the ' + layerName(S.activeLayer) + ' layer.' : BRUSHES[S.inkBrush].name); });
+  $('railBrush').addEventListener('click', function () { if (S.inkErase || S.inkFill) { S.inkErase = false; S.inkFill = false; persist(); syncDraw(); } openInkPop('brushes'); });
+  $('railEraser').addEventListener('click', function () { S.inkErase = !S.inkErase; S.inkFill = false; persist(); closeInkPop(); syncDraw(); toast(S.inkErase ? 'Eraser on the ' + layerName(S.activeLayer) + ' layer.' : BRUSHES[S.inkBrush].name); });
   $('railColour').addEventListener('click', function () { openInkPop('colour'); });
   $('railSize').addEventListener('click', function () { openInkPop('settings'); });
   $('railLayers').addEventListener('click', function () { openInkPop('layers'); });
@@ -2224,7 +2517,7 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
       var b = document.createElement('button'); b.type = 'button'; b.className = 'brushBtn'; b.setAttribute('aria-pressed', k === S.inkBrush && !S.inkErase ? 'true' : 'false');
       b.innerHTML = iconSvg(k) + '<span>' + BRUSHES[k].name + '</span><small>' + layerName(BRUSHES[k].layer) + ' layer</small>';
       b.addEventListener('click', function () {
-        S.inkBrush = k; S.inkErase = false; S.activeLayer = BRUSHES[k].layer; persist(); closeInkPop(); syncDraw();
+        S.inkBrush = k; S.inkErase = false; S.inkFill = false; S.activeLayer = BRUSHES[k].layer; persist(); closeInkPop(); syncDraw();
       });
       box.appendChild(b);
     });
@@ -2248,6 +2541,7 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
     Object.keys(PALETTE).forEach(function (k) { group(k, PALETTE[k]); });
     $('colourInput').value = S.inkColor; $('curColour').style.background = S.inkColor; $('curColourHex').textContent = S.inkColor.toUpperCase();
     $('pickFromPhoto').disabled = !(img || INK.strokes.length);
+    renderRecolour();
   }
   $('colourInput').addEventListener('input', function () { S.inkColor = this.value.toLowerCase(); $('curColour').style.background = S.inkColor; $('curColourHex').textContent = S.inkColor.toUpperCase(); syncDraw(); });
   $('colourInput').addEventListener('change', function () { setColour(this.value); });
@@ -2297,7 +2591,8 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
     $('drawRail').hidden = !show; if (!show && INK.pop) { INK.pop = ''; $('inkPop').hidden = true; }
     var key = curBrush(), set = S.brushSet[key];
     $('railBrushIcon').innerHTML = iconSvg(S.inkBrush); $('railBrushName').textContent = BRUSHES[S.inkBrush].name.replace('Watercolour', 'Water').replace('Fineliner', 'Liner').replace('Brush pen', 'Brush');
-    $('railBrush').setAttribute('aria-pressed', !S.inkErase ? 'true' : 'false'); $('railEraser').setAttribute('aria-pressed', S.inkErase ? 'true' : 'false');
+    $('railBrush').setAttribute('aria-pressed', !S.inkErase && !S.inkFill ? 'true' : 'false'); $('railEraser').setAttribute('aria-pressed', S.inkErase ? 'true' : 'false');
+    $('railFill').setAttribute('aria-pressed', S.inkFill ? 'true' : 'false');
     $('railSwatch').style.background = S.inkColor; $('railColour').classList.toggle('picking', !!INK.picking);
     var px = Math.round(Math.max(4, Math.min(22, 3 + Math.log2(set.size * BRUSHES[key].w + 1) * 3.4)));
     $('inkSizeDot').style.width = px + 'px'; $('inkSizeDot').style.height = px + 'px'; $('inkSizeDot').style.opacity = Math.max(0.25, set.op / 100);
@@ -2317,9 +2612,9 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
   }
 
   // ----- keeping it: session, rotation
-  function inkForSave() { return INK ? INK.strokes.map(function (st) { return { t: st.t, c: st.c, a: st.a, e: st.e, soft: !!st.soft, L: strokeLayer(st), p: Float32Array.from(st.p) }; }) : []; }
+  function inkForSave() { return INK ? INK.strokes.map(function (st) { return cloneStroke(st, { L: strokeLayer(st), p: Float32Array.from(st.p || []) }); }) : []; }
   function inkLoad(list, w, h) {
-    INK.strokes = (list || []).map(function (st) { return { t: st.t, c: st.c, a: st.a, e: !!st.e, soft: !!st.soft, L: st.L || strokeLayer(st), p: Array.from(st.p) }; });
+    INK.strokes = (list || []).map(function (st) { return cloneStroke(st, { e: !!st.e, soft: !!st.soft, L: st.L || strokeLayer(st), p: Array.from(st.p || []) }); });
     INK.W = w || window.innerWidth; INK.H = h || window.innerHeight; inkOnResize(); INK.dirty = true;
   }
   function inkOnResize() {   // the picture and base are placed from the centre of the screen: keep the drawing with them
@@ -2328,8 +2623,9 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
     if (INK.W && (INK.W !== W || INK.H !== H) && INK.strokes.length) {
       var dx = (W - INK.W) / 2, dy = (H - INK.H) / 2;
       INK.strokes = INK.strokes.map(function (st) {
-        var p = st.p.slice(); for (var i = 0; i < p.length; i += 3) { p[i] += dx; p[i + 1] += dy; }
-        return { t: st.t, c: st.c, a: st.a, e: st.e, soft: st.soft, L: strokeLayer(st), p: p };
+        var p = (st.p || []).slice(); for (var i = 0; i < p.length; i += 3) { p[i] += dx; p[i + 1] += dy; }
+        var c = cloneStroke(st, { L: strokeLayer(st), p: p }); if (c.m) { c.m.x += dx; c.m.y += dy; }
+        return c;
       });
     }
     if (INK.W || INK.strokes.length) { INK.W = W; INK.H = H; }
@@ -2387,7 +2683,7 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
       INK.strokes.forEach(function (st) {
         if (strokeLayer(st) !== l[0] || st.soft) return;
         var k = kindOf(st);
-        if (k === 'water' || k === 'air') return;
+        if (k === 'water' || k === 'air' || k === 'fill' || k === 'shade') return;
         if (!st.e) {
           var bl = (BRUSHES[st.t] || {}).blend === 'multiply' ? ' style="mix-blend-mode:multiply"' : '';
           body += '<path fill="rgb(' + st.c + ')"' + (st.a < 1 ? ' fill-opacity="' + st.a + '"' : '') + bl + ' d="' + d(st) + '"/>'; return;
@@ -2408,7 +2704,7 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
   $('inkSvg').addEventListener('click', function () {
     var t = inkSvgText(); if (!t) return;
     saveFile(new Blob([t], { type: 'image/svg+xml' }), 'numotif-drawing-' + stamp() + '.svg');
-    if (INK.strokes.some(isRaster)) toast('Watercolour and airbrush are painted pixels, so they are only in the PNG.');
+    if (INK.strokes.some(isRaster)) toast('Watercolour, airbrush, shading, fills and prints are painted pixels, so they are only in the PNG.');
   });
   $('inkLineup').addEventListener('click', function () {
     // the whole page, so every look drawn on screen keeps the same scale in the line-up

@@ -50,6 +50,13 @@ and your chosen photo floats see-through on top, so you can draw while watching 
   stroke's shape: blurred body and bleed, darker drying edge, soft pigment variation and paper granulation, multiplied
   so washes glaze; they are cached per zoom. Optional watercolour paper texture behind the page. PNG export has every
   shown layer; SVG has the line brushes, grouped by layer (watercolour and airbrush are pixels).
+- **Fill, prints and shading (draw-on-screen mode):** Fill on the rail, then tap inside a closed outline (the Sketch
+  and Lines layers, optionally the croquis) to fill it on the Colour layer: solid, or a print (stripes, Breton, pinstripe,
+  gingham, plaid, polka dots, floral, houndstooth and denim woven as real twills, leopard, or your own print from a
+  photo), in the current colour on a chosen ground, at any size. Close gaps bridges small breaks; an open shape is
+  refused instead of flooding the page. Shadow and Highlight brushes only darken or lighten paint already on their
+  layer. Recolour (in Colour) swaps one colour for another across the drawing, for colourways, which go to the line-up.
+  Strokes now end exactly where the pencil lifts, so outlines close.
 - **AI sketch from photos (Meta Muse Image):** start screen link or Tools → View. Pick up to 10 dress photos; make one
   sketch per photo or one combined look; style line art, pencil or technical flat; 1, 2 or 4 versions. Calls
   `POST https://api.meta.ai/v1/images/edits` (model `muse-image-1.0`, JSON with base64 images, web/image search turned off)
