@@ -703,7 +703,7 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
     });
   }
   function pickSample(sm) {
-    fetch('assets/samples/' + sm[0] + '.jpg').then(function (r) {
+    fetch('assets/samples/' + sm[0] + '.jpg').catch(function () { throw new Error(OFFLINE_MSG); }).then(function (r) {
       if (!r.ok) throw new Error('That sample could not be loaded.'); return r.blob();
     }).then(function (blob) {
       return usePhoto(blob, sm[1]).then(function () {
@@ -1748,12 +1748,13 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
   $('backFile').addEventListener('change', function () { pickBase(this.files && this.files[0], 'back'); this.value = ''; });
   $('startBaseFile').addEventListener('change', function () { pickBase(this.files && this.files[0], 'front'); this.value = ''; });
   // The built-in croquis: a matched 9-head front and back shipped with the app (assets/croquis/).
+  var OFFLINE_MSG = 'No connection, and this is not saved on this phone yet. Open the app once while online and it will work offline after that.';
   var BUILT_IN = [['front', 'assets/croquis/croquis-9-head-front.png', '9-head croquis, front'],
                   ['back', 'assets/croquis/croquis-9-head-back.png', '9-head croquis, back']];
   function useBuiltInBase() {
     var hadBase = hasBase();
     Promise.all(BUILT_IN.map(function (b) {
-      return fetch(b[1]).then(function (r) { if (!r.ok) throw new Error('The built-in croquis could not be loaded.'); return r.blob(); })
+      return fetch(b[1]).catch(function () { throw new Error(OFFLINE_MSG); }).then(function (r) { if (!r.ok) throw new Error('The built-in croquis could not be loaded.'); return r.blob(); })
         .then(function (blob) { return loadBase(blob, b[0], b[2]); });
     })).then(function () {
       if (!S.baseOn) { S.baseOn = true; persist(); }
