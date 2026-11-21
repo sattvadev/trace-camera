@@ -3,8 +3,9 @@
    - The page is fetched fresh when there is a connection (so updates arrive), and from the saved copy when there is not.
    - Libraries from jsDelivr and the fonts are saved the first time they are used; their URLs carry exact versions.
    - The AI models are saved by the page itself (Cache Storage 'trace-camera-ai-v1'), so they are left alone here.
+   - version.json (which build is newest) always comes from the network, so the page can offer an update.
    Bump VERSION when the list of app files changes. */
-var VERSION = 'v3';
+var VERSION = 'v4';
 var SHELL = 'numotif-trace-shell-' + VERSION, LIBS = 'numotif-trace-libs-v1';
 var SAMPLES = ['gown-front', 'gown-back', 'blazer-wide-leg-trousers', 'blouse-pencil-skirt', 'wide-leg-jumpsuit',
   'cable-knit-pleated-midi', 'cropped-jacket-fit-and-flare'];
@@ -31,8 +32,10 @@ self.addEventListener('fetch', function (e) {
   var url = new URL(req.url);
   var same = url.origin === self.location.origin;
   // the page: fresh when online (quickly), the saved copy when offline or the network is very slow
+  if (url.pathname.slice(-13) === '/version.json' && same) return;   // straight to the network
   if (req.mode === 'navigate' && same) {
-    e.respondWith(Promise.race([fetch(req), timeout(5000)]).then(function (res) {
+    // 'no-cache' asks the server every time (a quick 'unchanged' when nothing is new), so a release shows on the next open
+    e.respondWith(Promise.race([fetch(req.url, { cache: 'no-cache', credentials: 'same-origin' }), timeout(5000)]).then(function (res) {
       if (res && res.ok) { var copy = res.clone(); caches.open(SHELL).then(function (c) { c.put('./', copy); }); }
       return res;
     }).catch(function () {

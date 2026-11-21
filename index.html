@@ -7,6 +7,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="NUMOTIFSTUDIO - Trace">
 <meta name="application-name" content="NUMOTIFSTUDIO - Trace">
+<meta name="app-build" content="2026-11-21.02">
 <title>NUMOTIFSTUDIO - Trace</title>
 <link rel="icon" type="image/png" sizes="32x32" href="assets/favicon-32.png">
 <link rel="icon" type="image/png" sizes="192x192" href="assets/icon-192.png">
@@ -243,6 +244,17 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
 
 #toast { position: fixed; z-index: 30; left: 50%; top: calc(70px + env(safe-area-inset-top)); transform: translateX(-50%);
   border-radius: var(--radius-full); padding: 9px 16px; font-size: .9rem; font-weight: 600; max-width: 84vw; text-align: center; background: var(--gray-900); color: #fff; box-shadow: var(--shadow-lg); }
+/* a new version is on the server: offered, never forced (an open drawing is saved first) */
+#updateBar { position: fixed; z-index: 48; left: 50%; bottom: calc(18px + env(safe-area-inset-bottom)); transform: translateX(-50%);
+  display: flex; align-items: center; gap: 10px; padding: 8px 8px 8px 16px; width: max-content; max-width: calc(100vw - 24px);
+  border-radius: var(--radius-full); background: var(--gray-900); color: #fff; box-shadow: var(--shadow-lg); font-size: .92rem; font-weight: 600; }
+#updateBar[hidden] { display: none; }
+#updateBar span { min-width: 0; }
+#updateBar button { flex: none; border: 0; border-radius: var(--radius-full); font: inherit; cursor: pointer; min-height: 40px; }
+#updateNow { padding: 0 16px; background: var(--accent); color: var(--accent-ink); }
+#updateNow:disabled { opacity: .6; cursor: default; }
+#updateLater { width: 40px; background: transparent; color: #fff; font-size: 1.25rem; line-height: 1; }
+#updateBar button:focus-visible { outline: none; box-shadow: 0 0 0 3px rgba(255,255,255,.55); }
 #lockTag { position: fixed; z-index: 18; right: max(14px, env(safe-area-inset-right)); top: calc(70px + env(safe-area-inset-top));
   border: 0; border-radius: 999px; padding: 7px 12px; font-size: .85rem; font-weight: 600; display: flex; align-items: center; gap: 6px; cursor: pointer; }
 #lockTag svg { width: 16px; height: 16px; }
@@ -587,6 +599,7 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
 <button type="button" id="lockTag" class="glass" hidden></button>
 <div id="recTag" hidden aria-live="polite"></div>
 <div id="toast" hidden></div>
+<div id="updateBar" role="status" hidden><span>A new version of Trace is ready.</span><button type="button" id="updateNow">Update</button><button type="button" id="updateLater" aria-label="Not now">&times;</button></div>
 
 <nav id="drawRail" class="glass" aria-label="Drawing tools" hidden>
   <button type="button" id="railBrush" aria-pressed="true" aria-label="Brush"><span id="railBrushIcon"></span><span id="railBrushName">Pencil</span></button>
@@ -1082,13 +1095,51 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
   // ---------- offline: a service worker saves the app, croquis and samples, so it opens without a connection
   if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost' || location.hostname === '127.0.0.1')) {
     var firstInstall = !navigator.serviceWorker.controller;
-    navigator.serviceWorker.register('sw.js').then(function (reg) {
+    navigator.serviceWorker.register('sw.js', { updateViaCache: 'none' }).then(function (reg) {
+      swReg = reg;
       var w = reg.installing; if (!w || !firstInstall) return;
       w.addEventListener('statechange', function () {
         if (w.state === 'activated') toast('Saved for offline use. Add it to your Home Screen to open it like an app.');
       });
     }).catch(function (e) { console.warn('offline support is not available here', e); });
   }
+
+  // ---------- updates: the page says which build it is; version.json on the server says the newest.
+  // Checked when the app opens, when it comes back to the front, and every 30 minutes while open.
+  var swReg = null, BUILD = (document.querySelector('meta[name="app-build"]') || {}).content || '', lastCheck = 0, laterFor = '', latest = '';
+  function checkForUpdate(force) {
+    if (!BUILD || !navigator.onLine || location.protocol === 'file:') return;
+    var now = Date.now(); if (!force && now - lastCheck < 60000) return; lastCheck = now;
+    if (swReg) swReg.update().catch(function () {});
+    fetch('version.json?t=' + now, { cache: 'no-store' }).then(function (r) { return r.ok ? r.json() : null; }).then(function (v) {
+      if (!v || !v.build || v.build <= BUILD || v.build === laterFor) return;
+      latest = v.build; showUpdateBar();
+    }).catch(function () {});
+  }
+  // sits just above the bottom buttons (Lock, Hide, Opacity) so they stay usable
+  function placeUpdateBar() {
+    var bar = $('updateBar'), bt = $('bottom'), y = 0, gap = 12;
+    if (bt && $('start').hidden) { var r = bt.getBoundingClientRect(); if (r.height) y = window.innerHeight - r.top; }
+    bar.style.bottom = y ? (y + gap) + 'px' : '';
+  }
+  function showUpdateBar() { placeUpdateBar(); $('updateBar').hidden = false; }
+  window.addEventListener('resize', function () { if (!$('updateBar').hidden) placeUpdateBar(); });
+  $('updateNow').addEventListener('click', function () {
+    if (TL.on) { toast('Stop the time-lapse first, then update.'); return; }
+    var b = $('updateNow'); b.disabled = true; b.textContent = 'Updating…';
+    clearTimeout(saveTimer); persist();
+    // save the open drawing, then reload; the service worker fetches the new page
+    Promise.race([Promise.resolve(saveSession()), new Promise(function (res) { setTimeout(res, 3000); })])
+      .then(function () { location.reload(); });
+  });
+  $('updateLater').addEventListener('click', function () {
+    $('updateBar').hidden = true; laterFor = latest;   // asked again only when an even newer version arrives, or next time the app opens
+  });
+  setTimeout(function () { checkForUpdate(true); }, 4000);
+  setInterval(function () { checkForUpdate(true); }, 30 * 60000);
+  document.addEventListener('visibilitychange', function () { if (document.visibilityState === 'visible') checkForUpdate(false); });
+  window.addEventListener('online', function () { checkForUpdate(false); });
+
   function showErr(t) { $('err').textContent = t; $('err').hidden = false; }
 
   // ---------- camera
@@ -3228,7 +3279,7 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
       ghost: ghost && ghost.blob, T: placed.picture ? frac(T) : null, B: placed.base ? frac(B) : null,
       boardId: boardId, boardTitle: boardTitle, savedAt: Date.now(),
       screen: screenMode, ink: inkForSave(), inkW: INK.W, inkH: INK.H };
-    store('kv', 'readwrite', function (s) { return s.put(rec, 'session'); }).catch(function () {});
+    return store('kv', 'readwrite', function (s) { return s.put(rec, 'session'); }).catch(function () {});
   }
   function ago(t) {
     var m = Math.round((Date.now() - t) / 60000);
@@ -4342,6 +4393,7 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
 
   function setSwitch(id, on) { $(id).setAttribute('aria-checked', on ? 'true' : 'false'); }
   function syncUI() {
+    if (!$('updateBar').hidden) setTimeout(placeUpdateBar, 0);   // the bottom buttons may have moved
     syncDraw();
     if (S.view === 'stencil' && S.valuesCum) S.view = 'layered'; if (S.view === 'layered' && !S.valuesCum) S.view = 'stencil';
     if (S.aiView === 'one' && S.cumulative) S.aiView = 'layered'; if (S.aiView === 'layered' && !S.cumulative) S.aiView = 'one';

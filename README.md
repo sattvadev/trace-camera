@@ -75,6 +75,12 @@ and your chosen photo floats see-through on top, so you can draw while watching 
   libraries and fonts the first time they are used (the AI models are cached by the page). The page is fetched fresh
   when online, so updates still arrive. `manifest.webmanifest` lets it be added to the Home Screen. Bump `VERSION` in
   `sw.js` when the list of app files changes.
+- **Update banner:** the page carries its build number (`<meta name="app-build">`) and `version.json` on the server holds
+  the newest. The app checks when it opens, when it comes back to the front and every 30 minutes; if the server is
+  newer it offers "A new version of Trace is ready. Update". Update saves the open drawing first and waits while a
+  time-lapse is recording. `stamp-build.sh` sets a new build number (date plus count) in both files; the git
+  pre-commit hook runs it whenever `index.html` is committed. (The hook lives in `.git/hooks/pre-commit`, so on a
+  fresh clone run `./stamp-build.sh` before committing, or copy the hook back.)
 - **Front and back line up:** the back base is drawn at the front's size and position (head top, feet and centre), so
   flipping Front/Back keeps the body still even when the two drawings were made at different sizes.
 - **Drawings vs photos:** Clothes, Person, Pick and Croquis from pose need photos of people; on a pencil drawing the
