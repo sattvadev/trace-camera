@@ -127,6 +127,18 @@ and your chosen photo floats see-through on top, so you can draw while watching 
   resting palm never picks. Option-click picks at once with a mouse. Switch it off in Colour.
 - **Keyboard:** Cmd/Ctrl+Z undo; Shift+Cmd/Ctrl+Z or Ctrl+Y redo (ignored while typing in a text field). With a selection:
   Cmd+C, Cmd+X, Cmd+V, Cmd+D duplicate, Delete, arrows nudge (Shift ×10), Escape lets go; Cmd+A selects the whole layer.
+- **Speed and memory (for iPad):** the per-pixel paint of watercolour, airbrush, shading and soft lines runs in a pool of up
+  to 4 workers built from the same functions as the page (identical pixels). After a zoom the screen shows the old paint
+  scaled at once (6 ms instead of 623 ms for 40 big strokes) and sharpens in the background; PNG, SVG and line-up exports
+  paint every soft stroke in the workers first (the page stays responsive). On screen, soft paint is cached at lower
+  resolution (airbrush and shading at half, watercolour at 60%; mean difference under 1/255), exports at full. Paint and
+  fill caches live within a budget (96 MB on iPad and iPhone, up to 320 MB elsewhere), least recently used dropped first,
+  never ones the current frame drew. Layer canvases exist only for layers with something on them, and the screen
+  resolution steps down a little when many layers are full (180 MB layer budget on iPad). Time-lapse frames copy the
+  screen instead of re-painting the drawing.
+- **Saving:** 0.9 s after the last change, at least every 5 s while drawing without a pause, and at once when the app goes
+  to the background or the page is closed. The app asks the browser to keep its storage (persisted), and a failed save
+  (for example a full device) says so once instead of failing quietly.
 - **Update banner:** the page carries its build number (`<meta name="app-build">`) and `version.json` on the server holds
   the newest. The app checks when it opens, when it comes back to the front and every 30 minutes; if the server is
   newer it offers "A new version of Trace is ready. Update". Update saves the open drawing first and waits while a

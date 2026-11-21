@@ -7,7 +7,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="NUMOTIFSTUDIO - Trace">
 <meta name="application-name" content="NUMOTIFSTUDIO - Trace">
-<meta name="app-build" content="2026-11-21.07">
+<meta name="app-build" content="2026-11-21.08">
 <title>NUMOTIFSTUDIO - Trace</title>
 <link rel="icon" type="image/png" sizes="32x32" href="assets/favicon-32.png">
 <link rel="icon" type="image/png" sizes="192x192" href="assets/icon-192.png">
@@ -1984,7 +1984,7 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
       S.layerSet[l.id] = { on: l.on !== false, op: l.op > 0 ? l.op : 100, blend: l.blend, lock: !!l.lock }; lset(l.id);
     });
     Object.keys(INK.layers).forEach(function (id) { if (!layerExists(id)) { INK.layers[id].width = 1; INK.layers[id].height = 1; delete INK.layers[id]; } });
-    LAYERS.forEach(function (l) { if (!INK.layers[l[0]]) { var c = document.createElement('canvas'); INK.layers[l[0]] = c; if (inkLayer && inkLayer.width > 1) { c.width = inkLayer.width; c.height = inkLayer.height; } } });
+    LAYERS.forEach(function (l) { if (!INK.layers[l[0]]) { var c = document.createElement('canvas'); c.width = 1; c.height = 1; INK.layers[l[0]] = c; } });   // sized when it has strokes
     if (!layerExists(S.activeLayer)) S.activeLayer = layerExists('sketch') ? 'sketch' : LAYERS[LAYERS.length - 1][0];
     if (INK) INK.dirty = true;
   }
@@ -2077,7 +2077,40 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
   if (!INK.layers[S.activeLayer]) S.activeLayer = BRUSHES[S.inkBrush].layer;
   if (S.paper !== 'water') S.paper = 'plain';
   inkLayer = $('inkLayer');
-  function inkDpr() { return Math.min(2, window.devicePixelRatio || 1); }
+  // ----- memory: iPad Safari closes a page that holds too much canvas memory, so the drawing keeps within a budget.
+  // Painted-stroke and fill caches are kept most-recently-used first and dropped when over budget (never ones the current
+  // frame drew; dropped ones are simply painted again if needed). Layer canvases exist only for layers that have
+  // something on them, and the screen resolution steps down a little when many layers are full.
+  var IS_IOS = /iP(hone|ad|od)/.test(navigator.userAgent) || (/Macintosh/.test(navigator.userAgent) && navigator.maxTouchPoints > 1);
+  var MEM = { map: new Map(), bytes: 0, frame: 0, peak: 0, evicted: 0,
+    budget: Math.round((IS_IOS ? 96 : Math.min(320, (navigator.deviceMemory || 8) * 40)) * 1048576),
+    layerBudget: Math.round((IS_IOS ? 180 : 520) * 1048576) };
+  function memAdd(st, cv, slot) {
+    var b = cv.width * cv.height * 4; MEM.map.set(cv, { st: st, slot: slot || '_r', bytes: b, last: MEM.frame }); MEM.bytes += b;
+    MEM.peak = Math.max(MEM.peak, MEM.bytes); if (MEM.bytes > MEM.budget) memTrim();
+  }
+  function memDrop(cv) { var e = MEM.map.get(cv); if (e) { MEM.bytes -= e.bytes; MEM.map.delete(cv); } }
+  function memTouch(st) {
+    var a = st._r && st._r.cv, b = st._fc;
+    if (a) { var e = MEM.map.get(a); if (e) e.last = MEM.frame; }
+    if (b) { var f = MEM.map.get(b); if (f) f.last = MEM.frame; }
+  }
+  function memTrim() {
+    var list = Array.from(MEM.map.entries()).filter(function (kv) { return kv[1].last < MEM.frame; }).sort(function (a, b) { return a[1].last - b[1].last; });
+    for (var i = 0; i < list.length && MEM.bytes > MEM.budget * 0.8; i++) {
+      var cv = list[i][0], e = list[i][1], st = e.st;
+      if (e.slot === '_r' && st._r && st._r.cv === cv) st._r = null;
+      if (e.slot === '_fc' && st._fc === cv) st._fc = null;
+      memDrop(cv); cv.width = 1; cv.height = 1; MEM.evicted++;
+    }
+  }
+  // the screen resolution for the layer canvases: as sharp as the screen allows within the layer budget
+  function inkDpr() { return INK.dprEff || Math.min(2, window.devicePixelRatio || 1); }
+  function usedLayerIds() { var u = {}; INK.strokes.forEach(function (st) { u[strokeLayer(st)] = 1; }); if (INK.live) u[strokeLayer(INK.live)] = 1; return u; }
+  function wantDpr() {
+    var full = Math.min(2, window.devicePixelRatio || 1), n = Object.keys(usedLayerIds()).length + 2, px = window.innerWidth * window.innerHeight * 4 * n;
+    var d = Math.sqrt(MEM.layerBudget / Math.max(1, px)); return Math.max(1, Math.min(full, Math.floor(d * 4) / 4));
+  }
   function hexRgb(h) { var n = parseInt(h.slice(1), 16); return ((n >> 16) & 255) + ',' + ((n >> 8) & 255) + ',' + (n & 255); }
   function rgbHex(r, g, b) { return '#' + [r, g, b].map(function (v) { v = Math.max(0, Math.min(255, Math.round(v))); return (v < 16 ? '0' : '') + v.toString(16); }).join(''); }
   function curBrush() { return S.inkErase ? 'eraser' : S.inkBrush; }
@@ -2348,34 +2381,129 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
   }
   // a painted (pixel) stroke at scale k: watercolour (soft bleed + darker drying edge + paper granulation),
   // airbrush (wide soft falloff) or soft eraser. Cached per scale; the page offset only moves where it lands.
-  function rasterStroke(st, k) {
-    var c = st._r;
-    if (c && Math.abs(c.req - k) < 1e-6) return c;
-    var req = k;
-    var kind = kindOf(st), bx = strokeBox(st), aw = avgWidth(st);
+  // The shape is filled on the GPU (prep); the per-pixel paint (blur, edges, grain) is rasterPaint, which also runs in a
+  // worker: after a zoom, strokes show their old cache scaled while the worker paints them sharp at the new scale.
+  // on screen, soft paint is cached at a lower resolution (it has no sharp detail to lose): airbrush and shading at half,
+  // watercolour at 60% but never below one pixel per paper-grain cell. Exports always paint at full resolution.
+  function displayScale(st, k) {
+    var kind = kindOf(st);
+    if (kind === 'air' || kind === 'shade') return Math.max(0.5, k * 0.5);
+    if (kind === 'water') return Math.min(k, Math.max(1.05, k * 0.6));
+    return k;
+  }
+  function rasterPrep(st, k, kc) {
+    var req = k, kind = kindOf(st); k = kc || k; var bx = strokeBox(st), aw = avgWidth(st);
     var blurW = kind === 'water' ? Math.max(1.2, aw * 0.22) : isSoft(st) ? Math.max(0.6, aw * (1 - st.h) * 0.55) : Math.max(2, aw * (kind === 'shade' ? 0.35 : 0.45));   // in world px
     var pad = blurW * 3 + 2, ox = bx.x0 - pad, oy = bx.y0 - pad;
     var w = Math.max(1, Math.ceil((bx.x1 - bx.x0 + 2 * pad) * k)), h = Math.max(1, Math.ceil((bx.y1 - bx.y0 + 2 * pad) * k));
     if (w * h > 6e6) { var f = Math.sqrt(6e6 / (w * h)); k *= f; w = Math.ceil(w * f); h = Math.ceil(h * f); }   // very large, zoomed-in strokes
     var cv = document.createElement('canvas'); cv.width = w; cv.height = h;
-    var x = cv.getContext('2d'); x.setTransform(k, 0, 0, k, -ox * k, -oy * k); x.fillStyle = '#000'; x.fill(st._path || (st._path = inkPath(st)));
-    var id = x.getImageData(0, 0, w, h), d = id.data, M = new Float32Array(w * h);
-    for (var i = 0; i < M.length; i++) M[i] = d[i * 4 + 3] / 255;
-    var B = blurField(M, w, h, blurW * k * 0.5), rgb = (st.c || '0,0,0').split(',').map(Number), a = st.a;
+    var x = cv.getContext('2d', { willReadFrequently: true }); x.setTransform(k, 0, 0, k, -ox * k, -oy * k); x.fillStyle = '#000'; x.fill(st._path || (st._path = inkPath(st)));
+    var d = x.getImageData(0, 0, w, h).data, A = new Uint8Array(w * h);
+    for (var i = 0; i < A.length; i++) A[i] = d[i * 4 + 3];
+    cv.width = 1; cv.height = 1;
+    return { req: req, k: k, ox: ox, oy: oy, w: w, h: h, A: A,
+      P: { kind: kind, blur: blurW * k * 0.5, ox: ox, oy: oy, k: k, rgb: (st.c || '0,0,0').split(',').map(Number), a: st.a } };
+  }
+  function rasterPaint(A, w, h, P) {
+    var M = new Float32Array(w * h); for (var i = 0; i < M.length; i++) M[i] = A[i] / 255;
+    var B = blurField(M, w, h, P.blur), out = new Uint8ClampedArray(w * h * 4), k = P.k, rgb = P.rgb, a = P.a, water = P.kind === 'water';
     for (var y = 0, j = 0; y < h; y++) for (var xx = 0; xx < w; xx++, j++) {
       var al;
-      if (kind === 'water') {
+      if (water) {
         var edge = Math.max(0, Math.min(1, (M[j] - B[j]) * 2.4));        // pigment gathers where the wash dries
-        var wx = ox + xx / k, wy = oy + y / k;
+        var wx = P.ox + xx / k, wy = P.oy + y / k;
         var lf = grainSmooth(wx / 9 + 31, wy / 9 + 17);                  // pigment settling unevenly across the wash
         var g = grainAt(wx, wy);                                          // granulation in the paper's tooth
         al = a * (0.64 * B[j] + 0.55 * edge) * (0.74 + 0.4 * lf) * (0.9 + 0.2 * g);
       } else al = a * B[j];
-      var q = j * 4; d[q] = rgb[0]; d[q + 1] = rgb[1]; d[q + 2] = rgb[2]; d[q + 3] = Math.max(0, Math.min(255, Math.round(al * 255)));
+      var q = j * 4; out[q] = rgb[0]; out[q + 1] = rgb[1]; out[q + 2] = rgb[2]; out[q + 3] = Math.round(al * 255);
     }
-    x.setTransform(1, 0, 0, 1, 0, 0); x.putImageData(id, 0, 0);
-    st._r = { req: req, k: k, ox: ox, oy: oy, w: w, h: h, cv: cv };
+    return out;
+  }
+  function rasterFinish(st, job, px) {
+    var cv = document.createElement('canvas'); cv.width = job.w; cv.height = job.h;
+    cv.getContext('2d').putImageData(new ImageData(px, job.w, job.h), 0, 0);
+    if (job.full) return { req: job.req, k: job.k, ox: job.ox, oy: job.oy, w: job.w, h: job.h, cv: cv, full: true };   // an export's own copy: not kept
+    if (st._r && st._r.cv) memDrop(st._r.cv);
+    st._r = { req: job.req, k: job.k, ox: job.ox, oy: job.oy, w: job.w, h: job.h, cv: cv, full: !!job.full }; memAdd(st, cv);
     return st._r;
+  }
+  function rasterStroke(st, k) {
+    var c = st._r, full = !!INK.syncRaster;
+    if (full && INK.full) { var pre = INK.full.get(st); if (pre && Math.abs(pre.req - k) < 1e-6) return pre; }   // painted by the workers for this export
+    if (c && Math.abs(c.req - k) < 1e-6 && (!full || c.full)) { memTouch(st); return c; }
+    if (c && !full && RW.ok()) { RW.queue(st, k); memTouch(st); return c; }   // the old one, scaled, until the worker is done
+    var job = rasterPrep(st, k, full ? k : displayScale(st, k)); job.full = full;
+    return rasterFinish(st, job, rasterPaint(job.A, job.w, job.h, job.P));
+  }
+  // the paint workers: built from the same functions as above, so they paint exactly what the page would. A small pool
+  // (up to 4): exports first (all their strokes at once, in parallel), then sharpening the screen after a zoom.
+  var RW = (function () {
+    var pool = null, failed = false, q = [], xq = [], seq = 0, refreshT = 0;
+    function make() {
+      if (pool || failed) return pool;
+      try {
+        var src = 'var GRAIN;' + blurField + grainAt + grainSmooth + rasterPaint +
+          'onmessage=function(e){var d=e.data;if(d.grain){GRAIN=d.grain;return;}var o=rasterPaint(d.A,d.w,d.h,d.P);postMessage({id:d.id,px:o},[o.buffer]);};';
+        var url = URL.createObjectURL(new Blob([src], { type: 'text/javascript' })), n = Math.max(1, Math.min(4, (navigator.hardwareConcurrency || 2) - 1));
+        pool = [];
+        for (var i = 0; i < n; i++) {
+          var w = new Worker(url); w.postMessage({ grain: { N: GRAIN.N, v: GRAIN.v } });
+          var slot = { w: w, busy: null }; w.onmessage = done.bind(null, slot);
+          w.onerror = function () { failed = true; (pool || []).forEach(function (s2) { if (s2.busy && s2.busy.rej) s2.busy.rej(new Error('paint worker failed')); s2.w.terminate(); }); pool = null; q = []; xq.forEach(function (it) { it.rej(new Error('paint worker failed')); }); xq = []; };
+          pool.push(slot);
+        }
+      } catch (e) { failed = true; pool = null; }
+      return pool;
+    }
+    function done(slot, e) {
+      var b = slot.busy; slot.busy = null;
+      if (b && e.data.id === b.id) {
+        if (b.res) { b.job.full = true; b.res(rasterFinish(b.st, b.job, e.data.px)); }
+        else if (INK.strokes.indexOf(b.st) >= 0 && Math.abs(b.k - viewK().k) < 1e-6) {
+          rasterFinish(b.st, b.job, e.data.px);
+          clearTimeout(refreshT); refreshT = setTimeout(function () { INK.dirty = true; inkShow(); }, q.length ? 120 : 0);
+        }
+      }
+      pump();
+    }
+    function send(slot, b) { b.id = ++seq; slot.busy = b; slot.w.postMessage({ id: b.id, A: b.job.A, w: b.job.w, h: b.job.h, P: b.job.P }, [b.job.A.buffer]); }
+    function pump() {
+      if (!pool) return;
+      pool.forEach(function (slot) {
+        if (slot.busy) return;
+        if (xq.length) { var x = xq.shift(); send(slot, { st: x.st, k: x.k, job: rasterPrep(x.st, x.k, x.k), res: x.res, rej: x.rej }); return; }
+        var cur = viewK().k;
+        while (q.length) {
+          var it = q.shift();
+          if (Math.abs(it.k - cur) > 1e-6 || INK.strokes.indexOf(it.st) < 0 || (it.st._r && Math.abs(it.st._r.req - it.k) < 1e-6)) continue;   // stale
+          send(slot, { st: it.st, k: it.k, job: rasterPrep(it.st, it.k, displayScale(it.st, it.k)) }); return;
+        }
+      });
+    }
+    return {
+      ok: function () { return !!make(); },
+      queue: function (st, k) {
+        if (q.some(function (it) { return it.st === st && Math.abs(it.k - k) < 1e-6; }) || (pool || []).some(function (s2) { return s2.busy && s2.busy.st === st && Math.abs(s2.busy.k - k) < 1e-6; })) return;
+        q.push({ st: st, k: k }); setTimeout(pump, 0);
+      },
+      // full-resolution paint for an export, off the page's thread
+      full: function (st, k) {
+        if (!make()) return Promise.resolve(null);
+        return new Promise(function (res, rej) { xq.push({ st: st, k: k, res: res, rej: rej }); pump(); });
+      },
+      pending: function () { return q.length + xq.length + (pool || []).filter(function (s2) { return s2.busy; }).length; },
+      size: function () { return pool ? pool.length : 0; }
+    };
+  })();
+  // before an export at scale k: paint every soft stroke at full resolution in the workers; the export then uses them
+  function prepareExport(k) {
+    var list = INK.strokes.filter(function (st) { var kd = kindOf(st); return (kd === 'water' || kd === 'air' || kd === 'softErase' || kd === 'shade' || isSoft(st)) && lset(strokeLayer(st)).on; });
+    INK.full = new Map();
+    if (!list.length || !RW.ok()) return Promise.resolve();
+    return Promise.all(list.map(function (st) { return RW.full(st, k).then(function (r) { if (r) INK.full.set(st, r); }); }))
+      .catch(function () { INK.full = new Map(); });   // a worker failed: the export paints on the page instead
   }
   // draw one stroke into ctx whose world→device transform is (k, tx, ty)
   function renderStroke(x, st, k, tx, ty, preview) {
@@ -2427,9 +2555,18 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
 
   // ----- rendering: each layer's finished strokes are cached at the current zoom; the stroke being drawn goes into its layer
   function inkResize() {
-    var d = inkDpr(), W = window.innerWidth, H = window.innerHeight;
-    [inkLayer, INK.scratch].concat(LAYERS.map(function (l) { return INK.layers[l[0]]; })).forEach(function (c) { c.width = Math.round(W * d); c.height = Math.round(H * d); });
+    INK.dprEff = wantDpr();
+    var d = inkDpr(), W = Math.round(window.innerWidth * d), H = Math.round(window.innerHeight * d), used = usedLayerIds();
+    [inkLayer, INK.scratch].forEach(function (c) { c.width = W; c.height = H; });
+    LAYERS.forEach(function (l) { var c = INK.layers[l[0]]; if (!c) return; if (used[l[0]]) { c.width = W; c.height = H; } else { c.width = 1; c.height = 1; } });
     INK.dirty = true; inkShow();
+  }
+  // a layer that just got its first stroke needs its canvas (and the resolution may step down a little)
+  function layerCanvasesFit() {
+    if (!screenMode) return;
+    var used = usedLayerIds(), need = false;
+    LAYERS.forEach(function (l) { var c = INK.layers[l[0]]; if (c && !!used[l[0]] !== (c.width > 1)) need = true; });
+    if (need || Math.abs(wantDpr() - inkDpr()) > 1e-6) inkResize();
   }
   function inkInvalidate(fast) { if (!INK) return; INK.dirty = fast ? 'fast' : true; inkShow(); }
   function inkShow() {
@@ -2438,6 +2575,7 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
   }
   function viewK() { var d = inkDpr(); return { k: d * V.s, tx: d * V.x, ty: d * V.y }; }
   function renderLayers() {
+    MEM.frame++; layerCanvasesFit();
     var t = viewK();
     LAYERS.forEach(function (l) { var c = INK.layers[l[0]], x = c.getContext('2d'); x.setTransform(1, 0, 0, 1, 0, 0); x.clearRect(0, 0, c.width, c.height); });
     INK.strokes.forEach(function (st) { if (st._selHide) return; var c = INK.layers[strokeLayer(st)]; if (c) renderStroke(c.getContext('2d'), st, t.k, t.tx, t.ty); });
@@ -2591,6 +2729,7 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
     st._path = null; if (sm) sm._path = null;
     pushUndo(snap('ink'));
     INK.strokes = INK.strokes.concat(sm && sm.p.length ? [st, sm] : [st]);
+    layerCanvasesFit();   // the first stroke on a layer gives it a canvas (a full redraw)
     if (!INK.dirty) {   // add to its layer's cache, no full re-draw
       var c = INK.layers[strokeLayer(st)], t = viewK();
       if (c) { var x = c.getContext('2d'); renderStroke(x, st, t.k, t.tx, t.ty); if (sm) renderStroke(x, sm, t.k, t.tx, t.ty); }
@@ -2829,7 +2968,7 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
   function groundRgb() { return (GROUNDS.filter(function (g2) { return g2[0] === S.fillGround; })[0] || GROUNDS[0])[2]; }
   // the painted fill: its colour or print, cut to the region; prints are anchored to the page so neighbouring fills match
   function fillCanvas(st) {
-    if (st._fc) return st._fc;
+    if (st._fc) { memTouch(st); return st._fc; }
     var m = st.m, c = document.createElement('canvas'); c.width = m.mw; c.height = m.mh;
     var x = c.getContext('2d'), k = m.mw / m.w, id = x.createImageData(m.mw, m.mh), d = id.data, a = m.a;
     for (var i = 0; i < a.length; i++) d[i * 4 + 3] = a[i];
@@ -2841,11 +2980,11 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
       if (st.pat === 'own' && !img2) return null;   // your print is still loading: drawn when it arrives
       var tileW = 24 * (st.sc || 1) * ({ pinstripe: 0.6, denim: 0.45, houndstooth: 0.7, floral: 1.6, leopard: 1.8, own: 2.4 }[st.pat] || 1);
       var tile = printTile(st.pat, st.c, st.c2, tileW * k, img2);
-      if (st.wrap || st.dr) { x.globalCompositeOperation = 'source-over'; warpFill(x, st, tile, k); return (st._fc = c); }
+      if (st.wrap || st.dr) { x.globalCompositeOperation = 'source-over'; warpFill(x, st, tile, k); memAdd(st, c, '_fc'); return (st._fc = c); }
       var pat = x.createPattern(tile, 'repeat');
       x.setTransform(1, 0, 0, 1, -m.x * k, -m.y * k); x.fillStyle = pat; x.fillRect(m.x * k, m.y * k, m.mw, m.mh);
     }
-    return (st._fc = c);
+    memAdd(st, c, '_fc'); return (st._fc = c);
   }
   // a print that follows the body: "wrap" squeezes it towards each side of the shape, row by row, like stripes on a
   // cylinder; "drape" (st.dr, a coarse grid of pushes) bends it where the designer dragged. Sampled from the repeating
@@ -3090,7 +3229,7 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
         var p = gy * dr.gw + gx; dr.x[p] += dx * f; dr.y[p] += dy * f;
       }
     });
-    st._fc = null; INK.dirty = true; inkShow();
+    if (st._fc) { memDrop(st._fc); st._fc.width = 1; st._fc = null; } INK.dirty = true; inkShow();
     showRing(e.clientX, e.clientY, null, S.drapeSize);
   }
   function endDrape() { INK.drape = null; hideRing(); inkChanged(); }
@@ -3948,7 +4087,7 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
     layerState: layerState, setLayers: setLayers, strokeLayer: strokeLayer, kindOf: kindOf, inkSvgText: inkSvgText, inkPngBlob: inkPngBlob,
     renderLayers: renderLayers, inkPaint: inkPaint, saveSession: function () { return saveSession(true); }, store: store, selDraw: selDraw,
     mergeDown: mergeDown, duplicateLayer: duplicateLayer, moveLayer: moveLayer, layerPicture: layerPicture, selectAll: selectAllOnLayer,
-    selPaste: selPaste, selCopy: selCopy, selDelete: selDelete, selToLayer: selToLayer, setSelMode: setSelMode, layerCap: layerCap, get PROJ() { return PROJ; }
+    selPaste: selPaste, selCopy: selCopy, inkSvgReady: inkSvgReady, get SAVE() { return SAVE; }, MEM: MEM, RW: RW, inkDpr: inkDpr, viewK: viewK, selDelete: selDelete, selToLayer: selToLayer, setSelMode: setSelMode, layerCap: layerCap, get PROJ() { return PROJ; }
   };
   $('inkMirrorBtn').addEventListener('click', function () {
     var on = !(S.mirrorOn && S.cfOn); S.mirrorOn = on; if (on) S.cfOn = true; persist(); drawGuides(); syncUI();
@@ -4031,6 +4170,10 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
     var pad2 = 16; return { x: x0 - pad2, y: y0 - pad2, w: x1 - x0 + pad2 * 2, h: y1 - y0 + pad2 * 2 };
   }
   function inkCanvasOf(box, k) {   // the drawing alone, transparent, at k pixels per world pixel
+    var was = INK.syncRaster; INK.syncRaster = true;
+    try { return inkCanvasDraw(box, k); } finally { INK.syncRaster = was; }
+  }
+  function inkCanvasDraw(box, k) {
     var c = document.createElement('canvas'); c.width = Math.max(1, Math.round(box.w * k)); c.height = Math.max(1, Math.round(box.h * k));
     var x = c.getContext('2d');
     LAYERS.forEach(function (l) {
@@ -4045,10 +4188,14 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
   function inkPngBlob() {
     var b = inkBox(); if (!b) return Promise.resolve(null);
     var k = Math.min(3, 3000 / Math.max(b.w, b.h));   // about 3000 px on the long side: print quality, light on memory
-    return new Promise(function (res) { inkCanvasOf(b, k).toBlob(res, 'image/png'); });
+    return prepareExport(k).then(function () {
+      return new Promise(function (res) { var c = inkCanvasOf(b, k); INK.full = null; c.toBlob(res, 'image/png'); });
+    });
   }
+  function inkSvgReady() { return prepareExport(2).then(function () { try { return inkSvgText(); } finally { INK.full = null; } }); }
   function svgId(name) { var t = String(name).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, ''); return /^[a-z]/.test(t) ? t : 'layer-' + t; }
-  function inkSvgText() {   // line brushes only: watercolour, airbrush and soft erasing are painted pixels (they are in the PNG)
+  function inkSvgText() { var was = INK.syncRaster; INK.syncRaster = true; try { return inkSvgBuild(); } finally { INK.syncRaster = was; } }
+  function inkSvgBuild() {   // line brushes only: watercolour, airbrush and soft erasing are painted pixels (they are in the PNG)
     var b = inkBox(); if (!b) return null;
     var f = function (v) { return (Math.round(v * 10) / 10).toString(); };
     function d(st) {
@@ -4129,25 +4276,33 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
     inkPngBlob().then(function (bl) { $('toast').hidden = true; if (bl) saveFile(bl, 'numotif-drawing-' + stamp() + '.png'); });
   });
   $('inkSvg').addEventListener('click', function () {
-    var t = inkSvgText(); if (!t) return;
-    saveFile(new Blob([t], { type: 'image/svg+xml' }), 'numotif-drawing-' + stamp() + '.svg');
-    if (INK.strokes.some(function (st) { return isRaster(st) && !isSoft(st); })) toast('Lines are vector shapes. Watercolour, airbrush, shading, fills and prints are inside the SVG as pictures.');
+    toastSticky('Preparing SVG…');
+    inkSvgReady().then(function (t) {
+      $('toast').hidden = true; if (!t) return;
+      saveFile(new Blob([t], { type: 'image/svg+xml' }), 'numotif-drawing-' + stamp() + '.svg');
+      if (INK.strokes.some(function (st) { return isRaster(st) && !isSoft(st); })) toast('Lines are vector shapes. Watercolour, airbrush, shading, fills and prints are inside the SVG as pictures.');
+    }).catch(function (e) { toast('The SVG could not be made: ' + (e && e.message || e)); });
   });
   $('inkLineup').addEventListener('click', function () {
     // the whole page, so every look drawn on screen keeps the same scale in the line-up
     if (!INK.strokes.length) return;
     if (LINEUP.length >= LINEUP_MAX) { toast('The line-up is full (8 looks). Remove one in Export → Line-up.'); return; }
-    inkCanvasOf({ x: 0, y: 0, w: window.innerWidth, h: window.innerHeight }, 2).toBlob(function (bl) {
+    toastSticky('Adding to the line-up…');
+    prepareExport(2).then(function () { var c0 = inkCanvasOf({ x: 0, y: 0, w: window.innerWidth, h: window.innerHeight }, 2); INK.full = null; $('toast').hidden = true; return c0; }).then(function (c0) { c0.toBlob(function (bl) {
       if (!bl) return;
       LINEUP.push({ id: Date.now().toString(36), blob: bl, kind: 'lines' }); lineupSheet = null; saveLineup(); renderLineup();
       toast('Look ' + LINEUP.length + ' added. Make the sheet in Export → Line-up.');
-    }, 'image/png');
+    }, 'image/png'); });
   });
   function tlGrabInk() {   // time-lapse frame in screen mode: the drawing on white
     var W = window.innerWidth, H = window.innerHeight, k = Math.min(1, 720 / Math.min(W, H));
     var c = document.createElement('canvas'); c.width = Math.round(W * k / 2) * 2; c.height = Math.round(H * k / 2) * 2;
     var x = c.getContext('2d'); x.fillStyle = '#fff'; x.fillRect(0, 0, c.width, c.height);
-    if (INK.strokes.length) x.drawImage(inkCanvasOf({ x: 0, y: 0, w: W, h: H }, k), 0, 0);
+    if (INK.strokes.length) {
+      // the page as it is on screen (already painted) when the view is not zoomed or moved; else the screen-quality caches
+      if (Math.abs(V.s - 1) < 1e-6 && Math.abs(V.x) < 0.5 && Math.abs(V.y) < 0.5 && !INK.live && !INK.selCache) { if (INK.dirty) inkPaint(); x.drawImage(inkLayer, 0, 0, c.width, c.height); }
+      else x.drawImage(inkCanvasDraw({ x: 0, y: 0, w: W, h: H }, k), 0, 0);
+    }
     c.toBlob(function (b) { if (!b || !TL.on) return; TL.frames.push(b); if (TL.frames.length > 1800) TL.frames = TL.frames.filter(function (f, i) { return i % 2 === 0; }); }, 'image/jpeg', 0.82);
   }
 
@@ -4672,7 +4827,20 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
   function unfrac(o, f) { if (!f) return; var W = window.innerWidth, H = window.innerHeight; o.x = f.x * W; o.y = f.y * H; o.scale = f.s * W; o.rot = f.rot || 0; }
 
   var saveTimer = null;
-  function scheduleSave() { clearTimeout(saveTimer); saveTimer = setTimeout(saveSession, 900); }
+  // saves 0.9 s after the last change, at least every 5 s while drawing without a pause, and at once when the app goes to
+  // the background (iPad Safari may close a background tab without warning)
+  var SAVE = { last: 0, first: 0, ok: 0, fail: 0, err: '', warned: false, persisted: null };
+  function scheduleSave() {
+    var now = Date.now(); if (!SAVE.first) SAVE.first = now;
+    clearTimeout(saveTimer);
+    if (now - SAVE.first > 5000) { SAVE.first = 0; saveSession(); return; }
+    saveTimer = setTimeout(function () { saveTimer = null; SAVE.first = 0; saveSession(); }, 900);
+  }
+  function flushSave() { if (saveTimer) { clearTimeout(saveTimer); saveTimer = null; SAVE.first = 0; if (INK && (INK.strokes.length || img || hasBase())) saveSession(); } }
+  document.addEventListener('visibilitychange', function () { if (document.visibilityState === 'hidden') flushSave(); });
+  window.addEventListener('pagehide', flushSave);
+  // ask the browser to keep this site's storage (Safari may otherwise clear it after weeks without a visit)
+  if (navigator.storage && navigator.storage.persist) navigator.storage.persisted().then(function (p) { return p || navigator.storage.persist(); }).then(function (p) { SAVE.persisted = !!p; }).catch(function () {});
   function projThumb() {   // a small picture for Recent projects: the drawing, else the photo, else the base
     try {
       var c = document.createElement('canvas'); c.width = 96; c.height = 128; var x = c.getContext('2d'); x.fillStyle = '#fff'; x.fillRect(0, 0, 96, 128);
@@ -4706,7 +4874,11 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
         list.slice(20).forEach(function (e) { s.delete('project:' + e.id); });   // keep the 20 most recent
         s.put(list.slice(0, 20), 'projects');
       };
-    }).catch(function () {});
+    }).then(function () { SAVE.last = Date.now(); SAVE.ok++; SAVE.warned = false; },
+      function (e) {   // say so (once) instead of losing work quietly
+        SAVE.fail++; SAVE.err = e && (e.name || e.message) || 'error';
+        if (!SAVE.warned) { SAVE.warned = true; toast(/quota/i.test(SAVE.err) ? 'This device is out of space, so the drawing could not be saved. Export it, or delete old projects.' : 'The drawing could not be saved just now (' + SAVE.err + '). Export it to be safe.'); }
+      });
   }
   function projName(rec) {
     var n = rec.boardTitle || (rec.photoName && rec.photoName !== 'Photo' ? rec.photoName : '') || rec.frontName || (rec.ink && rec.ink.length ? 'Drawing' : 'Project');
