@@ -1,4 +1,4 @@
-/* NUMOTIFSTUDIO - Trace: device check (open the app with ?selftest).
+/* Device check for NUMOTIFSTUDIO - Trace and KP Art (open the app with ?selftest).
    It drives the real drawing engine on this device with simulated Pencil and finger input, measures how long things
    take, checks the results, and shows a report to copy or share. It runs on its own storage (settings, prints and
    projects with a '-selftest' suffix), which it deletes at the end, so the designer's work is never touched. */
@@ -44,7 +44,7 @@
   }
   function add(name, ok, value, detail) { var r = { name: name, ok: ok, value: value, detail: detail }; results.push(r); row(r); return r; }
   function reportText() {
-    var L = ['Trace device check — build ' + (document.querySelector('meta[name=app-build]') || {}).content + ' — ' + new Date().toISOString()];
+    var L = [document.title + ' device check — build ' + (document.querySelector('meta[name=app-build]') || {}).content + ' — ' + new Date().toISOString()];
     Object.keys(info).forEach(function (k) { L.push(k + ': ' + info[k]); });
     L.push('');
     results.forEach(function (r) { L.push((r.ok === true ? 'PASS ' : r.ok === false ? 'FAIL ' : 'INFO ') + r.name + (r.value ? ' — ' + r.value : '') + (r.detail ? ' (' + r.detail + ')' : '')); });
@@ -131,8 +131,10 @@
         return T.inkSvgReady().then(function (svg) {
           var d2 = performance.now() - t2, okSvg = !!svg && !new DOMParser().parseFromString(svg, 'image/svg+xml').querySelector('parsererror');
           add('SVG of the heavy painting', okSvg, ms(d2), (svg ? (svg.length / 1048576).toFixed(1) + ' MB, ' : '') + 'longest pause ' + ms(m2.stop()));
+          if (svg && !/<image/.test(svg)) { add('SVG holds lines only in this app', null, '', 'paint is in the PNG'); return null; }
           return Promise.all([createImageBitmap(png), new Promise(function (res, rej) { var im = new Image(); im.onload = function () { res(im); }; im.onerror = rej; im.src = URL.createObjectURL(new Blob([svg], { type: 'image/svg+xml' })); })]);
         }).then(function (ims) {
+          if (!ims) return;
           var a = ims[0], w = a.width, h = a.height, c1 = document.createElement('canvas'), c2 = document.createElement('canvas'); c1.width = c2.width = w; c1.height = c2.height = h;
           c1.getContext('2d').drawImage(a, 0, 0); c2.getContext('2d').drawImage(ims[1], 0, 0, w, h);
           var A = c1.getContext('2d').getImageData(0, 0, w, h).data, B = c2.getContext('2d').getImageData(0, 0, w, h).data, inter = 0, uni = 0;
@@ -182,8 +184,8 @@
       ev('pointerdown', W() * 0.47, H() * 0.47); ev('pointerup', W() * 0.47, H() * 0.47);
       return until(function () { return T.INK.strokes.some(function (s) { return s.t === 'fill'; }); }, 8000).then(function () {
         var d = performance.now() - t, has = T.INK.strokes.some(function (s) { return s.t === 'fill'; });
-        add('Fill with a print', has, ms(d));
-        if (!has) return;
+        add('Fill' + ($('fillModeSeg') ? ' with a print' : ''), has, ms(d));
+        if (!has || !$('fillModeSeg')) return;   // KP Art has plain fills only
         T.S.fillMode = 'drape'; var pts = []; for (var i = 0; i <= 30; i++) pts.push([W() * 0.4 + i * 4, H() * 0.47 + i * 2]);
         ev('pointerdown', pts[0][0], pts[0][1]); var t2 = performance.now(); for (i = 1; i < pts.length; i++) { ev('pointermove', pts[i][0], pts[i][1]); pix(); } var per = (performance.now() - t2) / (pts.length - 1);
         ev('pointerup', pts[pts.length - 1][0], pts[pts.length - 1][1]); T.S.fillMode = 'fill'; T.S.inkFill = false;
@@ -200,7 +202,8 @@
       $('layerAdd').click(); var inp = document.querySelector('.layerPick input'); if (inp) inp.blur(); $('inkPopClose').click();
       var want = JSON.stringify(T.layerState()), n = T.INK.strokes.length, t = performance.now();
       return Promise.resolve(T.saveSession()).then(function () {
-        var d = performance.now() - t; return T.store('kv', 'readonly', function (s) { return s.get('project:' + T.PROJ.id); }).then(function (rec) {
+        var d = performance.now() - t, key = T.PROJ && T.PROJ.id ? 'project:' + T.PROJ.id : 'session';   // Trace keeps a list of projects, KP Art the current drawing
+        return T.store('kv', 'readonly', function (s) { return s.get(key); }).then(function (rec) {
           add('Project saved with its layers', !!rec && rec.ink.length === n && JSON.stringify(rec.layers) === want, ms(d));
         });
       });
