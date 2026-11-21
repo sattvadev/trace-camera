@@ -40,6 +40,14 @@ and your chosen photo floats see-through on top, so you can draw while watching 
 
 ## For fashion designers (release 1)
 
+- **Draw on screen (iPad + Apple Pencil):** the start screen's second button skips the camera and makes the screen
+  the paper. The Pencil draws over the picture, croquis and guides with pressure (wider line) and tilt (shading);
+  tools on the left: pencil, liner, grey marker (the grey of the chosen value step), eraser, three sizes and Mirror
+  (strokes copied across the centre line). Fingers never draw unless Finger draws is on, so a resting palm leaves no
+  marks; two fingers move and zoom, two- and three-finger taps undo and redo. Strokes are stored as points and drawn as
+  filled shapes, so the drawing stays sharp at any zoom and exports as a true-vector SVG (erasers become masks), a
+  PNG, or a look in the line-up. The drawing is saved with the session and follows the centred picture when the iPad
+  rotates. Time-lapse records the drawing in this mode.
 - **Works offline:** `sw.js` saves the app, icons, built-in croquis and samples on the first visit, and the jsDelivr
   libraries and fonts the first time they are used (the AI models are cached by the page). The page is fetched fresh
   when online, so updates still arrive. `manifest.webmanifest` lets it be added to the Home Screen. Bump `VERSION` in

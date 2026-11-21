@@ -61,6 +61,21 @@ button, select, input { font: inherit; color: inherit; }
 #paperSpace { position: absolute; inset: 0; transform-origin: 0 0; pointer-events: none; }
 
 
+/* draw on screen (iPad + Apple Pencil): the screen is the paper */
+#inkLayer { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+body.screenMode #stage { background: #fff; }
+body.screenMode #video { display: none; }
+body.screenMode .camOnly, body:not(.screenMode) .screenOnly { display: none !important; }
+#drawRail { position: fixed; z-index: 19; left: max(10px, env(safe-area-inset-left)); top: 50%; transform: translateY(-50%);
+  display: grid; gap: 4px; padding: 6px; border-radius: 20px; }
+#drawRail button { width: 54px; min-height: 52px; border: 0; border-radius: 14px; background: transparent; color: var(--gray-800, #2b2724);
+  display: grid; justify-items: center; align-content: center; gap: 1px; padding: 4px 0; cursor: pointer; font: 600 10px/1.1 var(--font); }
+#drawRail button svg { width: 24px; height: 24px; }
+#drawRail button[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); }
+#drawRail .sep { height: 1px; background: rgba(0,0,0,.1); margin: 2px 6px; }
+#drawRail .dot { display: block; border-radius: 50%; background: currentColor; }
+#drawRail .swatch { display: block; width: 22px; height: 22px; border-radius: 6px; border: 1px solid rgba(0,0,0,.25); }
+
 /* frosted pills */
 .glass { background: var(--glass); backdrop-filter: blur(14px) saturate(1.4); -webkit-backdrop-filter: blur(14px) saturate(1.4);
   border: 1px solid rgba(255,255,255,0.7); box-shadow: var(--shadow-lg); }
@@ -267,6 +282,7 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
     <canvas id="guideLayer"></canvas>
     <canvas id="symLayer"></canvas>
   </div>
+  <canvas id="inkLayer"></canvas>
 </div>
 
 <header id="top" hidden>
@@ -286,6 +302,7 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
 
 <section id="tools" hidden aria-label="Tools">
   <div id="tabs" role="tablist">
+    <button type="button" role="tab" class="glass screenOnly" data-tab="draw" aria-selected="false">Draw</button>
     <button type="button" role="tab" class="glass" data-tab="picture" aria-selected="true">View</button>
     <button type="button" role="tab" class="glass" data-tab="base" aria-selected="false">Base</button>
     <button type="button" role="tab" class="glass" data-tab="flats" aria-selected="false">Flats</button>
@@ -293,8 +310,22 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
     <button type="button" role="tab" class="glass" data-tab="export" aria-selected="false">Export</button>
     <button type="button" role="tab" class="glass" data-tab="grid" aria-selected="false">Grid</button>
     <button type="button" role="tab" class="glass" data-tab="strobe" aria-selected="false">Strobe</button>
-    <button type="button" role="tab" class="glass" data-tab="camera" aria-selected="false">Camera</button>
-    <button type="button" role="tab" class="glass" data-tab="light" aria-selected="false">Light</button>
+    <button type="button" role="tab" class="glass camOnly" data-tab="camera" aria-selected="false">Camera</button>
+    <button type="button" role="tab" class="glass camOnly" data-tab="light" aria-selected="false">Light</button>
+  </div>
+
+  <div class="card glass screenOnly" data-panel="draw" hidden>
+    <div class="row"><span class="sub">Your drawing</span>
+      <button type="button" class="chip primary" id="inkPng">Save PNG</button>
+      <button type="button" class="chip" id="inkSvg">Save SVG</button>
+      <button type="button" class="chip" id="inkLineup">Add to line-up</button>
+    </div>
+    <div class="row">
+      <div class="ctl"><button type="button" class="switch" id="fingerSw" role="switch" aria-checked="false" aria-label="Finger draws"></button><span>Finger draws</span></div>
+      <span class="note" style="flex:1 1 160px">Off: only Apple Pencil draws, so a hand resting on the screen leaves no marks.</span>
+    </div>
+    <div class="row"><button type="button" class="chip" id="inkClear">Clear drawing</button></div>
+    <div class="note">Press harder for a wider line; tilt the pencil to shade. Two fingers move and zoom the page. Tap with two fingers to undo, three fingers to redo. The marker uses the grey of the value step you picked.</div>
   </div>
 
   <div class="card glass" data-panel="picture">
@@ -406,22 +437,23 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
     <div class="row"><button type="button" class="chip" id="cfToBase">Line up with the base</button></div>
     <div class="row">
       <div class="ctl"><button type="button" class="switch" id="mirrorSw" role="switch" aria-checked="false" aria-label="Mirror my drawing"></button><span>Mirror</span></div>
-      <div class="seg" id="mirrorSideSeg" role="group" aria-label="Which half to copy">
+      <div class="seg camOnly" id="mirrorSideSeg" role="group" aria-label="Which half to copy">
         <button type="button" data-v="lr" aria-pressed="true">Left → right</button>
         <button type="button" data-v="rl" aria-pressed="false">Right → left</button>
       </div>
     </div>
-    <div class="grow"><input id="mirrorStrength" type="range" min="15" max="100" step="1" value="60" aria-label="Mirror strength"><span>Mirror strength</span></div>
-    <div class="note">Draw one half of the garment. Mirror shows your own pencil lines flipped across the centre line, live, so you can trace the other half and keep the flat symmetrical.</div>
-    <div class="row"><button type="button" class="chip primary" id="symCheck">Check symmetry</button><span class="note" style="flex:1 1 150px">Compares both halves of your sheet across the centre line.</span></div>
-    <div class="row">
+    <div class="grow camOnly"><input id="mirrorStrength" type="range" min="15" max="100" step="1" value="60" aria-label="Mirror strength"><span>Mirror strength</span></div>
+    <div class="note camOnly">Draw one half of the garment. Mirror shows your own pencil lines flipped across the centre line, live, so you can trace the other half and keep the flat symmetrical.</div>
+    <div class="note screenOnly">With Mirror on, everything you draw is copied across the centre line as you draw it, so a flat comes out symmetrical.</div>
+    <div class="row camOnly"><button type="button" class="chip primary" id="symCheck">Check symmetry</button><span class="note" style="flex:1 1 150px">Compares both halves of your sheet across the centre line.</span></div>
+    <div class="row camOnly">
       <span class="sub">Ghost</span>
       <button type="button" class="chip" id="ghostGrab">Capture this sheet</button>
       <div class="ctl"><button type="button" class="switch" id="ghostSw" role="switch" aria-checked="false" aria-label="Show ghost"></button></div>
       <button type="button" class="chip" id="ghostClear" hidden>Clear</button>
     </div>
-    <div class="grow" id="ghostOpRow" hidden><input id="ghostOpacity" type="range" min="10" max="80" step="1" value="35" aria-label="Ghost opacity"><span>Ghost opacity</span></div>
-    <div class="note">Ghost keeps a faint copy of the sheet under the camera. Swap in the next sheet and draw the next look over it, so the line-up matches.</div>
+    <div class="grow camOnly" id="ghostOpRow" hidden><input id="ghostOpacity" type="range" min="10" max="80" step="1" value="35" aria-label="Ghost opacity"><span>Ghost opacity</span></div>
+    <div class="note camOnly">Ghost keeps a faint copy of the sheet under the camera. Swap in the next sheet and draw the next look over it, so the line-up matches.</div>
   </div>
 
   <div class="card glass" data-panel="boards" hidden>
@@ -432,9 +464,10 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
   </div>
 
   <div class="card glass" data-panel="export" hidden>
-    <div class="note">Photograph your finished sheet, straighten it, and save it as clean line art: a see-through PNG, or an SVG for Illustrator. You can also make it your base.</div>
-    <div class="row"><button type="button" class="chip primary" id="capStart">Capture sheet</button></div>
-    <div class="note">Tip: lay the paper flat on a darker surface so its corners are found automatically. Hide the overlays first if you only want your drawing.</div>
+    <div class="note camOnly">Photograph your finished sheet, straighten it, and save it as clean line art: a see-through PNG, or an SVG for Illustrator. You can also make it your base.</div>
+    <div class="row camOnly"><button type="button" class="chip primary" id="capStart">Capture sheet</button></div>
+    <div class="note screenOnly">Your drawing saves from Tools → Draw (PNG, SVG, Add to line-up).</div>
+    <div class="note camOnly">Tip: lay the paper flat on a darker surface so its corners are found automatically. Hide the overlays first if you only want your drawing.</div>
     <div class="row"><span class="sub">Line-up</span><span class="note" id="lineupNote">Capture each finished look and tap Add to line-up. Up to 8 looks.</span></div>
     <div class="lineup" id="lineupList" aria-label="Looks in the line-up"></div>
     <div class="row" id="lineupRow" hidden>
@@ -504,6 +537,16 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
 <button type="button" id="lockTag" class="glass" hidden></button>
 <div id="recTag" hidden aria-live="polite"></div>
 <div id="toast" hidden></div>
+
+<nav id="drawRail" class="glass" aria-label="Drawing tools" hidden>
+  <button type="button" data-tool="pencil" aria-pressed="true" aria-label="Pencil"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 19.5l1-4.2L16 4.8l3.2 3.2L8.7 18.5z"/><path d="M13.8 7l3.2 3.2"/></svg>Pencil</button>
+  <button type="button" data-tool="pen" aria-pressed="false" aria-label="Fineliner"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 19l1.6-4.6 9.2-9.2 3 3-9.2 9.2z"/><path d="M5 19l2.4-.8"/><path d="M13.8 7.2l3 3"/></svg>Liner</button>
+  <button type="button" data-tool="marker" aria-pressed="false" aria-label="Grey marker"><span class="swatch" id="markerSwatch"></span>Marker</button>
+  <button type="button" data-tool="eraser" aria-pressed="false" aria-label="Eraser"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8.5 19.5h11"/><path d="M4.6 14.6l8.8-8.8 5.6 5.6-8 8H9.5z"/><path d="M9 10.2l5.6 5.6"/></svg>Eraser</button>
+  <div class="sep"></div>
+  <button type="button" id="inkSizeBtn" aria-label="Line size"><span class="dot" id="inkSizeDot"></span><span id="inkSizeLabel">Medium</span></button>
+  <button type="button" id="inkMirrorBtn" aria-pressed="false" aria-label="Mirror across the centre line"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v18" stroke-dasharray="2.5 2.5"/><path d="M9 7.5L4 12l5 4.5z"/><path d="M15 7.5l5 4.5-5 4.5z"/></svg>Mirror</button>
+</nav>
 
 <footer id="bottom" hidden>
   <div id="opacityPop" class="glass" hidden>
@@ -576,6 +619,7 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
     <h2 id="helpTitle">How to trace</h2>
     <ul>
       <li><b>Set up:</b> prop the phone 25–40 cm above the paper, camera facing down.</li>
+      <li><b>On iPad:</b> tap <b>Draw on screen with Apple Pencil</b> on the start screen. The Pencil draws (pencil, liner, grey marker, eraser on the left); two fingers move and zoom; tap with two fingers to undo, three to redo.</li>
       <li><b>Place the picture:</b> drag, pinch and twist it onto the paper. Tap <b>Move</b> first if it is locked.</li>
       <li><b>Lock it:</b> tap <b>Lock</b>. Now a pinch zooms in on details and the picture stays lined up. Double-tap to zoom out.</li>
       <li><b>Steps:</b> in Values or AI outlines, tap a number at the bottom to jump to that step, lightest first. <b>All</b> shows everything.</li>
@@ -624,6 +668,7 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
     <p class="samplesHead">Or try a sample design</p>
     <div class="samples" id="startSamples" role="group" aria-label="Sample designs"></div>
     <button type="button" class="big primary" id="go" disabled>Start camera</button>
+    <button type="button" class="big" id="goScreen">Draw on screen with Apple Pencil</button>
     <p class="msg" id="err" hidden></p>
     <p class="fine">Photos stay on your phone. Nothing is uploaded. After your first visit it also works offline.</p>
     <p class="fine">AI sketch uses the Informative Drawings model by Caroline Chan, Frédo Durand and Phillip Isola (MIT License), run on your phone.</p>
@@ -644,9 +689,10 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
 
   var S = { mode: 'photo', view: 'layered', values: 5, simplify: 3, hl: 0, lineStyle: 'ai', step: 1, opacity: 55, mirror: false,
             color: 0, grid: false, gridColor: 3, gridOpacity: 80, gridSize: 90, gridOn: 'photo', gridCells: 4, gridDiag: false, strobeSpeed: 4, aiView: 'layered', aiLayer: 1, cumulative: true, valuesCum: false,
-            baseOn: true, baseOpacity: 70, heads: 0, flatView: 'front', cfOn: false, cfX: 500, mirrorOn: false, mirrorSide: 'lr', mirrorStrength: 60, ghostOn: false, ghostOpacity: 35, iso: 'all', faceGuide: false, markers: 'off', sheen: false };
+            baseOn: true, baseOpacity: 70, heads: 0, flatView: 'front', cfOn: false, cfX: 500, mirrorOn: false, mirrorSide: 'lr', mirrorStrength: 60, ghostOn: false, ghostOpacity: 35, iso: 'all', faceGuide: false, markers: 'off', sheen: false,
+            inkTool: 'pencil', inkSize: 1, fingerDraw: false, markerStep: 3 };
   var SAVED = ['mode', 'view', 'values', 'simplify', 'hl', 'lineStyle', 'opacity', 'mirror', 'color', 'grid', 'gridColor', 'gridOpacity', 'gridSize', 'gridOn', 'gridCells', 'gridDiag', 'strobeSpeed', 'aiView', 'aiLayer', 'cumulative', 'valuesCum',
-               'baseOn', 'baseOpacity', 'heads', 'flatView', 'cfOn', 'cfX', 'mirrorOn', 'mirrorSide', 'mirrorStrength', 'ghostOn', 'ghostOpacity', 'iso', 'faceGuide', 'markers', 'sheen'];
+               'baseOn', 'baseOpacity', 'heads', 'flatView', 'cfOn', 'cfX', 'mirrorOn', 'mirrorSide', 'mirrorStrength', 'ghostOn', 'ghostOpacity', 'iso', 'faceGuide', 'markers', 'sheen', 'inkTool', 'inkSize', 'fingerDraw', 'markerStep'];
   try { var sv = JSON.parse(localStorage.getItem('trace-camera') || 'null');
     if (sv) SAVED.forEach(function (k) { if (k in sv) S[k] = sv[k]; });
     if (sv && !sv.v2) S.lineStyle = 'ai';   // one-time switch: AI sketch became the default outline style
@@ -753,6 +799,7 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
       showErr('This browser cannot use the camera here. Open the page in Safari or Chrome over https.'); return Promise.resolve();
     }
     return startCamera().then(function () {
+      setScreenMode(false);
       $('start').hidden = true; $('top').hidden = false; $('bottom').hidden = false; $('err').hidden = true;
       if (!drawing) { drawing = true; history.pushState({ tc: 'draw' }, ''); }
       keepAwake(); setMove(true);
@@ -1297,6 +1344,7 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
   }
   function placeWorld() {
     $('world').style.transform = 'translate(' + V.x + 'px,' + V.y + 'px) scale(' + V.s + ')';
+    if (screenMode) inkInvalidate(true);
     $('zoomNote').textContent = 'Zoom ' + V.s.toFixed(1) + '×';
     syncLock();
   }
@@ -1363,7 +1411,7 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
           moved: g ? g.moved : false };
   }
   stage.addEventListener('pointerdown', function (e) {
-    if (!img && !hasBase()) return;
+    if (!img && !hasBase() && !screenMode) return;
     try { stage.setPointerCapture(e.pointerId); } catch (err) {}
     if (!pts.size) { beforeT = snap(gestureKind() === 'base' ? 'base' : 'picture'); beforeGrid = null; g = null; }
     pts.set(e.pointerId, { x: e.clientX, y: e.clientY }); startGesture();
@@ -1398,6 +1446,8 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
     pts.delete(e.pointerId);
     if (pts.size) { startGesture(); return; }
     var wasMoved = g && g.moved, kind = g && g.kind; g = null;
+    if (screenMode) inkInvalidate();   // re-draw the drawing sharp at the new zoom
+    if (INK.suppressTap) { INK.suppressTap = false; lastTap = 0; return; }
     if ((kind === 'picture' || kind === 'base') && wasMoved && beforeT) { pushUndo(beforeT); scheduleSave(); }
     if (kind === 'grid' && wasMoved) { persist(); syncUI(); }
     if (!wasMoved && (!$('tools').hidden || !$('opacityPop').hidden)) {   // a tap on the picture closes Tools and the slider
@@ -1412,7 +1462,7 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
   }
   stage.addEventListener('pointerup', endPointer); stage.addEventListener('pointercancel', endPointer);
   stage.addEventListener('wheel', function (e) {
-    if (!img && !hasBase()) return; e.preventDefault();
+    if (!img && !hasBase() && !screenMode) return; e.preventDefault();
     var gk = gestureKind();
     if (move && gk === 'grid') return;
     var k = e.deltaY < 0 ? 1.08 : 1 / 1.08;
@@ -1429,10 +1479,341 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
   function pushUndo(prev) { undoStack.push(prev); if (undoStack.length > 60) undoStack.shift(); redoStack = []; updateUndo(); }
   function updateUndo() { $('undoBtn').disabled = !undoStack.length; $('redoBtn').disabled = !redoStack.length; }
   function layerOf(l) { return l === 'base' ? B : T; }
-  function snap(l) { l = l || 'picture'; var o = layerOf(l); return { layer: l, x: o.x, y: o.y, scale: o.scale, rot: o.rot }; }
-  function applySnap(p) { var o = layerOf(p.layer); o.x = p.x; o.y = p.y; o.scale = p.scale; o.rot = p.rot; if (p.layer === 'base') placeBase(); else place(); scheduleSave(); }
+  function snap(l) { l = l || 'picture'; if (l === 'ink') return { layer: 'ink', strokes: INK.strokes.slice() }; var o = layerOf(l); return { layer: l, x: o.x, y: o.y, scale: o.scale, rot: o.rot }; }
+  function applySnap(p) { if (p.layer === 'ink') { INK.strokes = p.strokes.slice(); inkChanged(); return; } var o = layerOf(p.layer); o.x = p.x; o.y = p.y; o.scale = p.scale; o.rot = p.rot; if (p.layer === 'base') placeBase(); else place(); scheduleSave(); }
   $('undoBtn').addEventListener('click', function () { if (!undoStack.length) return; var p = undoStack.pop(); redoStack.push(snap(p.layer)); applySnap(p); updateUndo(); });
   $('redoBtn').addEventListener('click', function () { if (!redoStack.length) return; var p = redoStack.pop(); undoStack.push(snap(p.layer)); applySnap(p); updateUndo(); });
+
+  // ---------- draw on screen (iPad + Apple Pencil): the screen is the paper
+  // Strokes are kept as points in world pixels (the page at zoom 1): x, y and the line width at that point.
+  // Each stroke becomes one filled shape (circles joined by quads, all wound the same way), so a stroke has one even
+  // opacity and the drawing re-renders sharp at any zoom. Pencil/pen/mouse draw; fingers move and zoom the page.
+  var screenMode = false;
+  var INK = { strokes: [], live: null, liveM: null, ptr: null, kind: '', last: null, penUp: 0, W: 0, H: 0,
+              committed: document.createElement('canvas'), dirty: true, raf: 0, rv: null,
+              touches: new Map(), held: [], tapMax: 0, tapT0: 0, tapMoved: false, suppressTap: false, hinted: false, welcomed: false };
+  var INK_TOOLS = {
+    pencil: { col: '47,44,41', a: 0.88, w: 2.4, pMin: 0.35, pMax: 1.3, tilt: true, smooth: 0.45 },
+    pen: { col: '17,17,17', a: 1, w: 1.9, pMin: 0.8, pMax: 1.15, smooth: 0.55 },
+    marker: { a: 0.5, w: 16, pMin: 0.85, pMax: 1.15, smooth: 0.6 },
+    eraser: { col: '0,0,0', a: 1, w: 20, pMin: 0.6, pMax: 1.3, smooth: 0.5, erase: true }
+  };
+  var INK_SIZES = [[0.6, 'Fine'], [1, 'Medium'], [1.8, 'Bold']];
+  var inkLayer = $('inkLayer');
+  function inkDpr() { return Math.min(2, window.devicePixelRatio || 1); }
+  function markerGrey() {
+    var n = S.values, k = S.mode === 'values' ? Math.min(Math.max(S.step, 2), n) : Math.min(Math.max(S.markerStep, 2), n);
+    var v = greyOf(k, n); return v + ',' + v + ',' + v;
+  }
+  function setScreenMode(on) {
+    screenMode = on; document.body.classList.toggle('screenMode', on);
+    if (on) {
+      var sel = document.querySelector('#tabs [aria-selected="true"]');
+      if (sel && (sel.dataset.tab === 'camera' || sel.dataset.tab === 'light')) document.querySelector('#tabs [data-tab="draw"]').click();
+    } else if (document.querySelector('#tabs [data-tab="draw"]').getAttribute('aria-selected') === 'true') document.querySelector('#tabs [data-tab="picture"]').click();
+    inkResize(); syncDraw();
+  }
+  function enterScreen() {
+    if (stream) { stream.getTracks().forEach(function (t) { t.stop(); }); stream = null; }
+    setScreenMode(true);
+    $('start').hidden = true; $('top').hidden = false; $('bottom').hidden = false; $('err').hidden = true;
+    if (!drawing) { drawing = true; history.pushState({ tc: 'draw' }, ''); }
+    keepAwake();
+    if (img && !placed.picture) { fit(); placed.picture = true; setMove(true); } else setMove(false);
+    renderBase(); if (hasBase() && !placed.base) fitBase();
+    if (!img && target === 'picture' && hasBase()) target = 'base';
+    if (!INK.W) { INK.W = window.innerWidth; INK.H = window.innerHeight; }
+    drawGridLayer(); drawGuides(); ensureIso(); render(); place(); placeWorld(); syncUI(); scheduleSave(); inkInvalidate();
+    if (!INK.welcomed) { INK.welcomed = true; toast('Draw with Apple Pencil. Two fingers move and zoom the page; tap with two fingers to undo.'); }
+    return Promise.resolve();
+  }
+  $('goScreen').addEventListener('click', function () { enterScreen(); });
+
+  // ----- shapes
+  function inkPath(st) {
+    var p = st.p, P = new Path2D(), n = p.length;
+    for (var i = 0; i < n; i += 3) {
+      var x = p[i], y = p[i + 1], r = Math.max(0.15, p[i + 2] / 2);
+      P.moveTo(x + r, y); P.arc(x, y, r, 0, Math.PI * 2, false);
+      if (i >= 3) {
+        var q = quadOf(p[i - 3], p[i - 2], Math.max(0.15, p[i - 1] / 2), x, y, r);
+        if (q) { P.moveTo(q[0], q[1]); P.lineTo(q[2], q[3]); P.lineTo(q[4], q[5]); P.lineTo(q[6], q[7]); P.closePath(); }
+      }
+    }
+    return P;
+  }
+  // the band joining two circles, wound like the circles (clockwise on screen) so the union fills evenly
+  function quadOf(x0, y0, r0, x1, y1, r1) {
+    var dx = x1 - x0, dy = y1 - y0, L = Math.hypot(dx, dy); if (L < 0.01) return null;
+    var nx = -dy / L, ny = dx / L;
+    var q = [x0 + nx * r0, y0 + ny * r0, x1 + nx * r1, y1 + ny * r1, x1 - nx * r1, y1 - ny * r1, x0 - nx * r0, y0 - ny * r0];
+    var a = 0; for (var k = 0; k < 8; k += 2) { var k2 = (k + 2) % 8; a += q[k] * q[k2 + 1] - q[k2] * q[k + 1]; }
+    if (a < 0) q = [q[6], q[7], q[4], q[5], q[2], q[3], q[0], q[1]];
+    return q;
+  }
+  function drawStroke(x, st) {
+    x.globalCompositeOperation = st.e ? 'destination-out' : 'source-over';
+    x.globalAlpha = st.a; x.fillStyle = 'rgb(' + st.c + ')';
+    x.fill(st._path || (st._path = inkPath(st)));
+    x.globalAlpha = 1; x.globalCompositeOperation = 'source-over';
+  }
+
+  // ----- rendering: the finished strokes are cached at the current zoom; the stroke being drawn goes on top
+  function inkResize() {
+    var d = inkDpr(), W = window.innerWidth, H = window.innerHeight;
+    [inkLayer, INK.committed].forEach(function (c) { c.width = Math.round(W * d); c.height = Math.round(H * d); });
+    INK.dirty = true; inkShow();
+  }
+  function inkInvalidate(fast) { if (!INK) return; INK.dirty = fast ? 'fast' : true; inkShow(); }
+  function inkShow() {
+    if (!INK || INK.raf) return;
+    INK.raf = requestAnimationFrame(function () { INK.raf = 0; inkPaint(); });
+  }
+  function viewTf(x) { var d = inkDpr(); x.setTransform(d * V.s, 0, 0, d * V.s, d * V.x, d * V.y); }
+  function renderCommitted() {
+    var c = INK.committed, x = c.getContext('2d');
+    x.setTransform(1, 0, 0, 1, 0, 0); x.clearRect(0, 0, c.width, c.height);
+    viewTf(x); INK.strokes.forEach(function (st) { drawStroke(x, st); });
+    INK.rv = { x: V.x, y: V.y, s: V.s }; INK.dirty = false;
+  }
+  function inkPaint() {
+    var x = inkLayer.getContext('2d');
+    x.setTransform(1, 0, 0, 1, 0, 0); x.clearRect(0, 0, inkLayer.width, inkLayer.height);
+    if (!screenMode) return;
+    var pinching = INK.dirty === 'fast' && pts.size >= 2 && INK.rv && INK.strokes.length > 400;
+    if (pinching) {   // a big drawing while pinching: move the cached picture, re-draw sharp when the fingers lift
+      var k = V.s / INK.rv.s, d = inkDpr();
+      x.setTransform(k, 0, 0, k, d * (V.x - INK.rv.x * k), d * (V.y - INK.rv.y * k)); x.drawImage(INK.committed, 0, 0);
+      x.setTransform(1, 0, 0, 1, 0, 0);
+    } else {
+      if (INK.dirty) renderCommitted();
+      x.drawImage(INK.committed, 0, 0);
+    }
+    if (INK.live) { viewTf(x); INK.live._path = null; drawStroke(x, INK.live); if (INK.liveM) { INK.liveM._path = null; drawStroke(x, INK.liveM); } }
+  }
+  function inkChanged() { INK.dirty = true; inkShow(); scheduleSave(); syncDraw(); }
+
+  // ----- pointer input (capture phase, before the move/zoom gestures)
+  function toWorld(cx, cy) { return { x: (cx - V.x) / V.s, y: (cy - V.y) / V.s }; }
+  function inkActive() { return screenMode && drawing && $('start').hidden && $('tools').hidden && $('capture').hidden && $('help').hidden; }
+  function startStroke(e) {
+    var t = INK_TOOLS[S.inkTool] || INK_TOOLS.pencil;
+    var col = S.inkTool === 'marker' ? markerGrey() : t.col, a = t.a;
+    INK.live = { t: S.inkTool, c: col, a: a, e: !!t.erase, p: [] };
+    INK.liveM = S.mirrorOn && S.cfOn ? { t: S.inkTool, c: col, a: a, e: !!t.erase, p: [] } : null;
+    INK.ptr = e.pointerId; INK.kind = e.pointerType; INK.last = null; INK.tool = t;
+    if (e.pointerType === 'pen' && pts.size) { pts.clear(); g = null; INK.held = []; }   // a palm had started a pinch: the pencil wins
+    try { stage.setPointerCapture(e.pointerId); } catch (err) {}
+    addPoint(e);
+    if (!$('opacityPop').hidden) { $('opacityPop').hidden = true; syncUI(); }
+  }
+  function pressureOf(e) {
+    if (e.pointerType === 'pen') return e.pressure > 0 ? e.pressure : 0.5;
+    return 0.5;   // mouse and finger: a steady medium line
+  }
+  function addPoint(e) {
+    var list = e.getCoalescedEvents ? e.getCoalescedEvents() : null; if (!list || !list.length) list = [e];
+    var t = INK.tool, size = (INK_SIZES[S.inkSize] || INK_SIZES[1])[0];
+    list.forEach(function (ev) {
+      var w0 = toWorld(ev.clientX, ev.clientY), pr = pressureOf(ev);
+      var wid = t.w * size * (t.pMin + (t.pMax - t.pMin) * Math.pow(pr, 0.75));
+      if (t.tilt && ev.pointerType === 'pen') {   // pencil on its side: a wider, shading line
+        var tilt = Math.min(90, Math.hypot(ev.tiltX || 0, ev.tiltY || 0)); wid *= 1 + 2.4 * smooth(35, 72, tilt);
+      }
+      var L = INK.last, sm = t.smooth;
+      if (L) { w0.x = L.x + (w0.x - L.x) * (1 - sm); w0.y = L.y + (w0.y - L.y) * (1 - sm); wid = L.w + (wid - L.w) * 0.5; }
+      if (L && Math.hypot(w0.x - L.x, w0.y - L.y) < 0.5 / V.s) return;   // skip points closer than half a screen pixel
+      INK.last = { x: w0.x, y: w0.y, w: wid };
+      var r2 = function (v) { return Math.round(v * 100) / 100; };
+      INK.live.p.push(r2(w0.x), r2(w0.y), r2(wid));
+      if (INK.liveM) INK.liveM.p.push(r2(2 * cfWorldX() - w0.x), r2(w0.y), r2(wid));
+    });
+    inkShow();
+  }
+  function cfWorldX() { return S.cfX / 1000 * window.innerWidth; }
+  function endStroke(cancel) {
+    var st = INK.live, sm = INK.liveM; INK.live = null; INK.liveM = null; INK.ptr = null; INK.last = null;
+    if (INK.kind === 'pen') INK.penUp = Date.now();
+    if (cancel || !st || !st.p.length) { inkShow(); return; }
+    pushUndo(snap('ink'));
+    INK.strokes = INK.strokes.concat(sm && sm.p.length ? [st, sm] : [st]);
+    if (!INK.dirty) { var x = INK.committed.getContext('2d'); viewTf(x); drawStroke(x, st); if (sm) drawStroke(x, sm); }   // add to the cache, no full re-draw
+    inkShow(); scheduleSave(); syncDraw();
+  }
+  function promoteHeld() {   // a second finger arrived: the held finger joins the move/zoom gesture
+    INK.held.forEach(function (h) { if (!pts.has(h.id)) pts.set(h.id, { x: h.x, y: h.y }); });
+    INK.held = [];
+  }
+  stage.addEventListener('pointerdown', function (e) {
+    if (!inkActive()) return;
+    var isTouch = e.pointerType === 'touch';
+    if (isTouch) {
+      INK.touches.set(e.pointerId, { x: e.clientX, y: e.clientY });
+      if (INK.touches.size === 1) { INK.tapT0 = Date.now(); INK.tapMax = 1; INK.tapMoved = false; } else INK.tapMax = Math.max(INK.tapMax, INK.touches.size);
+      if (INK.ptr != null && INK.kind === 'pen') { e.stopImmediatePropagation(); return; }    // palm while the pencil draws
+      if (Date.now() - INK.penUp < 350) { e.stopImmediatePropagation(); return; }              // palm just after a stroke
+      if (move) return;                                                                        // placing the picture: fingers move it
+      if (INK.touches.size === 1) {
+        if (S.fingerDraw) { startStroke(e); e.stopImmediatePropagation(); return; }
+        INK.held = [{ id: e.pointerId, x: e.clientX, y: e.clientY }];                          // one finger: wait for a second
+        try { stage.setPointerCapture(e.pointerId); } catch (err) {}
+        e.stopImmediatePropagation(); return;
+      }
+      if (INK.ptr != null && INK.kind === 'touch') { endStroke(true); INK.held = [{ id: INK.touches.keys().next().value, x: e.clientX, y: e.clientY }]; }
+      promoteHeld(); return;                                                                   // two fingers: move and zoom the page
+    }
+    if (e.pointerType === 'pen' || (e.pointerType === 'mouse' && !move && e.button === 0)) {
+      if (INK.ptr != null) { e.stopImmediatePropagation(); return; }
+      startStroke(e); e.stopImmediatePropagation();
+    }
+  }, true);
+  stage.addEventListener('pointermove', function (e) {
+    if (!screenMode) return;
+    if (e.pointerType === 'touch' && INK.touches.has(e.pointerId)) {
+      var t0 = INK.touches.get(e.pointerId); if (Math.hypot(e.clientX - t0.x, e.clientY - t0.y) > 12) INK.tapMoved = true;
+    }
+    if (e.pointerId === INK.ptr) { addPoint(e); e.stopImmediatePropagation(); return; }
+    if (INK.held.some(function (h) { return h.id === e.pointerId; })) { e.stopImmediatePropagation(); return; }
+    if (e.pointerType === 'touch' && INK.ptr != null && INK.kind === 'pen') e.stopImmediatePropagation();
+  }, true);
+  function inkUp(e) {
+    if (!screenMode) return;
+    if (e.pointerType === 'touch' && INK.touches.has(e.pointerId)) {
+      INK.touches.delete(e.pointerId);
+      if (!INK.touches.size) {   // every finger lifted: two- and three-finger taps undo and redo
+        var quick = Date.now() - INK.tapT0 < 400 && !INK.tapMoved;
+        if (quick && INK.tapMax === 2) { if (!$('undoBtn').disabled) { $('undoBtn').click(); toast('Undo'); } INK.suppressTap = pts.size > 0; }
+        else if (quick && INK.tapMax === 3) { if (!$('redoBtn').disabled) { $('redoBtn').click(); toast('Redo'); } INK.suppressTap = pts.size > 0; }
+        else if (INK.tapMax === 1 && !S.fingerDraw && !move && !INK.hinted && INK.held.length) {
+          INK.hinted = true; toast('Draw with Apple Pencil. To draw with a finger, turn on Finger draws in Tools → Draw.');
+        }
+      }
+    }
+    var wasHeld = INK.held.some(function (h) { return h.id === e.pointerId; });
+    if (wasHeld) { INK.held = INK.held.filter(function (h) { return h.id !== e.pointerId; }); e.stopImmediatePropagation(); return; }
+    if (e.pointerId === INK.ptr) { if (e.type === 'pointerup') addPoint(e); endStroke(e.type === 'pointercancel' && INK.kind !== 'pen'); e.stopImmediatePropagation(); }
+  }
+  stage.addEventListener('pointerup', inkUp, true); stage.addEventListener('pointercancel', inkUp, true);
+
+  // ----- tools
+  document.querySelectorAll('#drawRail [data-tool]').forEach(function (b) {
+    b.addEventListener('click', function () {
+      if (b.dataset.tool === 'marker' && S.inkTool === 'marker' && S.mode !== 'values') {   // tap the marker again for the next grey
+        S.markerStep = S.markerStep >= S.values ? 2 : S.markerStep + 1; toast('Marker: grey ' + S.markerStep + ' of ' + S.values);
+      }
+      S.inkTool = b.dataset.tool; persist(); syncDraw();
+    });
+  });
+  $('inkSizeBtn').addEventListener('click', function () { S.inkSize = (S.inkSize + 1) % INK_SIZES.length; persist(); syncDraw(); });
+  $('inkMirrorBtn').addEventListener('click', function () {
+    var on = !(S.mirrorOn && S.cfOn); S.mirrorOn = on; if (on) S.cfOn = true; persist(); drawGuides(); syncUI();
+    toast(on ? 'Mirror on: what you draw is copied across the centre line. Move the line in Tools → Flats.' : 'Mirror off.');
+  });
+  $('fingerSw').addEventListener('click', function () { S.fingerDraw = !S.fingerDraw; persist(); syncDraw(); });
+  $('inkClear').addEventListener('click', function () {
+    if (!INK.strokes.length) return;
+    ask('Clear the drawing?', 'Removes everything you drew on screen. Undo brings it back.', 'Clear').then(function (yes) {
+      if (!yes) return; pushUndo(snap('ink')); INK.strokes = []; inkChanged();
+    });
+  });
+  function syncDraw() {
+    if (!INK) return;
+    $('drawRail').hidden = !(screenMode && drawing && $('start').hidden && $('tools').hidden && $('capture').hidden);
+    document.querySelectorAll('#drawRail [data-tool]').forEach(function (b) { b.setAttribute('aria-pressed', b.dataset.tool === S.inkTool ? 'true' : 'false'); });
+    var sz = INK_SIZES[S.inkSize] || INK_SIZES[1], dot = $('inkSizeDot'), px = Math.round(4 + sz[0] * 6);
+    dot.style.width = px + 'px'; dot.style.height = px + 'px'; $('inkSizeLabel').textContent = sz[1];
+    $('markerSwatch').style.background = 'rgb(' + markerGrey() + ')';
+    $('inkMirrorBtn').setAttribute('aria-pressed', S.mirrorOn && S.cfOn ? 'true' : 'false');
+    setSwitch('fingerSw', S.fingerDraw);
+    var none = !INK.strokes.length; ['inkPng', 'inkSvg', 'inkLineup', 'inkClear'].forEach(function (id) { $(id).disabled = none; });
+  }
+
+  // ----- keeping it: session, rotation
+  function inkForSave() { return INK ? INK.strokes.map(function (st) { return { t: st.t, c: st.c, a: st.a, e: st.e, p: Float32Array.from(st.p) }; }) : []; }
+  function inkLoad(list, w, h) {
+    INK.strokes = (list || []).map(function (st) { return { t: st.t, c: st.c, a: st.a, e: !!st.e, p: Array.from(st.p) }; });
+    INK.W = w || window.innerWidth; INK.H = h || window.innerHeight; inkOnResize(); INK.dirty = true;
+  }
+  function inkOnResize() {   // the picture and base are placed from the centre of the screen: keep the drawing with them
+    if (!INK) return;
+    var W = window.innerWidth, H = window.innerHeight;
+    if (INK.W && (INK.W !== W || INK.H !== H) && INK.strokes.length) {
+      var dx = (W - INK.W) / 2, dy = (H - INK.H) / 2;
+      INK.strokes = INK.strokes.map(function (st) {
+        var p = st.p.slice(); for (var i = 0; i < p.length; i += 3) { p[i] += dx; p[i + 1] += dy; }
+        return { t: st.t, c: st.c, a: st.a, e: st.e, p: p };
+      });
+    }
+    if (INK.W || INK.strokes.length) { INK.W = W; INK.H = H; }
+    if (screenMode) inkResize();
+  }
+
+  // ----- export
+  function inkBox() {
+    var x0 = 1e9, y0 = 1e9, x1 = -1e9, y1 = -1e9;
+    INK.strokes.forEach(function (st) { if (st.e) return; for (var i = 0; i < st.p.length; i += 3) { var r = st.p[i + 2] / 2;
+      x0 = Math.min(x0, st.p[i] - r); y0 = Math.min(y0, st.p[i + 1] - r); x1 = Math.max(x1, st.p[i] + r); y1 = Math.max(y1, st.p[i + 1] + r); } });
+    if (x1 < x0) return null;
+    var pad = 16; return { x: x0 - pad, y: y0 - pad, w: x1 - x0 + pad * 2, h: y1 - y0 + pad * 2 };
+  }
+  function inkCanvasOf(box, k) {   // the drawing alone, transparent, at k pixels per world pixel
+    var c = document.createElement('canvas'); c.width = Math.max(1, Math.round(box.w * k)); c.height = Math.max(1, Math.round(box.h * k));
+    var x = c.getContext('2d'); x.setTransform(k, 0, 0, k, -box.x * k, -box.y * k);
+    INK.strokes.forEach(function (st) { drawStroke(x, st); });
+    return c;
+  }
+  function inkPngBlob() {
+    var b = inkBox(); if (!b) return Promise.resolve(null);
+    var k = Math.min(3, 3000 / Math.max(b.w, b.h));   // about 3000 px on the long side: print quality, light on memory
+    return new Promise(function (res) { inkCanvasOf(b, k).toBlob(res, 'image/png'); });
+  }
+  function inkSvgText() {
+    var b = inkBox(); if (!b) return null;
+    var f = function (v) { return (Math.round(v * 10) / 10).toString(); };
+    function d(st) {
+      var p = st.p, out = [];
+      for (var i = 0; i < p.length; i += 3) {
+        var x = p[i] - b.x, y = p[i + 1] - b.y, r = Math.max(0.15, p[i + 2] / 2);
+        out.push('M' + f(x + r) + ' ' + f(y) + 'A' + f(r) + ' ' + f(r) + ' 0 1 1 ' + f(x - r) + ' ' + f(y) + 'A' + f(r) + ' ' + f(r) + ' 0 1 1 ' + f(x + r) + ' ' + f(y) + 'Z');
+        if (i >= 3) {
+          var q = quadOf(p[i - 3] - b.x, p[i - 2] - b.y, Math.max(0.15, p[i - 1] / 2), x, y, r);
+          if (q) out.push('M' + f(q[0]) + ' ' + f(q[1]) + 'L' + f(q[2]) + ' ' + f(q[3]) + 'L' + f(q[4]) + ' ' + f(q[5]) + 'L' + f(q[6]) + ' ' + f(q[7]) + 'Z');
+        }
+      }
+      return out.join('');
+    }
+    var body = '', defs = '', m = 0;
+    INK.strokes.forEach(function (st) {
+      if (!st.e) { body += '<path fill="rgb(' + st.c + ')"' + (st.a < 1 ? ' fill-opacity="' + st.a + '"' : '') + ' d="' + d(st) + '"/>'; return; }
+      // an eraser hides what was drawn before it: a mask over everything so far
+      defs += '<mask id="e' + m + '" maskUnits="userSpaceOnUse" x="0" y="0" width="' + f(b.w) + '" height="' + f(b.h) + '"><rect width="100%" height="100%" fill="#fff"/><path fill="#000" d="' + d(st) + '"/></mask>';
+      body = '<g mask="url(#e' + m + ')">' + body + '</g>'; m++;
+    });
+    return '<svg xmlns="http://www.w3.org/2000/svg" width="' + f(b.w) + '" height="' + f(b.h) + '" viewBox="0 0 ' + f(b.w) + ' ' + f(b.h) + '">' +
+      (defs ? '<defs>' + defs + '</defs>' : '') + body + '</svg>';
+  }
+  $('inkPng').addEventListener('click', function () {
+    toastSticky('Preparing PNG…');
+    inkPngBlob().then(function (bl) { $('toast').hidden = true; if (bl) saveFile(bl, 'numotif-drawing-' + stamp() + '.png'); });
+  });
+  $('inkSvg').addEventListener('click', function () { var t = inkSvgText(); if (t) saveFile(new Blob([t], { type: 'image/svg+xml' }), 'numotif-drawing-' + stamp() + '.svg'); });
+  $('inkLineup').addEventListener('click', function () {
+    // the whole page, so every look drawn on screen keeps the same scale in the line-up
+    if (!INK.strokes.length) return;
+    if (LINEUP.length >= LINEUP_MAX) { toast('The line-up is full (8 looks). Remove one in Export → Line-up.'); return; }
+    inkCanvasOf({ x: 0, y: 0, w: window.innerWidth, h: window.innerHeight }, 2).toBlob(function (bl) {
+      if (!bl) return;
+      LINEUP.push({ id: Date.now().toString(36), blob: bl, kind: 'lines' }); lineupSheet = null; saveLineup(); renderLineup();
+      toast('Look ' + LINEUP.length + ' added. Make the sheet in Export → Line-up.');
+    }, 'image/png');
+  });
+  function tlGrabInk() {   // time-lapse frame in screen mode: the drawing on white
+    var W = window.innerWidth, H = window.innerHeight, k = Math.min(1, 720 / Math.min(W, H));
+    var c = document.createElement('canvas'); c.width = Math.round(W * k / 2) * 2; c.height = Math.round(H * k / 2) * 2;
+    var x = c.getContext('2d'); x.fillStyle = '#fff'; x.fillRect(0, 0, c.width, c.height);
+    if (INK.strokes.length) x.drawImage(inkCanvasOf({ x: 0, y: 0, w: W, h: H }, k), 0, 0);
+    c.toBlob(function (b) { if (!b || !TL.on) return; TL.frames.push(b); if (TL.frames.length > 1800) TL.frames = TL.frames.filter(function (f, i) { return i % 2 === 0; }); }, 'image/jpeg', 0.82);
+  }
 
   // ---------- strobe
   function setStrobe(on) {
@@ -1819,7 +2200,7 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
     x.fillStyle = '#fff'; x.fillText('CF', cx, ty + 0.5);
   }
   var mirrorRaf = 0, mirrorLast = 0, mirrorWork = document.createElement('canvas');
-  function mirrorActive() { return S.mirrorOn && S.cfOn && drawing && $('start').hidden && !hidden; }
+  function mirrorActive() { return !screenMode && S.mirrorOn && S.cfOn && drawing && $('start').hidden && !hidden; }
   // Each frame: copy one half of the camera picture, flipped across the centre line, at reduced size;
   // keep only what is darker than the paper around it (your pencil lines), and show that in grey.
   function mirrorTick(t) {
@@ -1931,12 +2312,13 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
   var saveTimer = null;
   function scheduleSave() { clearTimeout(saveTimer); saveTimer = setTimeout(saveSession, 900); }
   function saveSession() {
-    if (!img && !hasBase()) return;
+    if (!img && !hasBase() && !INK.strokes.length) return;
     var rec = { photo: photoBlob, photoName: photoName,
       front: BASE.front && BASE.front.blob, frontName: BASE.front && BASE.front.name,
       back: BASE.back && BASE.back.blob, backName: BASE.back && BASE.back.name,
       ghost: ghost && ghost.blob, T: placed.picture ? frac(T) : null, B: placed.base ? frac(B) : null,
-      boardId: boardId, boardTitle: boardTitle, savedAt: Date.now() };
+      boardId: boardId, boardTitle: boardTitle, savedAt: Date.now(),
+      screen: screenMode, ink: inkForSave(), inkW: INK.W, inkH: INK.H };
     store('kv', 'readwrite', function (s) { return s.put(rec, 'session'); }).catch(function () {});
   }
   function ago(t) {
@@ -1946,14 +2328,14 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
   var lastSession = null;
   function showResume() {
     store('kv', 'readonly', function (s) { return s.get('session'); }).then(function (rec) {
-      lastSession = rec && (rec.photo || rec.front || rec.back) ? rec : null;
+      lastSession = rec && (rec.photo || rec.front || rec.back || (rec.ink && rec.ink.length)) ? rec : null;
       $('resume').hidden = !lastSession; $('orLine').hidden = !lastSession;
       if (!lastSession) return;
       var box = $('resumeThumbs'); box.innerHTML = '';
       [rec.photo, rec.front, rec.back].forEach(function (bl) {
         if (!bl) return; var im = document.createElement('img'); im.alt = ''; im.src = URL.createObjectURL(bl); box.appendChild(im);
       });
-      var parts = []; if (rec.photo) parts.push('photo'); if (rec.front || rec.back) parts.push('base'); if (rec.boardTitle) parts.push('board “' + rec.boardTitle + '”');
+      var parts = []; if (rec.photo) parts.push('photo'); if (rec.front || rec.back) parts.push('base'); if (rec.ink && rec.ink.length) parts.push('drawing on screen'); if (rec.boardTitle) parts.push('board “' + rec.boardTitle + '”');
       $('resumeNote').textContent = parts.join(', ') + ' · ' + ago(rec.savedAt);
     }).catch(function () { $('resume').hidden = true; $('orLine').hidden = true; });
   }
@@ -1972,7 +2354,8 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
       if (rec.T && img) { unfrac(T, rec.T); placed.picture = true; }
       if (rec.B && hasBase()) { unfrac(B, rec.B); placed.base = true; }
       boardId = rec.boardId || null; boardTitle = rec.boardTitle || '';
-      renderBase(); return enterDrawing();
+      inkLoad(rec.ink, rec.inkW, rec.inkH);
+      renderBase(); return rec.screen ? enterScreen() : enterDrawing();
     }).catch(function (e) { showErr(e && e.message || 'The last session could not be opened.'); })
       .then(function () { btn.disabled = false; });
   });
@@ -2831,6 +3214,7 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
   // ---------- time-lapse: a frame every few seconds while you draw, played back fast as a video
   var TL = { on: false, frames: [], timer: 0, every: 2000, started: 0, tick: 0 };
   function tlGrab() {
+    if (screenMode) { tlGrabInk(); return; }
     var W = window.innerWidth, H = window.innerHeight, m = videoCover(W, H); if (!m) return;
     var k = Math.min(1, 720 / Math.min(W, H)), c = document.createElement('canvas');
     c.width = Math.round(W * k / 2) * 2; c.height = Math.round(H * k / 2) * 2;
@@ -3049,6 +3433,7 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
 
   function setSwitch(id, on) { $(id).setAttribute('aria-checked', on ? 'true' : 'false'); }
   function syncUI() {
+    syncDraw();
     if (S.view === 'stencil' && S.valuesCum) S.view = 'layered'; if (S.view === 'layered' && !S.valuesCum) S.view = 'stencil';
     if (S.aiView === 'one' && S.cumulative) S.aiView = 'layered'; if (S.aiView === 'layered' && !S.cumulative) S.aiView = 'one';
     var lines = S.mode === 'lines', vals = S.mode === 'values', ai = lines && S.lineStyle === 'ai';
@@ -3108,6 +3493,7 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
     syncFashion(); syncFashion2();
   }
   window.addEventListener('resize', function () {
+    inkOnResize();
     if (PL.on && Math.abs(window.innerWidth - PL.w) > 2) setPaperLock(false);   // rotated: the sheet's place on screen changed
     drawGridLayer(); drawGuides(); clampView(); placeWorld(); place();
     if (!$('capture').hidden) { if (!$('capStep1').hidden) layoutCap(); else showResult(); }
