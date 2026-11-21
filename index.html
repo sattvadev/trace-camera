@@ -158,7 +158,9 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
 #bottom > * { max-width: 100%; }
 #actions { display: flex; gap: clamp(8px, 3vw, 14px); justify-content: center; width: min(400px, 100%); }
 #actions button { flex: 1 1 0; min-width: 0; border: 0; padding: 15px 8px; border-radius: 999px; font-weight: 700; font-size: 1.15rem; cursor: pointer; }
-#actions button[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+#actions button[aria-pressed="true"], #moveBtn.on { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+#moveBtn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; }
+#moveBtn svg { width: 1.15em; height: 1.15em; flex: none; }
 #opacityPop { width: min(420px, 92vw); border-radius: var(--radius-panel); padding: 10px 16px; display: grid; gap: 4px; }
 #opacityPop span { font-size: .85rem; text-align: center; color: var(--muted); }
 
@@ -367,7 +369,7 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
     </div>
     <div class="row"><button type="button" class="chip" id="baseFit">Fit base to screen</button><button type="button" class="chip primary" id="poseCroquis">Croquis from photo pose</button></div>
     <div class="note">Croquis from photo pose reads the pose in your photo on the phone and draws a 9-head fashion figure in that pose, placed over the photo (pose model 9 MB, downloaded once).</div>
-    <div class="note">Head lines split the figure from the top of the head to the soles into equal heads, so every look in a line-up keeps the same proportions. To move the base, turn on <b>Move</b> and choose <b>Base</b> at the bottom.</div>
+    <div class="note">Head lines split the figure from the top of the head to the soles into equal heads, so every look in a line-up keeps the same proportions. To move the base, tap <b>Move</b> and choose <b>Base</b> at the bottom.</div>
   </div>
 
   <div class="card glass" data-panel="flats" hidden>
@@ -454,7 +456,7 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
       <div class="ctl"><button type="button" class="switch" id="pauseSw" role="switch" aria-checked="false" aria-label="Pause camera"></button><span>Pause</span></div>
       <div class="ctl"><button type="button" class="chip" id="resetZoom">Reset zoom</button><span class="note" id="zoomNote">Zoom 1.0×</span></div>
     </div>
-    <div class="note">Pause freezes the camera picture. To zoom in for detail, turn Move off and pinch. Double-tap to zoom back out.</div>
+    <div class="note">Pause freezes the camera picture. To zoom in for detail, tap Lock and pinch. Double-tap to zoom back out.</div>
     <div class="row">
       <div class="ctl"><button type="button" class="switch" id="paperSw" role="switch" aria-checked="false" aria-label="Lock to paper"></button></div>
       <span style="flex:1 1 170px"><b>Lock to paper</b><br><span class="note" id="paperNote">Keeps your picture on the sheet when the phone or the paper moves. Place it first, then turn this on. Needs the whole sheet in view, on a darker surface.</span></span>
@@ -488,7 +490,7 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
     <div id="strip" role="group" aria-label="Steps, lightest first"></div>
   </div>
   <div id="actions">
-    <button type="button" class="glass" id="moveBtn" aria-pressed="true">Move</button>
+    <button type="button" class="glass on" id="moveBtn" aria-label="Lock in place"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="10.5" width="14" height="10" rx="2"/><path d="M8 10.5V7.5a4 4 0 018 0v3"/></svg><span>Lock</span></button>
     <button type="button" class="glass" id="hideBtn" aria-pressed="false">Hide</button>
     <button type="button" class="glass" id="opacityBtn" aria-pressed="false" aria-controls="opacityPop">Opacity</button>
   </div>
@@ -543,8 +545,8 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
     <h2 id="helpTitle">How to trace</h2>
     <ul>
       <li><b>Set up:</b> prop the phone 25–40 cm above the paper, camera facing down.</li>
-      <li><b>Place the picture:</b> with <b>Move</b> on, drag, pinch and twist it onto the paper.</li>
-      <li><b>Lock it:</b> turn <b>Move</b> off. Now a pinch zooms in on details and the picture stays lined up. Double-tap to zoom out.</li>
+      <li><b>Place the picture:</b> drag, pinch and twist it onto the paper. Tap <b>Move</b> first if it is locked.</li>
+      <li><b>Lock it:</b> tap <b>Lock</b>. Now a pinch zooms in on details and the picture stays lined up. Double-tap to zoom out.</li>
       <li><b>Steps:</b> in Values or AI outlines, tap a number at the bottom to jump to that step, lightest first. <b>All</b> shows everything.</li>
       <li><b>Tools</b> has the view (photo, outlines, values), grid, strobe, camera and flashlight. Tap <b>Done</b> or the picture to close it.</li>
       <li><b>Grid:</b> in Tools → Grid, put the grid on the photo. It sticks to the picture as you move, scale or turn it. Draw the same squares on your paper to keep proportions and angles right; Diagonals help with perspective.</li>
@@ -576,7 +578,7 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
     <ol class="steps">
       <li>Prop your phone 25–40 cm above the paper, camera facing down (a stand, a glass or a stack of books).</li>
       <li>Choose a photo to trace, your own croquis or flat block, or both. Then start the camera.</li>
-      <li>With <b>Move</b> on, drag and pinch the picture to fit the paper. Then turn <b>Move</b> off to lock it.</li>
+      <li>Drag and pinch the picture to fit the paper, then tap <b>Lock</b>. Tap <b>Move</b> to place it again.</li>
       <li>Pinch to zoom in on details: the picture stays lined up with your paper.</li>
       <li><b>Tools</b> has outlines and values, your base with head lines, flats (centre line and live mirror), boards for a matching line-up, and export to PNG or SVG.</li>
     </ol>
@@ -1365,8 +1367,19 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
   $('targets').querySelectorAll('button').forEach(function (b) { b.addEventListener('click', function () { setTarget(b.dataset.t); }); });
   function toggleMove() {
     setMove(!move);
-    toast(move ? (target === 'grid' ? 'Move on: drag the grid.' : target === 'base' ? 'Move on: drag, pinch and twist the base.' : 'Move on: drag, pinch and twist the picture.')
-      : 'Locked. Pinch to zoom in on details; the picture stays on your paper.');
+    toast(move ? (target === 'grid' ? 'Drag the grid, then tap Lock.' : target === 'base' ? 'Drag, pinch and twist the base, then tap Lock.' : 'Drag, pinch and twist the picture, then tap Lock.')
+      : 'Locked. Pinch to zoom in on details. Tap Move to place it again.');
+  }
+  // The button says what a tap will do: Lock while you place things, Move once they are locked.
+  function syncMoveBtn() {
+    var LOCK_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="10.5" width="14" height="10" rx="2"/><path d="M8 10.5V7.5a4 4 0 018 0v3"/></svg>',
+      MOVE_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v18M3 12h18"/><path d="M9.5 5.5L12 3l2.5 2.5M9.5 18.5L12 21l2.5-2.5M5.5 9.5L3 12l2.5 2.5M18.5 9.5L21 12l-2.5 2.5"/></svg>';
+    var b = $('moveBtn'), want = move ? 'lock' : 'move';
+    b.classList.toggle('on', move);
+    if (b.dataset.shows === want) return;
+    b.dataset.shows = want;
+    b.innerHTML = (move ? LOCK_ICON : MOVE_ICON) + '<span>' + (move ? 'Lock' : 'Move') + '</span>';
+    b.setAttribute('aria-label', move ? 'Lock in place' : 'Unlock to move');
   }
   $('moveBtn').addEventListener('click', toggleMove);
   $('lockTag').addEventListener('click', function () { if (!move) toggleMove(); else resetView(); });
@@ -2728,7 +2741,7 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
     if (avail.length && avail.indexOf(target) < 0) target = avail[0];
     $('targets').hidden = !(move && avail.length >= 2);
     $('targets').querySelectorAll('button').forEach(function (b) { b.hidden = avail.indexOf(b.dataset.t) < 0; b.setAttribute('aria-pressed', b.dataset.t === target ? 'true' : 'false'); });
-    $('moveBtn').setAttribute('aria-pressed', move ? 'true' : 'false');
+    syncMoveBtn();
     $('hideBtn').textContent = hidden ? 'Show' : 'Hide'; $('hideBtn').setAttribute('aria-pressed', hidden ? 'true' : 'false');
     $('opacityBtn').setAttribute('aria-pressed', $('opacityPop').hidden ? 'false' : 'true');
     var tOpen = !$('tools').hidden;
@@ -2742,7 +2755,7 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
     $('gridDiag').hidden = S.gridOn !== 'photo'; $('gridDiag').setAttribute('aria-pressed', S.gridDiag ? 'true' : 'false');
     $('gridNote').innerHTML = S.gridOn === 'photo'
       ? 'The grid is fixed to the photo: it moves, scales and turns with it. Draw the same squares on your paper to check proportions and angles.'
-      : 'The grid stays on the screen. To drag it, turn on <b>Move</b> and choose <b>Grid</b> at the bottom.';
+      : 'The grid stays on the screen. To drag it, tap <b>Move</b> and choose <b>Grid</b> at the bottom.';
     setSwitch('gridSw', S.grid); $('gridOpacity').value = S.gridOpacity; $('gridSize').value = S.gridSize;
     $('gridDot').style.background = 'rgb(' + COLORS[S.gridColor][1].join(',') + ')';
     $('gridCol').querySelector('span').textContent = 'Colour: ' + COLORS[S.gridColor][0];
