@@ -10,7 +10,7 @@ and your chosen photo floats see-through on top, so you can draw while watching 
   XDoG-style soft thresholding: long, continuous lines that follow the form, heavier on strong edges, tapering at the ends),
   or **Values**: a breakdown strip of every value from lightest (1, paper) to darkest,
   shown as a breakdown: the whole picture in greys with the current step filled in a bright colour (coral, blue, green
-  or yellow). With Show earlier steps on, a step fills the area painted at that step (that value and darker); off fills exactly that value; All shows the greys.
+  or yellow). By default a step fills only that one value, so you see exactly where that shade goes; with Show earlier steps on, it fills that value and every darker one (the area painted at that step). All shows the greys.
   Shapes have smooth, anti-aliased edges with a clean contour stroke. Numbered grey swatches pick the step, lightest (1) to darkest.
 - Values are found with an edge-preserving filter (keeps edges crisp, no halo rings), grouped by the photo's own tones,
   then cleaned of slivers and specks so each value is a solid stencil. A second 'details' pass from a lightly smoothed

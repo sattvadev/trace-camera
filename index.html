@@ -609,15 +609,16 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
     7: ['Paper', 'Pale', 'Light', 'Mid', 'Dark mid', 'Dark', 'Darkest'] };
 
   var S = { mode: 'photo', view: 'layered', values: 5, simplify: 3, hl: 0, lineStyle: 'ai', step: 1, opacity: 55, mirror: false,
-            color: 0, grid: false, gridColor: 3, gridOpacity: 80, gridSize: 90, gridOn: 'photo', gridCells: 4, gridDiag: false, strobeSpeed: 4, aiView: 'layered', aiLayer: 1, cumulative: true,
+            color: 0, grid: false, gridColor: 3, gridOpacity: 80, gridSize: 90, gridOn: 'photo', gridCells: 4, gridDiag: false, strobeSpeed: 4, aiView: 'layered', aiLayer: 1, cumulative: true, valuesCum: false,
             baseOn: true, baseOpacity: 70, heads: 0, flatView: 'front', cfOn: false, cfX: 500, mirrorOn: false, mirrorSide: 'lr', mirrorStrength: 60, ghostOn: false, ghostOpacity: 35, iso: 'all', faceGuide: false, markers: 'off', sheen: false };
-  var SAVED = ['mode', 'view', 'values', 'simplify', 'hl', 'lineStyle', 'opacity', 'mirror', 'color', 'grid', 'gridColor', 'gridOpacity', 'gridSize', 'gridOn', 'gridCells', 'gridDiag', 'strobeSpeed', 'aiView', 'aiLayer', 'cumulative',
+  var SAVED = ['mode', 'view', 'values', 'simplify', 'hl', 'lineStyle', 'opacity', 'mirror', 'color', 'grid', 'gridColor', 'gridOpacity', 'gridSize', 'gridOn', 'gridCells', 'gridDiag', 'strobeSpeed', 'aiView', 'aiLayer', 'cumulative', 'valuesCum',
                'baseOn', 'baseOpacity', 'heads', 'flatView', 'cfOn', 'cfX', 'mirrorOn', 'mirrorSide', 'mirrorStrength', 'ghostOn', 'ghostOpacity', 'iso', 'faceGuide', 'markers', 'sheen'];
   try { var sv = JSON.parse(localStorage.getItem('trace-camera') || 'null');
     if (sv) SAVED.forEach(function (k) { if (k in sv) S[k] = sv[k]; });
     if (sv && !sv.v2) S.lineStyle = 'ai';   // one-time switch: AI sketch became the default outline style
     if (typeof S.grid !== 'boolean') S.grid = false;
     if (sv && !('cumulative' in sv)) S.cumulative = !(sv.view === 'stencil' || sv.aiView === 'one');   // older 'stencil'/'one layer' views
+    if (S.view === 'layered' && !S.valuesCum) S.view = 'stencil';   // values show one value alone unless Show earlier steps is on
   } catch (e) {}
   S.v2 = 1;
   if (S.mode !== 'photo' && S.mode !== 'lines' && S.mode !== 'values') S.mode = 'values';  // older saved modes
@@ -1135,7 +1136,7 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
   function isAll(kind) { return kind === 'ai' ? S.aiView === 'all' : S.view === 'all'; }
   function pickStep(kind, k) {   // k = 0 means All
     if (kind === 'ai') { if (k) { S.aiLayer = k; S.aiView = S.cumulative ? 'layered' : 'one'; } else S.aiView = 'all'; }
-    else { if (k) { S.step = k; S.view = S.cumulative ? 'layered' : 'stencil'; } else S.view = 'all'; }
+    else { if (k) { S.step = k; S.view = S.valuesCum ? 'layered' : 'stencil'; } else S.view = 'all'; }
     persist(); render(); syncUI();
   }
   function buildStrip(kind) {
@@ -1183,7 +1184,7 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
       : 'Step ' + k + ' only · ' + AI_NAMES[k - 1].toLowerCase();
     var name = NAMES[n][k - 1].toLowerCase();
     var mk = markerFor(k), mks = mk && mk !== 'paper' ? ' · marker ' + mk : '';
-    if (!S.cumulative) return 'Step ' + k + ' only · ' + name + mks;
+    if (!S.valuesCum) return 'Step ' + k + ' · ' + (k === 1 ? 'paper to keep white' : name + ' only') + mks;
     if (k === 1) return !mk || mk === 'paper' ? 'Step 1 · paper to keep white' : 'Step 1 · lightest tone' + mks;
     return 'Step ' + k + ' · paint ' + name + (k < n ? ' and darker' : '') + mks;
   }
@@ -1460,9 +1461,9 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
   $('simplify').addEventListener('input', function () { $('simplifyOut').textContent = this.value; });
   $('simplify').addEventListener('change', function () { S.simplify = +this.value; idx = null; lineMap = null; aiMap = null; persist(); reprocess(function () { render(); syncUI(); }); });
   $('cumSw').addEventListener('click', function () {
-    S.cumulative = !S.cumulative;
-    if (S.view !== 'all') S.view = S.cumulative ? 'layered' : 'stencil';
-    if (S.aiView !== 'all') S.aiView = S.cumulative ? 'layered' : 'one';
+    // Values and AI line steps each keep their own choice: values show one value alone by default, lines build up.
+    if (S.mode === 'values') { S.valuesCum = !S.valuesCum; if (S.view !== 'all') S.view = S.valuesCum ? 'layered' : 'stencil'; }
+    else { S.cumulative = !S.cumulative; if (S.aiView !== 'all') S.aiView = S.cumulative ? 'layered' : 'one'; }
     persist(); render(); syncUI();
   });
   $('hl').addEventListener('click', function () { S.hl = (S.hl + 1) % HL.length; persist(); render(); syncUI(); });
@@ -2707,7 +2708,7 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
 
   function setSwitch(id, on) { $(id).setAttribute('aria-checked', on ? 'true' : 'false'); }
   function syncUI() {
-    if (S.view === 'stencil' && S.cumulative) S.view = 'layered'; if (S.view === 'layered' && !S.cumulative) S.view = 'stencil';
+    if (S.view === 'stencil' && S.valuesCum) S.view = 'layered'; if (S.view === 'layered' && !S.valuesCum) S.view = 'stencil';
     if (S.aiView === 'one' && S.cumulative) S.aiView = 'layered'; if (S.aiView === 'layered' && !S.cumulative) S.aiView = 'one';
     var lines = S.mode === 'lines', vals = S.mode === 'values', ai = lines && S.lineStyle === 'ai';
     // View panel
@@ -2717,8 +2718,11 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
     $('styleRow').hidden = !lines; $('cumRow').hidden = !(vals || ai);
     $('styleNote').textContent = S.lineStyle === 'ai' ? 'Full drawing, in 3 steps' : 'Main lines only, instant';
     $('styleSeg').querySelectorAll('button').forEach(function (b) { b.setAttribute('aria-pressed', b.dataset.v === S.lineStyle ? 'true' : 'false'); });
-    setSwitch('cumSw', S.cumulative);
-    $('cumNote').textContent = S.cumulative ? 'Each step shows the steps before it, the way you build up a drawing.' : 'Each step shows only its own shapes.';
+    var cumOn = vals ? S.valuesCum : S.cumulative;
+    setSwitch('cumSw', cumOn);
+    $('cumNote').textContent = vals
+      ? (cumOn ? 'Each step fills that value and every darker one: the whole area you paint at that step.' : 'Each step shows only its own value, so you see exactly where that shade goes.')
+      : (cumOn ? 'Each step shows the steps before it, the way you build up a drawing.' : 'Each step shows only its own lines.');
     $('values').value = S.values; $('valuesOut').textContent = S.values; $('opacity').value = S.opacity;
     $('simplify').value = S.simplify; $('simplifyOut').textContent = S.simplify;
     $('mirror').setAttribute('aria-pressed', S.mirror ? 'true' : 'false');
