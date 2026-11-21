@@ -7,7 +7,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="NUMOTIFSTUDIO - Trace">
 <meta name="application-name" content="NUMOTIFSTUDIO - Trace">
-<meta name="app-build" content="2026-11-21.06">
+<meta name="app-build" content="2026-11-21.07">
 <title>NUMOTIFSTUDIO - Trace</title>
 <link rel="icon" type="image/png" sizes="32x32" href="assets/favicon-32.png">
 <link rel="icon" type="image/png" sizes="192x192" href="assets/icon-192.png">
@@ -80,6 +80,26 @@ body.screenMode .camOnly, body:not(.screenMode) .screenOnly { display: none !imp
 #drawRail #railBrushIcon svg { width: 24px; height: 24px; display: block; }
 #drawRail button[aria-expanded="true"] { background: rgba(124,42,52,.12); }
 #drawRail #railColour.picking { box-shadow: inset 0 0 0 2px var(--accent); }
+@media (max-height: 600px) { #drawRail { grid-template-columns: 54px 54px; } #drawRail .sep { grid-column: 1 / -1; } #drawRail button { min-height: 46px; } }
+/* select (lasso): the loop, the selection frame and its handles; the bar of actions */
+#selOverlay { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; overflow: visible; }
+#selOverlay .ants { fill: rgba(124,42,52,.05); stroke: var(--accent); stroke-width: 1.5; stroke-dasharray: 6 5; animation: ants .7s linear infinite; }
+#selOverlay .frame { fill: none; stroke: var(--accent); stroke-width: 1.5; stroke-dasharray: 6 5; animation: ants .7s linear infinite; }
+#selOverlay .hnd { fill: #fff; stroke: var(--accent); stroke-width: 2; }
+#selOverlay .rotLine { stroke: var(--accent); stroke-width: 1.5; }
+#selOverlay .tag { font: 600 12px/1 var(--font); fill: #fff; }
+#selOverlay .tagBg { fill: var(--accent); }
+@keyframes ants { to { stroke-dashoffset: -11; } }
+@media (prefers-reduced-motion: reduce) { #selOverlay .ants, #selOverlay .frame { animation: none; } }
+#selBar { position: fixed; z-index: 20; left: 12px; right: 12px; margin-inline: auto; width: max-content; bottom: calc(14px + env(safe-area-inset-bottom));
+  display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 4px; padding: 6px; border-radius: 18px; max-width: calc(100vw - 24px); }
+#selBar button { border: 0; background: transparent; border-radius: 12px; min-width: 52px; min-height: 46px; padding: 4px 8px; cursor: pointer;
+  display: grid; justify-items: center; align-content: center; gap: 2px; font: 600 10.5px/1.1 var(--font); color: var(--gray-800, #2b2724); }
+#selBar button svg { width: 22px; height: 22px; }
+#selBar button:disabled { opacity: .35; cursor: default; }
+#selBar button.primary { background: var(--accent); color: var(--accent-ink); padding: 4px 14px; }
+#selBar select { font: 600 12px/1 var(--font); padding: 8px; border-radius: 10px; border: 1px solid var(--gray-300); background: #fff; max-width: 130px; }
+#selHint { font-size: .82rem; padding: 0 8px; color: var(--gray-800, #2b2724); max-width: 320px; }
 body.screenMode.paperWater #stage { background: #fbf8f2 var(--paperTex) repeat; }
 #inkPop { position: fixed; z-index: 21; width: min(300px, calc(100vw - 96px)); max-height: calc(100vh - 170px); overflow-y: auto;
   border-radius: var(--radius-panel); padding: 12px 14px 14px; display: block; }
@@ -104,6 +124,9 @@ body.screenMode.paperWater #stage { background: #fbf8f2 var(--paperTex) repeat; 
 #pop_settings .ctl span { order: -1; font-size: .85rem; font-weight: 600; text-align: left; }
 .bsMore .popSub { margin-top: 6px; }
 .bsMore .grow output { font-variant-numeric: tabular-nums; }
+#loupe { position: fixed; z-index: 26; width: 86px; height: 86px; margin: -43px 0 0 -43px; border-radius: 50%; pointer-events: none; overflow: hidden;
+  box-shadow: 0 0 0 3px #fff, 0 0 0 4px rgba(0,0,0,.25), 0 6px 18px rgba(0,0,0,.25); display: grid; grid-template-rows: 1fr 1fr; }
+#loupe::after { content: ''; position: absolute; left: 50%; top: 50%; width: 10px; height: 10px; margin: -5px 0 0 -5px; border-radius: 50%; border: 2px solid #fff; box-shadow: 0 0 0 1px rgba(0,0,0,.4); }
 #brushRing { position: fixed; z-index: 17; left: 0; top: 0; border-radius: 50%; pointer-events: none; transform: translate(-50%, -50%);
   border: 1.5px solid rgba(20,18,16,.75); box-shadow: 0 0 0 1px rgba(255,255,255,.85), inset 0 0 0 1px rgba(255,255,255,.6); }
 #brushRing[hidden] { display: none; }
@@ -121,11 +144,26 @@ body.screenMode.paperWater #stage { background: #fbf8f2 var(--paperTex) repeat; 
 .curRow { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .curSw { width: 34px; height: 34px; border-radius: 9px; border: 1px solid rgba(0,0,0,.2); }
 #curColourHex { font: 600 .85rem/1 ui-monospace, monospace; flex: 1; }
-.layerRow { display: grid; grid-template-columns: 1fr auto; gap: 6px 8px; align-items: center; padding: 8px; border-radius: 12px; border: 1px solid var(--gray-200); background: #fff; }
+.layerRow { display: grid; grid-template-columns: 1fr auto auto auto; gap: 6px 4px; align-items: center; padding: 8px; border-radius: 12px; border: 1px solid var(--gray-200); background: #fff; }
 .layerRow[aria-current="true"] { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
-.layerRow input[type=range] { grid-column: 1 / 3; width: 100%; }
-.layerPick { text-align: left; border: 0; background: none; padding: 0; cursor: pointer; display: grid; font: inherit; }
+.layerRow input[type=range] { grid-column: 1 / -1; width: 100%; }
+.layerRow.locked { background: #faf8f5; }
+.layerPick { text-align: left; border: 0; background: none; padding: 0; cursor: pointer; display: grid; grid-template-columns: 44px 1fr; gap: 0 8px; align-items: center; font: inherit; min-width: 0; color: inherit; }
+.layerPick canvas { grid-row: 1 / 3; width: 44px; height: 33px; border-radius: 5px; border: 1px solid var(--gray-200); background: #fff; }
+.layerPick b { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.layerPick small { line-height: 1.25; }
 .layerPick small { color: var(--muted); font-size: .75rem; }
+.layerPick input { font: inherit; font-weight: 700; width: 100%; min-width: 0; padding: 4px 6px; border: 1px solid var(--accent); border-radius: 8px; }
+.lyBtn { width: 34px; height: 34px; border: 0; border-radius: 9px; background: transparent; color: var(--gray-800, #2b2724); display: grid; place-items: center; cursor: pointer; padding: 0; }
+.lyBtn svg { width: 20px; height: 20px; }
+.lyBtn[aria-pressed="true"], .lyBtn[aria-expanded="true"] { background: rgba(124,42,52,.12); color: var(--accent); }
+.lyBtn.off { color: var(--muted); }
+.layerMore { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 6px; padding-top: 4px; border-top: 1px solid var(--gray-200); }
+.layerMore .chip { padding: 6px 10px; font-size: .8rem; }
+.layerMore label { display: flex; align-items: center; gap: 6px; font-size: .8rem; font-weight: 600; width: 100%; }
+.layerMore select { font: inherit; padding: 5px 8px; border-radius: 8px; border: 1px solid var(--gray-300); background: #fff; flex: 1; }
+.layerHead { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding-right: 34px; }
+.layerHead .popTitle { padding-right: 0; }
 #layerList { display: grid; gap: 6px; }
 
 /* AI sketch from photos (Meta Muse Image) */
@@ -361,6 +399,7 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
     <canvas id="symLayer"></canvas>
   </div>
   <canvas id="inkLayer"></canvas>
+  <svg id="selOverlay" aria-hidden="true"></svg>
 </div>
 
 <header id="top" hidden>
@@ -619,18 +658,32 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
 <div id="recTag" hidden aria-live="polite"></div>
 <div id="toast" hidden></div>
 <div id="brushRing" hidden></div>
+<div id="loupe" hidden aria-hidden="true"><span id="loupeNew"></span><span id="loupeOld"></span></div>
 <div id="updateBar" role="status" hidden><span>A new version of Trace is ready.</span><button type="button" id="updateNow">Update</button><button type="button" id="updateLater" aria-label="Not now">&times;</button></div>
 
 <nav id="drawRail" class="glass" aria-label="Drawing tools" hidden>
   <button type="button" id="railBrush" aria-pressed="true" aria-label="Brush"><span id="railBrushIcon"></span><span id="railBrushName">Pencil</span></button>
   <button type="button" id="railEraser" aria-pressed="false" aria-label="Eraser"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8.5 19.5h11"/><path d="M4.6 14.6l8.8-8.8 5.6 5.6-8 8H9.5z"/><path d="M9 10.2l5.6 5.6"/></svg>Eraser</button>
   <button type="button" id="railFill" aria-pressed="false" aria-label="Fill and prints"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 11l7-7 7 7-7 7z"/><path d="M19.5 15.5c0 1.5 1 2.5 1 3.5a1.5 1.5 0 01-3 0c0-1 1-2 2-3.5z"/></svg>Fill</button>
+  <button type="button" id="railSelect" aria-pressed="false" aria-label="Select and move"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4.5c4.7 0 8 2.3 8 5.3s-3.3 5.2-8 5.2c-1.2 0-2.3-.1-3.3-.4" stroke-dasharray="3 2.6"/><path d="M6.2 13.4C4.8 12.4 4 11.2 4 9.8c0-3 3.3-5.3 8-5.3" stroke-dasharray="3 2.6"/><path d="M6.5 13.5c-1 1.4-.6 3.2.8 3.6 1.4.4 1.6 1.8.6 3.4"/></svg>Select</button>
   <div class="sep"></div>
   <button type="button" id="railColour" aria-expanded="false" aria-label="Colour"><span class="swatch" id="railSwatch"></span>Colour</button>
   <button type="button" id="railSize" aria-expanded="false" aria-label="Brush settings"><span class="dotBox"><span class="dot" id="inkSizeDot"></span></span>Settings</button>
   <button type="button" id="railLayers" aria-expanded="false" aria-label="Layers"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M12 4l8.5 4.5L12 13 3.5 8.5z"/><path d="M3.5 12.5L12 17l8.5-4.5"/><path d="M3.5 16.5L12 21l8.5-4.5"/></svg><span id="railLayersName">Sketch</span></button>
   <button type="button" id="inkMirrorBtn" aria-pressed="false" aria-label="Mirror across the centre line"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v18" stroke-dasharray="2.5 2.5"/><path d="M9 7.5L4 12l5 4.5z"/><path d="M15 7.5l5 4.5-5 4.5z"/></svg>Mirror</button>
 </nav>
+<div id="selBar" class="glass" hidden role="toolbar" aria-label="Selection">
+  <span id="selHint">Draw round what you want to move. Tap a line to pick it.</span>
+  <button type="button" data-a="flipH" aria-label="Flip left to right"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v18" stroke-dasharray="2.5 2.5"/><path d="M9 7.5L4 12l5 4.5z"/><path d="M15 7.5l5 4.5-5 4.5z" fill="currentColor" fill-opacity=".25"/></svg>Flip ↔</button>
+  <button type="button" data-a="flipV" aria-label="Flip top to bottom"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h18" stroke-dasharray="2.5 2.5"/><path d="M7.5 9L12 4l4.5 5z"/><path d="M7.5 15L12 20l4.5-5z" fill="currentColor" fill-opacity=".25"/></svg>Flip ↕</button>
+  <button type="button" data-a="dup" aria-label="Duplicate"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V6a2 2 0 00-2-2H6a2 2 0 00-2 2v8a2 2 0 002 2h2"/></svg>Duplicate</button>
+  <button type="button" data-a="copy" aria-label="Copy"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M4 16V6a2 2 0 012-2h10"/></svg>Copy</button>
+  <button type="button" data-a="cut" aria-label="Cut"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="6.5" cy="17.5" r="2.5"/><circle cx="17.5" cy="17.5" r="2.5"/><path d="M8.3 15.7L17 4M15.7 15.7L7 4"/></svg>Cut</button>
+  <button type="button" data-a="paste" aria-label="Paste"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="5" width="14" height="16" rx="2"/><path d="M9 5V3.5h6V5"/><path d="M9 12h6M9 16h4"/></svg>Paste</button>
+  <button type="button" data-a="del" aria-label="Delete"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 7h15"/><path d="M9.5 7V4.5h5V7"/><path d="M6.5 7l1 13h9l1-13"/></svg>Delete</button>
+  <select id="selLayer" aria-label="Move the selection to another layer"></select>
+  <button type="button" data-a="done" class="primary" aria-label="Done">Done</button>
+</div>
 <div id="inkPop" class="glass" hidden role="dialog" aria-label="Drawing settings">
   <button type="button" id="inkPopClose" class="popX" aria-label="Close">×</button>
   <div id="pop_brushes"><div class="popTitle">Brushes</div><div id="brushGrid" class="brushGrid"></div></div>
@@ -639,6 +692,7 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
     <div class="curRow"><span id="curColour" class="curSw"></span><span id="curColourHex"></span>
       <label class="chip fileChip">More colours<input type="color" id="colourInput" aria-label="Any colour"></label></div>
     <button type="button" class="chip primary" id="pickFromPhoto">Pick colour from photo</button>
+    <div class="row"><div class="ctl"><button type="button" class="switch" id="holdPickSw" role="switch" aria-checked="true" aria-label="Touch and hold to pick a colour"></button><span>Touch and hold to pick a colour</span></div></div>
     <div id="paletteBox"></div>
     <div id="recolourSec" hidden style="display:grid;gap:8px">
       <div class="popSub">Recolour this drawing</div>
@@ -690,10 +744,10 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
     <input type="file" id="ownPrintFile" accept="image/*" hidden>
   </div>
   <div id="pop_layers" hidden>
-    <div class="popTitle">Layers</div>
+    <div class="layerHead"><div class="popTitle">Layers</div><button type="button" class="chip primary" id="layerAdd">+ New layer</button></div>
     <div id="layerList"></div>
     <div class="row"><div class="ctl"><button type="button" class="switch" id="waterPaperSw" role="switch" aria-checked="false" aria-label="Watercolour paper"></button><span>Watercolour paper</span></div></div>
-    <p class="fine">Colour paints under the lines. Tap a layer to draw on it; fade or hide the sketch at the end.</p>
+    <p class="fine">Colour paints under the lines. Tap a layer to draw on it; fade or hide the sketch at the end. ⋯ has blend, rename, order, merge and delete.</p>
   </div>
 </div>
 
@@ -794,7 +848,7 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
     <h2 id="helpTitle">How to trace</h2>
     <ul>
       <li><b>Set up:</b> prop the phone 25–40 cm above the paper, camera facing down.</li>
-      <li><b>On iPad:</b> tap <b>Draw on screen with Apple Pencil</b> on the start screen. The Pencil draws (pencil, liner, grey marker, eraser on the left); two fingers move and zoom; tap with two fingers to undo, three to redo.</li>
+      <li><b>On iPad:</b> tap <b>Draw on screen with Apple Pencil</b> on the start screen. The Pencil draws (pencil, liner, grey marker, eraser on the left); two fingers move and zoom; tap with two fingers to undo, three to redo. <b>Select</b> on the rail: draw a loop, then drag, scale or turn it. <b>Layers</b>: add, lock, blend, merge and reorder. Touch and hold to pick a colour.</li>
       <li><b>Place the picture:</b> drag, pinch and twist it onto the paper. Tap <b>Move</b> first if it is locked.</li>
       <li><b>Lock it:</b> tap <b>Lock</b>. Now a pinch zooms in on details and the picture stays lined up. Double-tap to zoom out.</li>
       <li><b>Steps:</b> in Values or AI outlines, tap a number at the bottom to jump to that step, lightest first. <b>All</b> shows everything.</li>
@@ -859,6 +913,9 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
 (function () {
   'use strict';
   var $ = function (id) { return document.getElementById(id); };
+  // ?selftest: the built-in device check. It keeps its own storage (its own settings, prints and saved projects), so
+  // nothing it draws or deletes touches the designer's work; it is cleared when the check ends.
+  var SELFTEST = /[?&]selftest\b/.test(location.search), SK = SELFTEST ? '-selftest' : '';
   var MAX_SIDE = 1100;
   var COLORS = [['black', [20, 18, 16]], ['white', [255, 255, 255]], ['red', [235, 45, 45]], ['blue', [40, 90, 255]], ['green', [30, 160, 80]], ['wine', [124, 42, 52]]];
   // breakdown highlight colours
@@ -876,7 +933,7 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
   var SAVED = ['mode', 'view', 'values', 'simplify', 'hl', 'lineStyle', 'opacity', 'mirror', 'color', 'grid', 'gridColor', 'gridOpacity', 'gridSize', 'gridOn', 'gridCells', 'gridDiag', 'strobeSpeed', 'aiView', 'aiLayer', 'cumulative', 'valuesCum',
                'baseOn', 'baseOpacity', 'heads', 'flatView', 'cfOn', 'cfX', 'mirrorOn', 'mirrorSide', 'mirrorStrength', 'ghostOn', 'ghostOpacity', 'iso', 'faceGuide', 'markers', 'sheen', 'inkTool', 'inkSize', 'fingerDraw', 'fingerChoice', 'markerStep',
                'inkBrush', 'inkColor', 'recentColors', 'brushSet', 'layerSet', 'activeLayer', 'paper', 'inkErase', 'eraserSoft', 'inkFill', 'fillPrint', 'fillGround', 'fillScale', 'fillGap', 'fillCroquis'];
-  try { var sv = JSON.parse(localStorage.getItem('trace-camera') || 'null');
+  try { var sv = JSON.parse(localStorage.getItem('trace-camera' + SK) || 'null');
     if (sv) SAVED.forEach(function (k) { if (k in sv) S[k] = sv[k]; });
     if (sv && !sv.v2) S.lineStyle = 'ai';   // one-time switch: AI sketch became the default outline style
     if (typeof S.grid !== 'boolean') S.grid = false;
@@ -887,7 +944,7 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
   if (S.mode !== 'photo' && S.mode !== 'lines' && S.mode !== 'values') S.mode = 'values';  // older saved modes
   if (S.color >= COLORS.length) S.color = 0;
   if (S.iso === 'pieces') S.iso = 'all';   // picked pieces are not kept between visits
-  function persist() { try { localStorage.setItem('trace-camera', JSON.stringify(S)); } catch (e) {} }
+  function persist() { try { localStorage.setItem('trace-camera' + SK, JSON.stringify(S)); } catch (e) {} }
 
   var T = { x: 0, y: 0, scale: 1, rot: 0 };   // picture placement, in world pixels
   var V = { x: 0, y: 0, s: 1 };              // view zoom: the whole world (camera + picture + grid)
@@ -952,7 +1009,7 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
   // ---------- AI sketch from photos: Meta Muse Image (muse-image-1.0) via the Meta Model API, called from this device.
   // The key is the designer's own, kept in this browser only and sent only to api.meta.ai. Photos leave the device only
   // here, after the designer picks them and taps Make sketches.
-  var MUSE = { url: 'https://api.meta.ai/v1/images/edits', model: 'muse-image-1.0', keyName: 'trace-meta-key',
+  var MUSE = { url: 'https://api.meta.ai/v1/images/edits', model: 'muse-image-1.0', keyName: 'trace-meta-key' + SK,
                pics: [], mode: 'each', style: 'line', n: 1, busy: false, mine: [], MAX_MINE: 40 };
   var MUSE_STYLE = {
     line: 'Redraw it as a professional fashion design sketch: clean, confident black ink line art on a pure white background, ' +
@@ -1888,8 +1945,8 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
   function pushUndo(prev) { undoStack.push(prev); if (undoStack.length > 60) undoStack.shift(); redoStack = []; updateUndo(); }
   function updateUndo() { $('undoBtn').disabled = !undoStack.length; $('redoBtn').disabled = !redoStack.length; }
   function layerOf(l) { return l === 'base' ? B : T; }
-  function snap(l) { l = l || 'picture'; if (l === 'ink') return { layer: 'ink', strokes: INK.strokes.slice() }; var o = layerOf(l); return { layer: l, x: o.x, y: o.y, scale: o.scale, rot: o.rot }; }
-  function applySnap(p) { if (p.layer === 'ink') { INK.strokes = p.strokes.slice(); inkChanged(); return; } var o = layerOf(p.layer); o.x = p.x; o.y = p.y; o.scale = p.scale; o.rot = p.rot; if (p.layer === 'base') placeBase(); else place(); scheduleSave(); }
+  function snap(l) { l = l || 'picture'; if (l === 'ink') return { layer: 'ink', strokes: INK.strokes.slice(), lay: layerState(), act: S.activeLayer }; var o = layerOf(l); return { layer: l, x: o.x, y: o.y, scale: o.scale, rot: o.rot }; }
+  function applySnap(p) { if (p.layer === 'ink') { selClear(true); if (p.lay) { setLayers(p.lay); if (p.act && layerExists(p.act)) S.activeLayer = p.act; persist(); } INK.strokes = p.strokes.slice(); inkChanged(); return; } var o = layerOf(p.layer); o.x = p.x; o.y = p.y; o.scale = p.scale; o.rot = p.rot; if (p.layer === 'base') placeBase(); else place(); scheduleSave(); }
   $('undoBtn').addEventListener('click', function () { if (!undoStack.length) return; var p = undoStack.pop(); redoStack.push(snap(p.layer)); applySnap(p); updateUndo(); });
   $('redoBtn').addEventListener('click', function () { if (!redoStack.length) return; var p = redoStack.pop(); undoStack.push(snap(p.layer)); applySnap(p); updateUndo(); });
 
@@ -1903,7 +1960,36 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
   var INK = { strokes: [], live: null, liveM: null, ptr: null, kind: '', last: null, penUp: 0, W: 0, H: 0,
               layers: {}, scratch: document.createElement('canvas'), dirty: true, raf: 0, rv: null, pop: '', picking: false,
               touches: new Map(), held: [], tapMax: 0, tapT0: 0, tapMoved: false, suppressTap: false, hinted: false, welcomed: false };
-  var LAYERS = [['colour', 'Colour'], ['sketch', 'Sketch'], ['lines', 'Lines']];   // bottom to top
+  // Layers, bottom to top: [id, name]. Every project starts with Colour, Sketch and Lines; the designer can add,
+  // rename, reorder, lock, merge and delete them. Each layer's look (shown, opacity, blend, lock) is in lset(id)
+  // and is saved with the project. The array is changed in place, so every reference to LAYERS stays current.
+  var LAYERS = [['colour', 'Colour'], ['sketch', 'Sketch'], ['lines', 'Lines']];
+  var BASE_LAYERS = ['colour', 'sketch', 'lines'], LAYER_MAX = 12;
+  var BLENDS = [['source-over', 'Normal'], ['multiply', 'Multiply'], ['screen', 'Screen'], ['overlay', 'Overlay'], ['soft-light', 'Soft light'],
+                ['darken', 'Darken'], ['lighten', 'Lighten'], ['color', 'Colour']];
+  function lset(id) {
+    var o = S.layerSet[id] || (S.layerSet[id] = {});
+    if (o.on == null) o.on = true; if (!(o.op > 0)) o.op = 100; if (!BLENDS.some(function (b) { return b[0] === o.blend; })) o.blend = 'source-over';
+    o.lock = !!o.lock; return o;
+  }
+  function layerExists(id) { return LAYERS.some(function (l) { return l[0] === id; }); }
+  function layerState() { return LAYERS.map(function (l) { var o = lset(l[0]); return { id: l[0], name: l[1], on: o.on, op: o.op, blend: o.blend, lock: o.lock }; }); }
+  function defaultLayerState() { return BASE_LAYERS.map(function (id, i) { return { id: id, name: ['Colour', 'Sketch', 'Lines'][i], on: true, op: 100, blend: 'source-over', lock: false }; }); }
+  function setLayers(list) {   // replace the layer list (a project opened, undo, a new project); keeps canvases that are still needed
+    if (!Array.isArray(list) || !list.length) list = defaultLayerState();
+    LAYERS.length = 0; S.layerSet = {};
+    list.forEach(function (l) {
+      if (!l || !l.id || layerExists(l.id)) return;
+      LAYERS.push([String(l.id), String(l.name || 'Layer').slice(0, 24)]);
+      S.layerSet[l.id] = { on: l.on !== false, op: l.op > 0 ? l.op : 100, blend: l.blend, lock: !!l.lock }; lset(l.id);
+    });
+    Object.keys(INK.layers).forEach(function (id) { if (!layerExists(id)) { INK.layers[id].width = 1; INK.layers[id].height = 1; delete INK.layers[id]; } });
+    LAYERS.forEach(function (l) { if (!INK.layers[l[0]]) { var c = document.createElement('canvas'); INK.layers[l[0]] = c; if (inkLayer && inkLayer.width > 1) { c.width = inkLayer.width; c.height = inkLayer.height; } } });
+    if (!layerExists(S.activeLayer)) S.activeLayer = layerExists('sketch') ? 'sketch' : LAYERS[LAYERS.length - 1][0];
+    if (INK) INK.dirty = true;
+  }
+  var inkLayer = null;   // set once the page is ready (below)
+  function layerCap() { return LAYER_MAX; }
   LAYERS.forEach(function (l) { INK.layers[l[0]] = document.createElement('canvas'); });
   // kind: grain = pencil texture; solid = even fill; water / air / softErase = painted pixel effects; erase = hard eraser
   var BRUSHES = {
@@ -1987,10 +2073,10 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
     Object.keys(d).forEach(function (f) { if (b[f] == null || (typeof d[f] === 'number' && !isFinite(b[f]))) b[f] = d[f]; });
   });
   if (!S.layerSet || typeof S.layerSet !== 'object') S.layerSet = {};
-  LAYERS.forEach(function (l) { var o = S.layerSet[l[0]] || (S.layerSet[l[0]] = {}); if (o.on == null) o.on = true; if (!(o.op > 0)) o.op = 100; });
+  LAYERS.forEach(function (l) { lset(l[0]); });
   if (!INK.layers[S.activeLayer]) S.activeLayer = BRUSHES[S.inkBrush].layer;
   if (S.paper !== 'water') S.paper = 'plain';
-  var inkLayer = $('inkLayer');
+  inkLayer = $('inkLayer');
   function inkDpr() { return Math.min(2, window.devicePixelRatio || 1); }
   function hexRgb(h) { var n = parseInt(h.slice(1), 16); return ((n >> 16) & 255) + ',' + ((n >> 8) & 255) + ',' + (n & 255); }
   function rgbHex(r, g, b) { return '#' + [r, g, b].map(function (v) { v = Math.max(0, Math.min(255, Math.round(v))); return (v < 16 ? '0' : '') + v.toString(16); }).join(''); }
@@ -2093,6 +2179,7 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
   // or a row of thin bristles that run dry (dry brush).
   function strokeShapes(st, out) {
     var k = kindOf(st);
+    if (k === 'cut') { if (st.poly && st.poly.length >= 6) out.poly(st.poly); return; }
     if (k === 'nib') return nibShapes(st, out);
     if (k === 'bristle') return bristleShapes(st, out);
     if (st.sp && (k === 'solid' || k === 'grain')) return dabShapes(st, out);
@@ -2188,14 +2275,56 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
     if (a < 0) q = [q[6], q[7], q[4], q[5], q[2], q[3], q[0], q[1]];
     return q;
   }
-  function kindOf(st) { return st.t === 'fill' ? 'fill' : st.e ? (st.soft ? 'softErase' : 'erase') : (BRUSHES[st.t] || BRUSHES.pen).kind; }
+  // stroke types besides brush strokes: 'fill' (a filled region with its print), 'img' (a picture: a merged layer or a
+  // selection moved as pixels) and 'cut' (a lasso shape that erases, left where a picture was lifted from)
+  function kindOf(st) { return st.t === 'fill' ? 'fill' : st.t === 'img' ? 'img' : st.t === 'cut' ? 'cut' : st.e ? (st.soft ? 'softErase' : 'erase') : (BRUSHES[st.t] || BRUSHES.pen).kind; }
   function isSoft(st) { var k = kindOf(st); return st.h != null && st.h < 1 && (k === 'solid' || k === 'nib' || k === 'bristle'); }
-  function isRaster(st) { var k = kindOf(st); return k === 'water' || k === 'air' || k === 'softErase' || k === 'shade' || k === 'fill' || isSoft(st); }
+  function isRaster(st) { var k = kindOf(st); return k === 'water' || k === 'air' || k === 'softErase' || k === 'shade' || k === 'fill' || k === 'img' || isSoft(st); }
   // a copy of a stroke without its render caches (for undo-safe edits, saving and rotation)
-  function cloneStroke(st, over) { var o = {}; Object.keys(st).forEach(function (k) { if (k.charAt(0) !== '_') o[k] = st[k]; }); if (st.m) o.m = Object.assign({}, st.m); return Object.assign(o, over || {}); }
+  function cloneStroke(st, over) { var o = {}; Object.keys(st).forEach(function (k) { if (k.charAt(0) !== '_') o[k] = st[k]; }); if (st.m) o.m = Object.assign({}, st.m); if (st.tf) o.tf = st.tf.slice(); if (st.poly) o.poly = st.poly.slice(); return Object.assign(o, over || {}); }
+  // 2D affine matrices [a, b, c, d, e, f]: x' = a x + c y + e, y' = b x + d y + f (the same order as canvas setTransform)
+  function mMul(A, B) { return [A[0] * B[0] + A[2] * B[1], A[1] * B[0] + A[3] * B[1], A[0] * B[2] + A[2] * B[3], A[1] * B[2] + A[3] * B[3], A[0] * B[4] + A[2] * B[5] + A[4], A[1] * B[4] + A[3] * B[5] + A[5]]; }
+  function mInv(M) { var det = M[0] * M[3] - M[1] * M[2] || 1e-9; return [M[3] / det, -M[1] / det, -M[2] / det, M[0] / det, (M[2] * M[5] - M[3] * M[4]) / det, (M[1] * M[4] - M[0] * M[5]) / det]; }
+  function mApply(M, x, y) { return { x: M[0] * x + M[2] * y + M[4], y: M[1] * x + M[3] * y + M[5] }; }
+  function mIsId(M) { return !M || (Math.abs(M[0] - 1) < 1e-9 && Math.abs(M[3] - 1) < 1e-9 && Math.abs(M[1]) < 1e-9 && Math.abs(M[2]) < 1e-9 && Math.abs(M[4]) < 1e-9 && Math.abs(M[5]) < 1e-9); }
+  // a stroke moved, turned, scaled or flipped by M (world px). Points move and widths scale; fills and pictures keep their
+  // pixels and carry the matrix (tf); a calligraphy nib turns with the stroke. The original is left as it was (undo).
+  function transformStroke(st, M) {
+    var o = cloneStroke(st), sc = Math.sqrt(Math.abs(M[0] * M[3] - M[1] * M[2]));
+    if (st.m) { o.tf = mMul(M, st.tf || [1, 0, 0, 1, 0, 0]); return o; }
+    if (st.poly) { o.poly = []; for (var j = 0; j < st.poly.length; j += 2) { var q = mApply(M, st.poly[j], st.poly[j + 1]); o.poly.push(q.x, q.y); } }
+    var p = st.p || [], np = new Array(p.length), r2 = function (v) { return Math.round(v * 100) / 100; };
+    for (var i = 0; i < p.length; i += 3) { var w = mApply(M, p[i], p[i + 1]); np[i] = r2(w.x); np[i + 1] = r2(w.y); np[i + 2] = r2(p[i + 2] * sc); }
+    o.p = np;
+    var turn = function (a) { var r = a * Math.PI / 180, v = { x: M[0] * Math.cos(r) + M[2] * Math.sin(r), y: M[1] * Math.cos(r) + M[3] * Math.sin(r) }; var d = Math.atan2(v.y, v.x) * 180 / Math.PI; return Math.round((((d % 180) + 180) % 180) * 10) / 10; };
+    if (st.n != null) o.n = turn(st.n);
+    if (st.na) o.na = st.na.map(turn);
+    return o;
+  }
+  // the corners of a fill or picture in world px (after its matrix)
+  function rectCorners(st) {
+    var m = st.m, M = st.tf || [1, 0, 0, 1, 0, 0];
+    return [[m.x, m.y], [m.x + m.w, m.y], [m.x + m.w, m.y + m.h], [m.x, m.y + m.h]].map(function (c) { return mApply(M, c[0], c[1]); });
+  }
+  // a world point in a fill's own (untransformed) coordinates
+  function toLocal(st, wp) { return st.tf ? mApply(mInv(st.tf), wp.x, wp.y) : wp; }
   function strokeLayer(st) { return st.L || (st.t === 'fill' ? 'colour' : st.e ? 'sketch' : (BRUSHES[st.t] || BRUSHES.pen).layer || 'lines'); }
+  // pictures (merged layers, pixels moved by the lasso): a PNG data URL, decoded once
+  var picImages = {};
+  function picImage(st) {
+    var im = picImages[st.u]; if (im) return im.complete && im.naturalWidth ? im : null;
+    im = picImages[st.u] = new Image();
+    im.onload = function () { if (INK) { INK.dirty = true; inkShow(); } };
+    im.src = st.u; return null;
+  }
   function strokeBox(st) {
-    if (st.m) return { x0: st.m.x, y0: st.m.y, x1: st.m.x + st.m.w, y1: st.m.y + st.m.h };
+    if (st.m && !st.tf) return { x0: st.m.x, y0: st.m.y, x1: st.m.x + st.m.w, y1: st.m.y + st.m.h };
+    if (st.m || st.poly) {
+      var cs = st.m ? rectCorners(st) : [], bx = { x0: 1e9, y0: 1e9, x1: -1e9, y1: -1e9 };
+      if (st.poly) for (var j = 0; j < st.poly.length; j += 2) cs.push({ x: st.poly[j], y: st.poly[j + 1] });
+      cs.forEach(function (c) { bx.x0 = Math.min(bx.x0, c.x); bx.y0 = Math.min(bx.y0, c.y); bx.x1 = Math.max(bx.x1, c.x); bx.y1 = Math.max(bx.y1, c.y); });
+      return bx;
+    }
     var p = st.p, x0 = 1e9, y0 = 1e9, x1 = -1e9, y1 = -1e9;
     var m = kindOf(st) === 'bristle' ? 0.62 : st.sc2 ? 0.5 + st.sc2 * 1.1 : 0.5;
     for (var i = 0; i < p.length; i += 3) { var r = p[i + 2] * m; x0 = Math.min(x0, p[i] - r); y0 = Math.min(y0, p[i + 1] - r); x1 = Math.max(x1, p[i] + r); y1 = Math.max(y1, p[i + 1] + r); }
@@ -2251,10 +2380,12 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
   // draw one stroke into ctx whose world→device transform is (k, tx, ty)
   function renderStroke(x, st, k, tx, ty, preview) {
     var kind = kindOf(st), b = BRUSHES[st.t] || {};
-    if (kind === 'fill') {
-      var fc = fillCanvas(st); if (!fc) return;
-      x.setTransform(k, 0, 0, k, tx, ty); x.globalAlpha = st.a; x.imageSmoothingEnabled = true;
-      x.drawImage(fc, st.m.x, st.m.y, st.m.w, st.m.h); x.globalAlpha = 1; return;
+    if (kind === 'fill' || kind === 'img') {
+      var fc = kind === 'fill' ? fillCanvas(st) : picImage(st); if (!fc) return;
+      x.setTransform(k, 0, 0, k, tx, ty); if (st.tf) x.transform(st.tf[0], st.tf[1], st.tf[2], st.tf[3], st.tf[4], st.tf[5]);
+      x.globalAlpha = st.a == null ? 1 : st.a; x.imageSmoothingEnabled = true; x.imageSmoothingQuality = 'high';
+      if (st.bl) x.globalCompositeOperation = st.bl;
+      x.drawImage(fc, st.m.x, st.m.y, st.m.w, st.m.h); x.globalAlpha = 1; x.globalCompositeOperation = 'source-over'; return;
     }
     // shadow / highlight with "Only on paint": a soft stroke that only changes paint already on its layer.
     // (Strokes saved before the setting existed have no 'clip' and keep that behaviour.)
@@ -2276,7 +2407,7 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
     }
     x.setTransform(k, 0, 0, k, tx, ty);
     var P = st._path || (st._path = inkPath(st));
-    if (kind === 'erase' || kind === 'softErase') { x.globalCompositeOperation = 'destination-out'; x.globalAlpha = kind === 'softErase' ? 0.5 : 1; x.fillStyle = '#000'; }
+    if (kind === 'erase' || kind === 'softErase' || kind === 'cut') { x.globalCompositeOperation = 'destination-out'; x.globalAlpha = kind === 'softErase' ? 0.5 : 1; x.fillStyle = '#000'; }
     else {
       x.globalCompositeOperation = b.blend || 'source-over';
       x.globalAlpha = preview && kind === 'water' ? st.a * 0.55 : preview && (kind === 'air' || kind === 'shade') ? st.a * 0.6 : st.a;
@@ -2309,7 +2440,7 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
   function renderLayers() {
     var t = viewK();
     LAYERS.forEach(function (l) { var c = INK.layers[l[0]], x = c.getContext('2d'); x.setTransform(1, 0, 0, 1, 0, 0); x.clearRect(0, 0, c.width, c.height); });
-    INK.strokes.forEach(function (st) { var c = INK.layers[strokeLayer(st)]; if (c) renderStroke(c.getContext('2d'), st, t.k, t.tx, t.ty); });
+    INK.strokes.forEach(function (st) { if (st._selHide) return; var c = INK.layers[strokeLayer(st)]; if (c) renderStroke(c.getContext('2d'), st, t.k, t.tx, t.ty); });
     INK.rv = { x: V.x, y: V.y, s: V.s }; INK.dirty = false;
   }
   function heavyDrawing() { return INK.strokes.length > 400 || INK.strokes.some(isRaster); }
@@ -2321,21 +2452,28 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
     if (!pinching && INK.dirty) renderLayers();
     var live = INK.live, liveL = live ? strokeLayer(live) : null, t = viewK(), d = inkDpr();
     LAYERS.forEach(function (l) {
-      var ls = S.layerSet[l[0]]; if (!ls.on) return;
+      var ls = lset(l[0]); if (!ls.on) return;
       var src = INK.layers[l[0]];
       if (live && l[0] === liveL && !pinching) {   // the layer being drawn on: its strokes plus the live one
         var sc = INK.scratch, sx = sc.getContext('2d'); sx.setTransform(1, 0, 0, 1, 0, 0); sx.clearRect(0, 0, sc.width, sc.height); sx.drawImage(src, 0, 0);
         live._path = null; renderStroke(sx, live, t.k, t.tx, t.ty, true);
         if (INK.liveM) { INK.liveM._path = null; renderStroke(sx, INK.liveM, t.k, t.tx, t.ty, true); }
         src = sc;
+      } else if (INK.selCache && INK.sel && l[0] === INK.sel.L && !pinching) {   // the selection being moved: its bitmap, where the frame is
+        var sc2 = INK.scratch, sx2 = sc2.getContext('2d'), C = INK.selCache, Mx = selCacheMatrix();
+        sx2.setTransform(1, 0, 0, 1, 0, 0); sx2.clearRect(0, 0, sc2.width, sc2.height); sx2.drawImage(src, 0, 0);
+        sx2.setTransform(Mx[0], Mx[1], Mx[2], Mx[3], Mx[4], Mx[5]); sx2.imageSmoothingEnabled = true;
+        sx2.drawImage(C.cv, C.x0, C.y0, C.w, C.h); sx2.setTransform(1, 0, 0, 1, 0, 0);
+        src = sc2;
       }
-      x.globalAlpha = ls.op / 100;
+      x.globalAlpha = ls.op / 100; x.globalCompositeOperation = ls.blend || 'source-over';
       if (pinching) {   // a heavy drawing while pinching: move the cached layers, re-draw sharp when the fingers lift
         var kk = V.s / INK.rv.s; x.setTransform(kk, 0, 0, kk, d * (V.x - INK.rv.x * kk), d * (V.y - INK.rv.y * kk));
       } else x.setTransform(1, 0, 0, 1, 0, 0);
       x.drawImage(src, 0, 0);
     });
-    x.globalAlpha = 1; x.setTransform(1, 0, 0, 1, 0, 0);
+    x.globalAlpha = 1; x.globalCompositeOperation = 'source-over'; x.setTransform(1, 0, 0, 1, 0, 0);
+    if (INK.selMode) selDraw();
   }
   function inkChanged() { INK.dirty = true; inkShow(); scheduleSave(); syncDraw(); }
 
@@ -2344,6 +2482,8 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
   function inkActive() { return screenMode && drawing && $('start').hidden && $('tools').hidden && $('capture').hidden && $('help').hidden && $('muse').hidden; }
   function startStroke(e) {
     var key = curBrush(), b = BRUSHES[key], set = S.brushSet[key];
+    var L0 = key === 'eraser' ? S.activeLayer : (INK.layers[S.activeLayer] ? S.activeLayer : b.layer);
+    if (lset(L0).lock) { lockedToast(L0); return false; }
     var col = key === 'eraser' ? '0,0,0' : b.fixed ? b.fixed : key === 'pencil' && S.inkColor.toLowerCase() === '#2f2c29' ? '47,44,41' : hexRgb(S.inkColor);
     var L = key === 'eraser' ? S.activeLayer : (INK.layers[S.activeLayer] ? S.activeLayer : b.layer);
     if (set.cjit > 0 && key !== 'eraser' && !b.fixed) col = varyColour(col, set.cjit / 100);
@@ -2462,7 +2602,11 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
     INK.held = [];
   }
   // pick a colour: the reference photo's real colour under the tap (an average of a small patch), else the drawing's
-  function pickColourAt(cx, cy) {
+  function pickColourAt(cx, cy, inkFirst) {
+    if (inkFirst) {   // touch and hold: the drawing where there is paint, the photo elsewhere
+      var dd = inkDpr(), q0 = inkLayer.getContext('2d').getImageData(Math.round(cx * dd), Math.round(cy * dd), 1, 1).data;
+      if (q0[3] > 40) { var al0 = q0[3] / 255; return rgbHex(q0[0] * al0 + 255 * (1 - al0), q0[1] * al0 + 255 * (1 - al0), q0[2] * al0 + 255 * (1 - al0)); }
+    }
     var pt = screenToPhoto(cx, cy), r = 0, g2 = 0, b = 0, n = 0;
     if (pt && img && !hidden) {
       for (var dy = -3; dy <= 3; dy++) for (var dx = -3; dx <= 3; dx++) {
@@ -2483,8 +2627,41 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
     S.recentColors = [S.inkColor].concat(S.recentColors.filter(function (c) { return c !== S.inkColor; })).slice(0, 10);
     persist(); syncDraw(); if (!quiet) renderColourPop(); if (INK.pop === 'fill') renderFillPop();
   }
+  // ----- touch and hold picks a colour (like Procreate): the line just started is dropped and a loupe shows the
+  // colour under the pencil or finger (top: the new colour, bottom: the current one). Lift to keep it. Option-click too.
+  if (S.holdPick == null) S.holdPick = true;
+  INK.hold = null; INK.loupe = null;
+  function armHold(e) {
+    disarmHold();
+    if (!S.holdPick || S.inkErase || S.inkFill || INK.selMode) return;
+    var h = { id: e.pointerId, x: e.clientX, y: e.clientY };
+    h.t = setTimeout(function () { if (INK.hold === h) startLoupe(h); }, 480);
+    INK.hold = h;
+  }
+  function disarmHold() { if (INK.hold) { clearTimeout(INK.hold.t); INK.hold = null; } }
+  function startLoupe(h) {
+    INK.hold = null;
+    if (INK.live && INK.ptr === h.id) { endStroke(true); if (INK.raf) { cancelAnimationFrame(INK.raf); INK.raf = 0; } inkPaint(); }   // the dot it started is not kept (and not sampled)
+    INK.held = INK.held.filter(function (o) { return o.id !== h.id; });
+    INK.loupe = { id: h.id, hex: null }; hideRing(); moveLoupe(h.x, h.y);
+    $('loupeOld').style.background = S.inkColor; $('loupe').hidden = false;
+  }
+  function moveLoupe(cx, cy) {
+    var L = INK.loupe, hex = pickColourAt(cx, cy, true) || null, el = $('loupe');
+    L.hex = hex; $('loupeNew').style.background = hex || 'transparent';
+    el.style.left = cx + 'px'; el.style.top = Math.max(50, cy - 80) + 'px';
+  }
+  function endLoupe(keep) {
+    var L = INK.loupe; INK.loupe = null; $('loupe').hidden = true; if (!L) return;
+    if (keep && L.hex) { setColour(L.hex, true); toast('Colour picked: ' + L.hex.toUpperCase()); }
+  }
+  $('holdPickSw').addEventListener('click', function () { S.holdPick = !S.holdPick; persist(); setSwitch('holdPickSw', S.holdPick); });
   stage.addEventListener('pointerdown', function (e) {
     if (!inkActive()) return;
+    if (e.altKey && (e.pointerType === 'mouse' || e.pointerType === 'pen') && !INK.selMode) {   // Option-click: pick at once
+      e.stopImmediatePropagation(); var hx = pickColourAt(e.clientX, e.clientY, true);
+      if (hx) { setColour(hx, true); toast('Colour picked: ' + hx.toUpperCase()); } return;
+    }
     if (INK.picking && (e.pointerType !== 'touch' || INK.touches.size === 0)) {   // the next tap picks a colour
       INK.picking = false; e.stopImmediatePropagation();
       var hex = pickColourAt(e.clientX, e.clientY);
@@ -2496,14 +2673,21 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
       INK.touches.set(e.pointerId, { x: e.clientX, y: e.clientY });
       if (INK.touches.size === 1) { INK.tapT0 = Date.now(); INK.tapMax = 1; INK.tapMoved = false; } else INK.tapMax = Math.max(INK.tapMax, INK.touches.size);
       if (INK.ptr != null && INK.kind === 'pen') { e.stopImmediatePropagation(); return; }    // palm while the pencil draws
+      if (INK.selG && INK.selG.pen) { e.stopImmediatePropagation(); return; }                  // palm while the pencil selects
       if (Date.now() - INK.penUp < 350) { e.stopImmediatePropagation(); return; }              // palm just after a stroke
       if (move) return;                                                                        // placing the picture: fingers move it
       if (INK.touches.size === 1) {
-        if (S.fingerDraw && !S.inkFill) { startStroke(e); e.stopImmediatePropagation(); return; }
+        if (INK.selMode) { selDown(e); e.stopImmediatePropagation(); return; }                // select: one finger loops or moves
+        if (S.fingerDraw && !S.inkFill) { if (startStroke(e) !== false) armHold(e); e.stopImmediatePropagation(); return; }
         if (S.fingerDraw && S.inkFill && (S.fillMode === 'drape' || INK.drapeReset)) { startDrape(e); e.stopImmediatePropagation(); return; }
-        INK.held = [{ id: e.pointerId, x: e.clientX, y: e.clientY }];                          // one finger: wait for a second
+        INK.held = [{ id: e.pointerId, x: e.clientX, y: e.clientY }];                          // one finger: wait for a second (a resting palm never picks)
         try { stage.setPointerCapture(e.pointerId); } catch (err) {}
         e.stopImmediatePropagation(); return;
+      }
+      disarmHold(); if (INK.loupe) endLoupe(false);
+      if (INK.selG && !INK.selG.pen) {   // a second finger: the first finger's loop or move was the start of a pinch
+        var sid = INK.selG.id, stt = INK.touches.get(sid) || {}; selUp({}, true);
+        INK.held = [{ id: sid, x: stt.cx != null ? stt.cx : stt.x, y: stt.cy != null ? stt.cy : stt.y }];
       }
       if (INK.ptr != null && INK.kind === 'touch') {   // a second finger: the first finger's line was the start of a pinch, not a stroke
         var fid = INK.ptr, ft = INK.touches.get(fid) || {}; endStroke(true);
@@ -2512,10 +2696,12 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
       promoteHeld(); return;                                                                   // two fingers: move and zoom the page
     }
     if (e.pointerType === 'pen' || (e.pointerType === 'mouse' && !move && e.button === 0)) {
+      if (INK.loupe) endLoupe(false);
       if (INK.ptr != null) { e.stopImmediatePropagation(); return; }
+      if (INK.selMode) { if (!INK.selG) selDown(e); e.stopImmediatePropagation(); return; }
       if (S.inkFill && (S.fillMode === 'drape' || INK.drapeReset)) { startDrape(e); e.stopImmediatePropagation(); return; }
       if (S.inkFill) { closeInkPop(); doFill(e.clientX, e.clientY); e.stopImmediatePropagation(); return; }
-      startStroke(e); e.stopImmediatePropagation();
+      if (startStroke(e) !== false) armHold(e); e.stopImmediatePropagation();
     }
   }, true);
   stage.addEventListener('pointermove', function (e) {
@@ -2524,7 +2710,10 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
       var t0 = INK.touches.get(e.pointerId); if (Math.hypot(e.clientX - t0.x, e.clientY - t0.y) > 12) INK.tapMoved = true;
       t0.cx = e.clientX; t0.cy = e.clientY;
     }
+    if (INK.loupe && e.pointerId === INK.loupe.id) { moveLoupe(e.clientX, e.clientY); e.stopImmediatePropagation(); return; }
+    if (INK.hold && e.pointerId === INK.hold.id && Math.hypot(e.clientX - INK.hold.x, e.clientY - INK.hold.y) > 8) disarmHold();
     if (INK.drape && e.pointerId === INK.drape.id) { moveDrape(e); e.stopImmediatePropagation(); return; }
+    if (INK.selG && e.pointerId === INK.selG.id) { selMove(e); e.stopImmediatePropagation(); return; }
     if (e.pointerId === INK.ptr) { addPoint(e); e.stopImmediatePropagation(); return; }
     if (INK.held.some(function (h) { return h.id === e.pointerId; })) { e.stopImmediatePropagation(); return; }
     if (e.pointerType === 'touch' && INK.ptr != null && INK.kind === 'pen') e.stopImmediatePropagation();
@@ -2549,7 +2738,10 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
         }
       }
     }
+    if (INK.hold && e.pointerId === INK.hold.id) disarmHold();
+    if (INK.loupe && e.pointerId === INK.loupe.id) { endLoupe(e.type === 'pointerup'); INK.held = INK.held.filter(function (o) { return o.id !== e.pointerId; }); e.stopImmediatePropagation(); return; }
     if (INK.drape && e.pointerId === INK.drape.id) { endDrape(); e.stopImmediatePropagation(); return; }
+    if (INK.selG && e.pointerId === INK.selG.id) { selUp(e, e.type === 'pointercancel'); e.stopImmediatePropagation(); return; }
     var wasHeld = INK.held.some(function (h) { return h.id === e.pointerId; });
     if (wasHeld) { INK.held = INK.held.filter(function (h) { return h.id !== e.pointerId; }); e.stopImmediatePropagation(); return; }
     if (e.pointerId === INK.ptr) { if (e.type === 'pointerup') addPoint(e); endStroke(e.type === 'pointercancel' && INK.kind !== 'pen'); e.stopImmediatePropagation(); }
@@ -2574,12 +2766,12 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
   // your own prints: up to 16 squares cut from your photos, kept on this device (the earlier single print joins the list)
   var OWN_PRINT = { list: [], url: null };
   try {
-    OWN_PRINT.list = JSON.parse(localStorage.getItem('trace-own-prints') || '[]').filter(function (u) { return typeof u === 'string'; });
-    var one = localStorage.getItem('trace-own-print');
-    if (one && OWN_PRINT.list.indexOf(one) < 0) { OWN_PRINT.list.unshift(one); localStorage.setItem('trace-own-prints', JSON.stringify(OWN_PRINT.list)); }
-    if (one) localStorage.removeItem('trace-own-print');
+    OWN_PRINT.list = JSON.parse(localStorage.getItem('trace-own-prints' + SK) || '[]').filter(function (u) { return typeof u === 'string'; });
+    var one = localStorage.getItem('trace-own-print' + SK);
+    if (one && OWN_PRINT.list.indexOf(one) < 0) { OWN_PRINT.list.unshift(one); localStorage.setItem('trace-own-prints' + SK, JSON.stringify(OWN_PRINT.list)); }
+    if (one) localStorage.removeItem('trace-own-print' + SK);
   } catch (e) {}
-  function saveOwnPrints() { try { localStorage.setItem('trace-own-prints', JSON.stringify(OWN_PRINT.list)); } catch (e) { toast('There is no room to keep more prints on this device. Delete one first.'); } }
+  function saveOwnPrints() { try { localStorage.setItem('trace-own-prints' + SK, JSON.stringify(OWN_PRINT.list)); } catch (e) { toast('There is no room to keep more prints on this device. Delete one first.'); } }
   OWN_PRINT.url = OWN_PRINT.list[Math.max(0, Math.min(OWN_PRINT.list.length - 1, S.fillOwn | 0))] || null;
   if (S.fillPrint === 'own' && !OWN_PRINT.url) S.fillPrint = 'solid';
   var printImages = {};   // data URL → Image, for your own prints
@@ -2722,8 +2914,9 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
   function fillRegion(cx, cy) {
     var W = window.innerWidth, H = window.innerHeight, k = 1.5, w = Math.round(W * k), h = Math.round(H * k);
     var c = document.createElement('canvas'); c.width = w; c.height = h; var x = c.getContext('2d');
-    ['sketch', 'lines'].forEach(function (L) {   // the outlines: the shown Sketch and Lines layers as drawn
-      if (!S.layerSet[L].on) return;
+    var into = fillLayer();
+    LAYERS.forEach(function (l) {   // the outlines: every shown layer except the one the fill goes on (normally Sketch and Lines)
+      var L = l[0]; if (L === into || !lset(L).on) return;
       var lc = document.createElement('canvas'); lc.width = w; lc.height = h; var lx = lc.getContext('2d');
       INK.strokes.forEach(function (st) { if (strokeLayer(st) === L) renderStroke(lx, st, k, 0, 0); });
       x.setTransform(1, 0, 0, 1, 0, 0); x.drawImage(lc, 0, 0);
@@ -2765,14 +2958,21 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
     for (var yy = 0; yy < mh; yy++) for (var xx = 0; xx < mw; xx++) out[yy * mw + xx] = grown[(yy + y0) * w + xx + x0] ? 255 : 0;
     return { m: { x: x0 / k, y: y0 / k, w: mw / k, h: mh / k, mw: mw, mh: mh, a: out } };
   }
+  // fills go on the Colour layer, under the lines, while drawing on one of the starting layers; on a layer of your own they go there
+  function fillLayer() {
+    if (BASE_LAYERS.indexOf(S.activeLayer) < 0 && layerExists(S.activeLayer)) return S.activeLayer;
+    return layerExists('colour') ? 'colour' : S.activeLayer;
+  }
+  function lockedToast(id) { toast('The ' + layerName(id) + ' layer is locked. Unlock it in Layers.'); }
   function doFill(cx, cy) {
+    if (lset(fillLayer()).lock) { lockedToast(fillLayer()); return; }
     toastSticky('Filling…');
     setTimeout(function () {
       var r; try { r = fillRegion(cx, cy); } catch (err) { r = { err: 'The fill could not be made: ' + (err && err.message || err) }; }
       if (r.err) { toast(r.err); return; }
       $('toast').hidden = true;
       var pat = S.fillPrint === 'own' && !OWN_PRINT.url ? 'solid' : S.fillPrint;
-      var st = { t: 'fill', L: 'colour', c: hexRgb(S.inkColor), a: Math.max(0.05, (S.brushSet.fill ? S.brushSet.fill.op : 100) / 100), pat: pat, c2: pat === 'solid' ? null : groundRgb(),
+      var st = { t: 'fill', L: fillLayer(), c: hexRgb(S.inkColor), a: Math.max(0.05, (S.brushSet.fill ? S.brushSet.fill.op : 100) / 100), pat: pat, c2: pat === 'solid' ? null : groundRgb(),
                  sc: S.fillScale, img: pat === 'own' ? OWN_PRINT.url : null, m: r.m, p: [] };
       if (pat !== 'solid' && S.fillWrap > 0) st.wrap = S.fillWrap / 100;
       pushUndo(snap('ink')); INK.strokes = INK.strokes.concat([st]); inkChanged();
@@ -2849,8 +3049,8 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
   function fillAt(cx, cy) {
     var wp = toWorld(cx, cy);
     for (var i = INK.strokes.length - 1; i >= 0; i--) {
-      var st = INK.strokes[i]; if (st.t !== 'fill' || !S.layerSet[strokeLayer(st)].on) continue;
-      var m = st.m, k = m.mw / m.w, mx = Math.floor((wp.x - m.x) * k), my = Math.floor((wp.y - m.y) * k);
+      var st = INK.strokes[i]; if (st.t !== 'fill' || !lset(strokeLayer(st)).on) continue;
+      var lp = toLocal(st, wp), m = st.m, k = m.mw / m.w, mx = Math.floor((lp.x - m.x) * k), my = Math.floor((lp.y - m.y) * k);
       if (mx >= 0 && my >= 0 && mx < m.mw && my < m.mh && m.a[my * m.mw + mx]) return i;
     }
     return -1;
@@ -2859,6 +3059,7 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
     var i = fillAt(e.clientX, e.clientY);
     if (i < 0) { toast('Drape bends a printed fill. Start the drag inside one.'); return; }
     var st = INK.strokes[i];
+    if (lset(strokeLayer(st)).lock) { lockedToast(strokeLayer(st)); return; }
     if (!st.pat || st.pat === 'solid') { toast('This fill is a plain colour, so there is no print to bend.'); return; }
     pushUndo(snap('ink'));
     if (INK.drapeReset) {   // straighten: no drape, no wrap
@@ -2871,7 +3072,7 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
                    : { cs: cs, gw: gw, gh: gh, x: new Float32Array(gw * gh), y: new Float32Array(gw * gh) };
     var st2 = cloneStroke(st, { dr: dr });
     INK.strokes = INK.strokes.slice(); INK.strokes[i] = st2;
-    INK.drape = { id: e.pointerId, st: st2, last: toWorld(e.clientX, e.clientY) };
+    INK.drape = { id: e.pointerId, st: st2, last: toLocal(st2, toWorld(e.clientX, e.clientY)) };
     try { stage.setPointerCapture(e.pointerId); } catch (err) {}
     closeInkPop();
   }
@@ -2879,8 +3080,8 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
     var D = INK.drape, st = D.st, m = st.m, k = m.mw / m.w, dr = st.dr;
     var list = e.getCoalescedEvents ? e.getCoalescedEvents() : null; if (!list || !list.length) list = [e];
     list.forEach(function (ev) {
-      var wp = toWorld(ev.clientX, ev.clientY), dx = (wp.x - D.last.x) * k, dy = (wp.y - D.last.y) * k; D.last = wp;
-      var R = S.drapeSize / V.s * k, sig2 = 2 * (R / 2) * (R / 2), cx = (wp.x - m.x) * k, cy = (wp.y - m.y) * k, str = S.drapeStrength / 100;
+      var wp = toLocal(st, toWorld(ev.clientX, ev.clientY)), dx = (wp.x - D.last.x) * k, dy = (wp.y - D.last.y) * k; D.last = wp;
+      var R = S.drapeSize / V.s * k / (st.tf ? Math.sqrt(Math.abs(st.tf[0] * st.tf[3] - st.tf[1] * st.tf[2])) || 1 : 1), sig2 = 2 * (R / 2) * (R / 2), cx = (wp.x - m.x) * k, cy = (wp.y - m.y) * k, str = S.drapeStrength / 100;
       var g0x = Math.max(0, Math.floor((cx - R) / dr.cs)), g1x = Math.min(dr.gw - 1, Math.ceil((cx + R) / dr.cs));
       var g0y = Math.max(0, Math.floor((cy - R) / dr.cs)), g1y = Math.min(dr.gh - 1, Math.ceil((cy + R) / dr.cs));
       for (var gy = g0y; gy <= g1y; gy++) for (var gx = g0x; gx <= g1x; gx++) {
@@ -2894,6 +3095,7 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
   }
   function endDrape() { INK.drape = null; hideRing(); inkChanged(); }
   $('railFill').addEventListener('click', function () {
+    if (INK.selMode) { setSelMode(false); S.inkFill = false; }
     if (!S.inkFill) { S.inkFill = true; S.inkErase = false; persist(); syncDraw(); }
     openInkPop('fill');
   });
@@ -2962,12 +3164,19 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
     p.style.top = Math.round(top) + 'px';
   }
   function closeInkPop() { if (!INK.pop) return; INK.pop = ''; $('inkPop').hidden = true; syncDraw(); }
-  $('railBrush').addEventListener('click', function () { if (S.inkErase || S.inkFill) { S.inkErase = false; S.inkFill = false; persist(); syncDraw(); } openInkPop('brushes'); });
-  $('railEraser').addEventListener('click', function () { S.inkErase = !S.inkErase; S.inkFill = false; persist(); closeInkPop(); syncDraw(); toast(S.inkErase ? 'Eraser on the ' + layerName(S.activeLayer) + ' layer.' : BRUSHES[S.inkBrush].name); });
+  $('railBrush').addEventListener('click', function () { if (INK.selMode) setSelMode(false); if (S.inkErase || S.inkFill) { S.inkErase = false; S.inkFill = false; persist(); syncDraw(); } openInkPop('brushes'); });
+  $('railEraser').addEventListener('click', function () { if (INK.selMode) { setSelMode(false); S.inkErase = false; } S.inkErase = !S.inkErase; S.inkFill = false; persist(); closeInkPop(); syncDraw(); toast(S.inkErase ? 'Eraser on the ' + layerName(S.activeLayer) + ' layer.' : BRUSHES[S.inkBrush].name); });
   $('railColour').addEventListener('click', function () { openInkPop('colour'); });
   $('railSize').addEventListener('click', function () { openInkPop('settings'); });
   $('railLayers').addEventListener('click', function () { openInkPop('layers'); });
   $('inkPopClose').addEventListener('click', closeInkPop);
+  // a brush goes to its own layer (pencil to Sketch, ink to Lines, paint to Colour) while you are on the starting layers;
+  // on a layer you made yourself, it stays there
+  function homeLayer(k) {
+    var h = BRUSHES[k].layer;
+    if (layerExists(S.activeLayer) && BASE_LAYERS.indexOf(S.activeLayer) < 0) return S.activeLayer;
+    return layerExists(h) ? h : layerExists(S.activeLayer) ? S.activeLayer : LAYERS[LAYERS.length - 1][0];
+  }
   function layerName(id) { return (LAYERS.filter(function (l) { return l[0] === id; })[0] || [0, id])[1]; }
   function renderBrushPop() {
     var box = $('brushGrid'); box.innerHTML = '';
@@ -2990,7 +3199,7 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
         b.addEventListener('click', function () {
           if (held) { held = false; return; }
           S.inkBrush = pb.base; S.brushSet[pb.base] = JSON.parse(JSON.stringify(pb.set)); S.myBrush = pb.id;
-          S.inkErase = false; S.inkFill = false; S.activeLayer = BRUSHES[pb.base].layer; persist(); closeInkPop(); syncDraw();
+          S.inkErase = false; S.inkFill = false; S.activeLayer = homeLayer(pb.base); persist(); closeInkPop(); syncDraw();
         });
         box.appendChild(b);
       });
@@ -3003,7 +3212,7 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
         b.title = BRUSH_HINT[k] || '';
         b.innerHTML = iconSvg(k) + '<span>' + BRUSHES[k].name + '</span><small>' + layerName(BRUSHES[k].layer) + ' layer</small>';
         b.addEventListener('click', function () {
-          S.inkBrush = k; S.myBrush = null; S.inkErase = false; S.inkFill = false; S.activeLayer = BRUSHES[k].layer; persist(); closeInkPop(); syncDraw();
+          S.inkBrush = k; S.myBrush = null; S.inkErase = false; S.inkFill = false; S.activeLayer = homeLayer(k); persist(); closeInkPop(); syncDraw();
           if (BRUSH_HINT[k]) toast(BRUSHES[k].name + ': ' + BRUSH_HINT[k].charAt(0).toLowerCase() + BRUSH_HINT[k].slice(1) + (k === 'callig' ? '. Set the nib in Settings.' : '.'));
         });
         box.appendChild(b);
@@ -3162,7 +3371,7 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
   }
   function hideRing() { $('brushRing').hidden = true; }
   stage.addEventListener('pointermove', function (e) {
-    if (e.buttons || INK.ptr != null || e.pointerType === 'touch' || !inkActive() || S.inkFill || move) return;
+    if (e.buttons || INK.ptr != null || e.pointerType === 'touch' || !inkActive() || S.inkFill || INK.selMode || move) return;
     showRing(e.clientX, e.clientY, curBrush());
     clearTimeout(ringT); ringT = setTimeout(hideRing, 2500);
   });
@@ -3170,22 +3379,577 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
   stage.addEventListener('pointerdown', function (e) { if (!(INK.live && INK.live.e)) hideRing(); });
   $('eraserSoftSw').addEventListener('click', function () { S.eraserSoft = !S.eraserSoft; persist(); syncDraw(); });
   $('waterPaperSw').addEventListener('click', function () { S.paper = S.paper === 'water' ? 'plain' : 'water'; persist(); syncDraw(); });
-  function renderLayerPop() {
-    var box = $('layerList'); box.innerHTML = '';
-    LAYERS.slice().reverse().forEach(function (l) {   // top layer first, like every painting app
-      var id = l[0], ls = S.layerSet[id], row = document.createElement('div'); row.className = 'layerRow'; row.setAttribute('aria-current', id === S.activeLayer ? 'true' : 'false');
-      var pick = document.createElement('button'); pick.type = 'button'; pick.className = 'layerPick';
-      var cnt = INK.strokes.filter(function (st) { return strokeLayer(st) === id; }).length;
-      pick.innerHTML = '<b>' + l[1] + '</b><small>' + (id === S.activeLayer ? 'Drawing here' : cnt + (cnt === 1 ? ' stroke' : ' strokes')) + '</small>';
-      pick.addEventListener('click', function () { S.activeLayer = id; persist(); syncDraw(); });
-      var eye = document.createElement('button'); eye.type = 'button'; eye.className = 'chip'; eye.textContent = ls.on ? 'Shown' : 'Hidden';
-      eye.setAttribute('aria-pressed', ls.on ? 'true' : 'false');
-      eye.addEventListener('click', function () { ls.on = !ls.on; persist(); inkShow(); syncDraw(); });
-      var op = document.createElement('input'); op.type = 'range'; op.min = 10; op.max = 100; op.value = ls.op; op.setAttribute('aria-label', l[1] + ' layer opacity');
-      op.addEventListener('input', function () { ls.op = +this.value; persist(); inkShow(); });
-      row.appendChild(pick); row.appendChild(eye); row.appendChild(op); box.appendChild(row);
+  var LY_ICON = {
+    eye: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12z"/><circle cx="12" cy="12" r="3"/></svg>',
+    eyeOff: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12z" opacity=".45"/><path d="M4 4l16 16"/></svg>',
+    lock: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="10.5" width="14" height="9.5" rx="2"/><path d="M8 10.5V8a4 4 0 018 0v2.5"/></svg>',
+    unlock: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="10.5" width="14" height="9.5" rx="2"/><path d="M8 10.5V8a4 4 0 017.6-1.7"/></svg>',
+    more: '<svg viewBox="0 0 24 24" fill="currentColor"><circle cx="6" cy="12" r="1.7"/><circle cx="12" cy="12" r="1.7"/><circle cx="18" cy="12" r="1.7"/></svg>'
+  };
+  function layerStrokes(id) { return INK.strokes.filter(function (st) { return strokeLayer(st) === id; }); }
+  function layerIndex(id) { for (var i = 0; i < LAYERS.length; i++) if (LAYERS[i][0] === id) return i; return -1; }
+  function newLayerId() { var id; do { id = 'l' + Date.now().toString(36) + Math.floor(Math.random() * 1296).toString(36); } while (layerExists(id)); return id; }
+  function nextLayerName() { var n = LAYERS.length + 1; while (LAYERS.some(function (l) { return l[1] === 'Layer ' + n; })) n++; return 'Layer ' + n; }
+  function layersChanged() { persist(); INK.dirty = true; inkResize(); inkChanged(); }
+  function layerEdit(fn) { pushUndo(snap('ink')); fn(); layersChanged(); }   // one undo step for a change to the layers
+  function addLayer(name, at) {
+    if (LAYERS.length >= layerCap()) { toast('That is the most layers this device can hold (' + layerCap() + '). Merge or delete one first.'); return null; }
+    var id = newLayerId(), i = at == null ? layerIndex(S.activeLayer) + 1 : at;
+    LAYERS.splice(Math.max(0, Math.min(LAYERS.length, i)), 0, [id, name || nextLayerName()]); lset(id);
+    var c = document.createElement('canvas'); INK.layers[id] = c; return id;
+  }
+  $('layerAdd').addEventListener('click', function () {
+    var made = null; layerEdit(function () { made = addLayer(); if (made) S.activeLayer = made; });
+    if (made) { INK.layerMenu = ''; INK.renaming = made; renderLayerPop(); }
+  });
+  function moveLayer(id, d) {
+    var i = layerIndex(id), j = i + d; if (i < 0 || j < 0 || j >= LAYERS.length) return;
+    layerEdit(function () { var t = LAYERS[i]; LAYERS[i] = LAYERS[j]; LAYERS[j] = t; });
+  }
+  function duplicateLayer(id) {
+    if (LAYERS.length >= layerCap()) { toast('That is the most layers this device can hold (' + layerCap() + '). Merge or delete one first.'); return; }
+    layerEdit(function () {
+      var nid = addLayer(layerName(id) + ' copy', layerIndex(id) + 1), o = lset(id), n = lset(nid);
+      n.op = o.op; n.blend = o.blend; n.on = o.on;
+      INK.strokes = INK.strokes.concat(layerStrokes(id).map(function (st) { return cloneStroke(st, { L: nid, p: (st.p || []).slice(), na: st.na ? st.na.slice() : undefined }); }));
+      S.activeLayer = nid;
+    });
+    toast('Layer duplicated.');
+  }
+  function clearLayer(id) {
+    var n = layerStrokes(id).length; if (!n) return;
+    ask('Clear the ' + layerName(id) + ' layer?', 'Removes everything on this layer. Undo brings it back.', 'Clear layer').then(function (yes) {
+      if (yes) layerEdit(function () { INK.strokes = INK.strokes.filter(function (st) { return strokeLayer(st) !== id; }); });
     });
   }
+  function deleteLayer(id) {
+    if (LAYERS.length <= 1) { toast('A drawing needs at least one layer.'); return; }
+    var n = layerStrokes(id).length;
+    var go = function () {
+      layerEdit(function () {
+        var i = layerIndex(id); LAYERS.splice(i, 1); delete S.layerSet[id];
+        INK.strokes = INK.strokes.filter(function (st) { return strokeLayer(st) !== id; });
+        if (INK.layers[id]) { INK.layers[id].width = 1; INK.layers[id].height = 1; delete INK.layers[id]; }
+        if (S.activeLayer === id) S.activeLayer = LAYERS[Math.max(0, i - 1)][0];
+      });
+      INK.layerMenu = '';
+    };
+    if (!n) { go(); return; }
+    ask('Delete the ' + layerName(id) + ' layer?', 'Deletes the layer and the ' + n + (n === 1 ? ' stroke' : ' strokes') + ' on it. Undo brings it back.', 'Delete layer').then(function (yes) { if (yes) go(); });
+  }
+  // merge down: the layer joins the one under it. Plain strokes stay strokes (sharp, still vector in the SVG). A layer that
+  // erases, has a blend or opacity, or shades only its own paint is first turned into one picture, so it looks the same after.
+  function mergeDown(id) {
+    var i = layerIndex(id); if (i <= 0) { toast('There is no layer under this one.'); return; }
+    var below = LAYERS[i - 1][0], o = lset(id), mine = layerStrokes(id);
+    if (lset(below).lock) { lockedToast(below); return; }
+    var needsPicture = o.op < 100 || o.blend !== 'source-over' || mine.some(function (st) { var k = kindOf(st); return k === 'erase' || k === 'softErase' || k === 'cut' || (k === 'shade' && st.clip !== false); });
+    var moved = [];
+    if (mine.length && needsPicture) {
+      var pic = layerPicture(id); if (pic) { pic.a = o.op / 100; pic.bl = o.blend !== 'source-over' ? o.blend : undefined; pic.L = below; moved = [pic]; }
+    } else moved = mine.map(function (st) { return cloneStroke(st, { L: below }); });
+    var name = layerName(below);
+    layerEdit(function () {
+      INK.strokes = INK.strokes.filter(function (st) { return strokeLayer(st) !== id; }).concat(moved);   // on top of what is below
+      LAYERS.splice(i, 1); delete S.layerSet[id];
+      if (INK.layers[id]) { INK.layers[id].width = 1; INK.layers[id].height = 1; delete INK.layers[id]; }
+      S.activeLayer = below;
+    });
+    INK.layerMenu = ''; toast('Merged into ' + name + (needsPicture && mine.length ? ', as a picture (it erased, blended or faded what was under it).' : '.'));
+  }
+  // one layer as a picture stroke (its strokes rendered at up to 3 px per point)
+  function layerPicture(id, only) {
+    var list = only || layerStrokes(id), x0 = 1e9, y0 = 1e9, x1 = -1e9, y1 = -1e9;
+    list.forEach(function (st) { if (kindOf(st) === 'erase' || kindOf(st) === 'softErase' || kindOf(st) === 'cut') return; var b = strokeBox(st), pad = isRaster(st) ? avgWidth(st) * 0.9 + 4 : 2; x0 = Math.min(x0, b.x0 - pad); y0 = Math.min(y0, b.y0 - pad); x1 = Math.max(x1, b.x1 + pad); y1 = Math.max(y1, b.y1 + pad); });
+    if (x1 <= x0) return null;
+    x0 = Math.floor(x0); y0 = Math.floor(y0); x1 = Math.ceil(x1); y1 = Math.ceil(y1);
+    var k = Math.min(3, 4096 / Math.max(x1 - x0, y1 - y0)), c = document.createElement('canvas');
+    c.width = Math.max(1, Math.round((x1 - x0) * k)); c.height = Math.max(1, Math.round((y1 - y0) * k));
+    var x = c.getContext('2d'); INK.syncRaster = true;
+    try { list.forEach(function (st) { renderStroke(x, st, k, -x0 * k, -y0 * k); }); } finally { INK.syncRaster = false; }
+    var u = c.toDataURL('image/png'); var im = new Image(); im.src = u; picImages[u] = im;
+    return { t: 'img', L: id, a: 1, u: u, m: { x: x0, y: y0, w: x1 - x0, h: y1 - y0 }, p: [] };
+  }
+  // a small picture of each layer: the part of the page the whole drawing covers, so the layers line up
+  function layerThumb(id, cv, box) {
+    var src = INK.layers[id], x = cv.getContext('2d'); cv.width = 88; cv.height = 66;
+    x.fillStyle = '#fff'; x.fillRect(0, 0, 88, 66);
+    if (!src || src.width < 2 || !box) return;
+    var t = viewK(), sx = Math.max(0, box.x * t.k + t.tx), sy = Math.max(0, box.y * t.k + t.ty);
+    var sw = Math.min(src.width - sx, box.w * t.k), sh = Math.min(src.height - sy, box.h * t.k);
+    if (sw < 1 || sh < 1) return;
+    var sc = Math.min(88 / sw, 66 / sh); x.drawImage(src, sx, sy, sw, sh, (88 - sw * sc) / 2, (66 - sh * sc) / 2, sw * sc, sh * sc);
+  }
+  function renderLayerPop() {
+    var box = $('layerList'); box.innerHTML = '';
+    if (INK.dirty) renderLayers();   // thumbnails from up-to-date layers
+    $('layerAdd').disabled = LAYERS.length >= layerCap();
+    var thumbBox = INK.strokes.length ? inkBox() : null;
+    LAYERS.slice().reverse().forEach(function (l, ri) {   // top layer first, like every painting app
+      var id = l[0], ls = lset(id), i = LAYERS.length - 1 - ri, row = document.createElement('div');
+      row.className = 'layerRow' + (ls.lock ? ' locked' : ''); row.setAttribute('aria-current', id === S.activeLayer ? 'true' : 'false'); row.dataset.layer = id;
+      var pick = document.createElement('button'); pick.type = 'button'; pick.className = 'layerPick';
+      var cnt = layerStrokes(id).length, th = document.createElement('canvas'); layerThumb(id, th, thumbBox); pick.appendChild(th);
+      if (INK.renaming === id) {
+        var inp = document.createElement('input'); inp.type = 'text'; inp.maxLength = 24; inp.value = l[1]; inp.setAttribute('aria-label', 'Layer name');
+        var done = false, commit = function (keep) {
+          if (done) return; done = true; INK.renaming = '';
+          var v = inp.value.trim().slice(0, 24);
+          if (keep && v && v !== l[1]) layerEdit(function () { l[1] = v; }); else renderLayerPop();
+          syncDraw();
+        };
+        inp.addEventListener('keydown', function (e) { e.stopPropagation(); if (e.key === 'Enter') commit(true); if (e.key === 'Escape') commit(false); });
+        inp.addEventListener('blur', function () { commit(true); });
+        pick.appendChild(inp); setTimeout(function () { inp.focus(); inp.select(); }, 0);
+      } else {
+        var b = document.createElement('b'); b.textContent = l[1]; pick.appendChild(b);
+        var sm = document.createElement('small');
+        sm.textContent = (id === S.activeLayer ? 'Drawing here, ' : '') + cnt + (cnt === 1 ? ' stroke' : ' strokes') + (ls.blend !== 'source-over' ? ' · ' + BLENDS.filter(function (x) { return x[0] === ls.blend; })[0][1] : '') + (ls.lock ? ' · Locked' : '');
+        pick.appendChild(sm);
+      }
+      pick.addEventListener('click', function () { if (INK.renaming === id) return; if (S.activeLayer === id && INK.lastPick === id && Date.now() - INK.lastPickT < 450) { INK.renaming = id; renderLayerPop(); return; } INK.lastPick = id; INK.lastPickT = Date.now(); S.activeLayer = id; persist(); syncDraw(); });
+      var btn = function (cls, html, label, on, fn, exp) {
+        var bb = document.createElement('button'); bb.type = 'button'; bb.className = 'lyBtn' + (cls ? ' ' + cls : ''); bb.innerHTML = html; bb.setAttribute('aria-label', label); bb.title = label;
+        if (exp) bb.setAttribute('aria-expanded', on ? 'true' : 'false'); else if (on != null) bb.setAttribute('aria-pressed', on ? 'true' : 'false');
+        bb.addEventListener('click', fn); return bb;
+      };
+      var eye = btn(ls.on ? '' : 'off', ls.on ? LY_ICON.eye : LY_ICON.eyeOff, (ls.on ? 'Hide ' : 'Show ') + l[1], null, function () { ls.on = !ls.on; persist(); INK.dirty = true; inkShow(); syncDraw(); });
+      var lock = btn(ls.lock ? '' : 'off', ls.lock ? LY_ICON.lock : LY_ICON.unlock, (ls.lock ? 'Unlock ' : 'Lock ') + l[1], ls.lock, function () { ls.lock = !ls.lock; persist(); if (ls.lock && INK.sel && INK.sel.L === id) selClear(); syncDraw(); toast(ls.lock ? l[1] + ' is locked: nothing can draw on it, erase it or move it.' : l[1] + ' is unlocked.'); });
+      var more = btn('', LY_ICON.more, 'More for ' + l[1], INK.layerMenu === id, function () { INK.layerMenu = INK.layerMenu === id ? '' : id; renderLayerPop(); }, true);
+      var op = document.createElement('input'); op.type = 'range'; op.min = 10; op.max = 100; op.value = ls.op; op.setAttribute('aria-label', l[1] + ' layer opacity');
+      op.addEventListener('input', function () { ls.op = +this.value; persist(); inkShow(); });
+      row.appendChild(pick); row.appendChild(eye); row.appendChild(lock); row.appendChild(more); row.appendChild(op);
+      if (INK.layerMenu === id) {
+        var mm = document.createElement('div'); mm.className = 'layerMore';
+        var lab = document.createElement('label'); lab.textContent = 'Blend';
+        var sel = document.createElement('select'); sel.setAttribute('aria-label', l[1] + ' blend mode');
+        BLENDS.forEach(function (bl) { var o = document.createElement('option'); o.value = bl[0]; o.textContent = bl[1]; if (bl[0] === ls.blend) o.selected = true; sel.appendChild(o); });
+        sel.addEventListener('change', function () { ls.blend = this.value; persist(); inkShow(); renderLayerPop(); });
+        lab.appendChild(sel); mm.appendChild(lab);
+        var act = function (label, fn, dis) { var c = document.createElement('button'); c.type = 'button'; c.className = 'chip'; c.textContent = label; c.disabled = !!dis; c.addEventListener('click', fn); mm.appendChild(c); };
+        act('Rename', function () { INK.renaming = id; renderLayerPop(); });
+        act('Move up', function () { moveLayer(id, 1); }, i === LAYERS.length - 1);
+        act('Move down', function () { moveLayer(id, -1); }, i === 0);
+        act('Duplicate', function () { duplicateLayer(id); }, LAYERS.length >= layerCap());
+        act('Merge down', function () { mergeDown(id); }, i === 0);
+        act('Clear', function () { clearLayer(id); }, !cnt || ls.lock);
+        act('Delete', function () { deleteLayer(id); }, LAYERS.length <= 1);
+        row.appendChild(mm);
+      }
+      box.appendChild(row);
+    });
+  }
+  // ----- select (lasso): draw a loop round strokes on the current layer, then move, scale, turn, flip, copy or delete them.
+  // Whole strokes are picked (a line more than half inside the loop), so lines stay sharp, vector shapes. When an eraser
+  // or "only on paint" shading touched them, the pixels inside the loop move instead (one picture), so what was erased
+  // stays erased. Each change is one undo step.
+  INK.sel = null; INK.selMode = false; INK.selG = null; INK.clip = null;
+  var SEL_NS = 'http://www.w3.org/2000/svg';
+  function isEraserKind(st) { var k = kindOf(st); return k === 'erase' || k === 'softErase' || k === 'cut'; }
+  function dependsOnUnder(st) { return isEraserKind(st) || (kindOf(st) === 'shade' && st.clip !== false); }
+  function selClear(quiet) { INK.sel = null; INK.selG = null; selDraw(); if (!quiet) syncDraw(); }
+  function setSelMode(on) {
+    if (!on && INK.selG) selCancelGesture();
+    INK.selMode = !!on; if (!on) INK.sel = null;
+    if (on) { S.inkErase = false; S.inkFill = false; INK.picking = false; persist(); closeInkPop(); }
+    selDraw(); syncDraw();
+  }
+  function inPoly(poly, x, y) {
+    var c = false;
+    for (var i = 0, j = poly.length - 2; i < poly.length; j = i, i += 2) {
+      var xi = poly[i], yi = poly[i + 1], xj = poly[j], yj = poly[j + 1];
+      if ((yi > y) !== (yj > y) && x < (xj - xi) * (y - yi) / (yj - yi || 1e-9) + xi) c = !c;
+    }
+    return c;
+  }
+  function unionBox(list) {
+    var b = { x0: 1e9, y0: 1e9, x1: -1e9, y1: -1e9 };
+    list.forEach(function (st) { var q = strokeBox(st); b.x0 = Math.min(b.x0, q.x0); b.y0 = Math.min(b.y0, q.y0); b.x1 = Math.max(b.x1, q.x1); b.y1 = Math.max(b.y1, q.y1); });
+    if (b.x1 - b.x0 < 6) { var cx = (b.x0 + b.x1) / 2; b.x0 = cx - 3; b.x1 = cx + 3; }
+    if (b.y1 - b.y0 < 6) { var cy = (b.y0 + b.y1) / 2; b.y0 = cy - 3; b.y1 = cy + 3; }
+    return b;
+  }
+  function selIdentity() { return { tx: 0, ty: 0, rot: 0, sx: 1, sy: 1 }; }
+  function selMatrix(T, box) {
+    var cx = (box.x0 + box.x1) / 2, cy = (box.y0 + box.y1) / 2, c = Math.cos(T.rot), s2 = Math.sin(T.rot);
+    var a = c * T.sx, b = s2 * T.sx, cc = -s2 * T.sy, d = c * T.sy;
+    return [a, b, cc, d, cx + T.tx - (a * cx + cc * cy), cy + T.ty - (b * cx + d * cy)];
+  }
+  // a new selection of these strokes (already in INK.strokes): its frame starts square to the page
+  function selStart(L, list, extra) {
+    INK.sel = Object.assign({ L: L, list: list, base: list, box: unionBox(list), T: selIdentity(), pix: false }, extra || {});
+    selDraw(); syncDraw();
+  }
+  // strokes on a layer that a loop (world points) touches, with how much of each is inside (0..1)
+  function strokesInLoop(L, poly) {
+    var out = [];
+    INK.strokes.forEach(function (st) {
+      if (strokeLayer(st) !== L || isEraserKind(st)) return;
+      var f;
+      if (st.m) {
+        var m = st.m, M = st.tf || [1, 0, 0, 1, 0, 0], n = 0, all = 0;
+        for (var gy = 0; gy <= 4; gy++) for (var gx = 0; gx <= 4; gx++) { var q = mApply(M, m.x + m.w * gx / 4, m.y + m.h * gy / 4); all++; if (inPoly(poly, q.x, q.y)) n++; }
+        f = n / all;
+      } else {
+        var p = st.p || [], tot = p.length / 3; if (!tot) return;
+        var len = 0; for (var i = 1; i < tot; i++) len += Math.hypot(p[i * 3] - p[i * 3 - 3], p[i * 3 + 1] - p[i * 3 - 2]);
+        var gap = Math.max(3, len / 400), inside = 0, seen = 0, carry = 0;   // along the line, not just at its points
+        if (inPoly(poly, p[0], p[1])) inside++; seen++;
+        for (i = 1; i < tot; i++) {
+          var ax = p[i * 3 - 3], ay = p[i * 3 - 2], dx = p[i * 3] - ax, dy = p[i * 3 + 1] - ay, sl = Math.hypot(dx, dy);
+          for (var d = gap - carry; d <= sl; d += gap) { seen++; if (inPoly(poly, ax + dx * d / sl, ay + dy * d / sl)) inside++; }
+          carry = sl ? (carry + sl) % gap : carry;
+        }
+        f = inside / seen;
+      }
+      if (f > 0) out.push({ st: st, f: f });
+    });
+    return out;
+  }
+  function strokeAtPoint(L, wp) {
+    var tol = 8 / V.s;
+    for (var i = INK.strokes.length - 1; i >= 0; i--) {
+      var st = INK.strokes[i]; if (strokeLayer(st) !== L || isEraserKind(st)) continue;
+      if (st.m) {
+        var lp = toLocal(st, wp), m = st.m; if (lp.x < m.x || lp.y < m.y || lp.x > m.x + m.w || lp.y > m.y + m.h) continue;
+        if (st.t === 'fill') { var k = m.mw / m.w, mx = Math.floor((lp.x - m.x) * k), my = Math.floor((lp.y - m.y) * k); if (mx >= 0 && my >= 0 && mx < m.mw && my < m.mh && m.a[my * m.mw + mx]) return st; continue; }
+        return st;
+      }
+      var b = strokeBox(st); if (wp.x < b.x0 - tol || wp.y < b.y0 - tol || wp.x > b.x1 + tol || wp.y > b.y1 + tol) continue;
+      var p = st.p;
+      for (var j = 0; j < p.length; j += 3) if (Math.hypot(p[j] - wp.x, p[j + 1] - wp.y) <= p[j + 2] / 2 + tol) return st;
+    }
+    return null;
+  }
+  // does an eraser or clipped shading drawn later on this layer touch these strokes? (then only pixels can move)
+  function touchedLater(L, list) {
+    var idx = new Map(); INK.strokes.forEach(function (st, i) { idx.set(st, i); });
+    var first = Math.min.apply(null, list.map(function (st) { return idx.get(st); }));
+    var boxes = list.map(function (st) { return { st: st, b: strokeBox(st), i: idx.get(st) }; });
+    for (var i = first + 1; i < INK.strokes.length; i++) {
+      var e = INK.strokes[i]; if (strokeLayer(e) !== L || !dependsOnUnder(e) || list.indexOf(e) >= 0) continue;
+      var eb = strokeBox(e);
+      for (var j = 0; j < boxes.length; j++) {
+        var q = boxes[j]; if (q.i > i) continue;
+        if (eb.x1 < q.b.x0 || eb.x0 > q.b.x1 || eb.y1 < q.b.y0 || eb.y0 > q.b.y1) continue;
+        if (q.st.m || !e.p || !e.p.length || e.poly) return true;
+        var sp = q.st.p, ep = e.p, s1 = Math.max(3, Math.floor(sp.length / 3 / 250) * 3), s2 = Math.max(3, Math.floor(ep.length / 3 / 250) * 3);
+        for (var a = 0; a < sp.length; a += s1) for (var c = 0; c < ep.length; c += s2)
+          if (Math.hypot(sp[a] - ep[c], sp[a + 1] - ep[c + 1]) <= (sp[a + 2] + ep[c + 2]) / 2 + 1) return true;
+      }
+    }
+    return false;
+  }
+  // the loop's pixels on a layer as one picture stroke, trimmed to what is drawn
+  function loopPicture(L, poly) {
+    var x0 = 1e9, y0 = 1e9, x1 = -1e9, y1 = -1e9;
+    for (var i = 0; i < poly.length; i += 2) { x0 = Math.min(x0, poly[i]); y0 = Math.min(y0, poly[i + 1]); x1 = Math.max(x1, poly[i]); y1 = Math.max(y1, poly[i + 1]); }
+    x0 = Math.floor(x0); y0 = Math.floor(y0); x1 = Math.ceil(x1); y1 = Math.ceil(y1);
+    var k = Math.min(3, 4096 / Math.max(1, x1 - x0, y1 - y0)), w = Math.max(1, Math.round((x1 - x0) * k)), h = Math.max(1, Math.round((y1 - y0) * k));
+    var c = document.createElement('canvas'); c.width = w; c.height = h; var x = c.getContext('2d');
+    INK.syncRaster = true;
+    try { layerStrokes(L).forEach(function (st) { renderStroke(x, st, k, -x0 * k, -y0 * k); }); } finally { INK.syncRaster = false; }
+    x.setTransform(k, 0, 0, k, -x0 * k, -y0 * k); x.globalCompositeOperation = 'destination-in'; x.beginPath();
+    x.moveTo(poly[0], poly[1]); for (i = 2; i < poly.length; i += 2) x.lineTo(poly[i], poly[i + 1]); x.closePath(); x.fill();
+    x.setTransform(1, 0, 0, 1, 0, 0); x.globalCompositeOperation = 'source-over';
+    var d = x.getImageData(0, 0, w, h).data, a0 = w, b0 = h, a1 = -1, b1 = -1;
+    for (var yy = 0; yy < h; yy++) for (var xx = 0; xx < w; xx++) if (d[(yy * w + xx) * 4 + 3] > 2) { if (xx < a0) a0 = xx; if (xx > a1) a1 = xx; if (yy < b0) b0 = yy; if (yy > b1) b1 = yy; }
+    if (a1 < 0) return null;
+    var tw = a1 - a0 + 1, th = b1 - b0 + 1, t = document.createElement('canvas'); t.width = tw; t.height = th; t.getContext('2d').drawImage(c, -a0, -b0);
+    var u = t.toDataURL('image/png'), im = new Image(); im.src = u; picImages[u] = im;
+    return { t: 'img', L: L, a: 1, u: u, m: { x: x0 + a0 / k, y: y0 + b0 / k, w: tw / k, h: th / k }, p: [] };
+  }
+  // pixel selections become a picture (and a cut where it was) the first time they change
+  function selLift() {
+    var sel = INK.sel; if (!sel || !sel.pix || sel.lifted) return true;
+    var pic = loopPicture(sel.L, sel.poly); if (!pic) { selClear(); toast('Nothing is drawn inside the loop.'); return false; }
+    var cut = { t: 'cut', e: true, L: sel.L, poly: sel.poly.slice(), p: [] };
+    INK.strokes = INK.strokes.concat([cut, pic]);
+    var T = sel.T; sel.list = [pic]; sel.base = [pic]; sel.lifted = true;
+    var nb = unionBox([pic]);   // keep the frame where it is: re-centre the transform on the picture's box
+    var M = selMatrix(T, sel.box), oc = mApply(M, (nb.x0 + nb.x1) / 2, (nb.y0 + nb.y1) / 2);
+    sel.box = nb; sel.T = { tx: oc.x - (nb.x0 + nb.x1) / 2, ty: oc.y - (nb.y0 + nb.y1) / 2, rot: T.rot, sx: T.sx, sy: T.sy };
+    return true;
+  }
+  // bake the frame's transform into the strokes (from the strokes as they were selected, so nothing drifts)
+  function selApply() {
+    var sel = INK.sel; if (!sel) return;
+    var M = selMatrix(sel.T, sel.box), next = sel.base.map(function (st) { return mIsId(M) ? st : transformStroke(st, M); });
+    var map = new Map(); sel.list.forEach(function (st, i) { map.set(st, next[i]); });
+    INK.strokes = INK.strokes.map(function (st) { return map.has(st) ? map.get(st) : st; });
+    sel.list = next;
+  }
+  function selEdit(fn) {   // one undo step: lift pixels if needed, change, bake
+    if (!INK.sel) return;
+    if (lset(INK.sel.L).lock) { lockedToast(INK.sel.L); return; }
+    var before = snap('ink');
+    if (!selLift()) return;
+    fn(INK.sel); selApply(); pushUndoKeep(before); inkChanged(); selDraw();
+  }
+  function pushUndoKeep(prev) { var keep = INK.sel; pushUndo(prev); INK.sel = keep; }
+  // screen positions of the frame: corners, edge middles and the turn handle
+  function selFrame() {
+    var sel = INK.sel; if (!sel) return null;
+    var M = selMatrix(sel.T, sel.box), b = sel.box, toS = function (x, y) { var w = mApply(M, x, y); return { x: w.x * V.s + V.x, y: w.y * V.s + V.y }; };
+    var cx = (b.x0 + b.x1) / 2, cy = (b.y0 + b.y1) / 2, pad = 6 / V.s;
+    var x0 = b.x0 - pad, x1 = b.x1 + pad, y0 = b.y0 - pad, y1 = b.y1 + pad;
+    var H = [];
+    [[-1, -1, x0, y0], [1, -1, x1, y0], [1, 1, x1, y1], [-1, 1, x0, y1], [0, -1, cx, y0], [1, 0, x1, cy], [0, 1, cx, y1], [-1, 0, x0, cy]].forEach(function (h) {
+      var q = toS(h[2], h[3]); H.push({ hx: h[0], hy: h[1], x: q.x, y: q.y, wx: h[2], wy: h[3] });
+    });
+    var ctr = toS(cx, cy), top = H[4], dx = top.x - ctr.x, dy = top.y - ctr.y, L = Math.hypot(dx, dy);
+    if (L < 1) { dx = Math.sin(sel.T.rot); dy = -Math.cos(sel.T.rot); L = 1; }
+    var rot = { x: top.x + dx / L * 34, y: top.y + dy / L * 34 };
+    return { H: H, ctr: ctr, rot: rot, poly: [H[0], H[1], H[2], H[3]] };
+  }
+  function selDraw() {
+    var svg = $('selOverlay'); if (!svg) return;
+    while (svg.firstChild) svg.removeChild(svg.firstChild);
+    var show = INK.selMode && screenMode && drawing;
+    svg.style.display = show ? '' : 'none';
+    var bar = $('selBar'); if (bar) bar.hidden = !(show && inkActive());
+    if (!show) return;
+    var el = function (n, at) { var e = document.createElementNS(SEL_NS, n); Object.keys(at).forEach(function (k) { e.setAttribute(k, at[k]); }); svg.appendChild(e); return e; };
+    var G = INK.selG;
+    if (G && G.kind === 'lasso' && G.pts.length > 2) el('path', { 'class': 'ants', d: 'M' + G.pts.map(function (v, i) { return (i % 2 ? '' : (i ? 'L' : '')) + Math.round(v * 10) / 10; }).join(' ').replace(/ L/g, 'L') + 'Z' });
+    var F = selFrame();
+    if (F) {
+      el('path', { 'class': 'frame', d: 'M' + F.poly.map(function (q) { return q.x.toFixed(1) + ' ' + q.y.toFixed(1); }).join('L') + 'Z' });
+      if (!G || G.kind !== 'move') {
+        el('line', { 'class': 'rotLine', x1: F.H[4].x, y1: F.H[4].y, x2: F.rot.x, y2: F.rot.y });
+        el('circle', { 'class': 'hnd', cx: F.rot.x, cy: F.rot.y, r: 8 });
+        F.H.forEach(function (h, i) { if (i < 4) el('circle', { 'class': 'hnd', cx: h.x, cy: h.y, r: 7 }); else el('rect', { 'class': 'hnd', x: h.x - 5, y: h.y - 5, width: 10, height: 10, rx: 2 }); });
+      }
+      if (G && G.tag) {
+        var tx = (G.kind === 'rotate' ? F.rot : F.ctr), t = el('text', { 'class': 'tag', x: tx.x, y: tx.y - 18, 'text-anchor': 'middle' }); t.textContent = G.tag;
+        var bb = t.getBBox(), bg = document.createElementNS(SEL_NS, 'rect');
+        ['x', 'y', 'width', 'height'].forEach(function (k, i) { bg.setAttribute(k, [bb.x - 6, bb.y - 4, bb.width + 12, bb.height + 8][i]); }); bg.setAttribute('rx', 6); bg.setAttribute('class', 'tagBg');
+        svg.insertBefore(bg, t);
+      }
+    }
+    syncSelBar();
+  }
+  function syncSelBar() {
+    var has = !!INK.sel, bar = $('selBar'); if (!bar) return;
+    var bt = $('bottom'), r = bt && !bt.hidden ? bt.getBoundingClientRect() : null;   // sit just above the bottom bar
+    bar.style.left = '12px';
+    bar.style.bottom = (r && r.height ? Math.round(window.innerHeight - r.top + 8) + 'px' : 'calc(14px + env(safe-area-inset-bottom))');
+    $('selHint').hidden = has;
+    $('selHint').textContent = INK.clip ? 'Draw round what you want to move, tap a line to pick it, or paste.' : 'Draw round what you want to move. Tap a line to pick it.';
+    bar.querySelectorAll('button[data-a]').forEach(function (b) {
+      var a = b.dataset.a; b.hidden = !has && a !== 'paste' && a !== 'done';
+      if (a === 'paste') b.disabled = !INK.clip || lset(S.activeLayer).lock;
+    });
+    var sl = $('selLayer'); sl.hidden = !has || LAYERS.length < 2;
+    if (has) {
+      sl.innerHTML = '';
+      LAYERS.slice().reverse().forEach(function (l) { var o = document.createElement('option'); o.value = l[0]; o.textContent = (l[0] === INK.sel.L ? 'On ' : 'Move to ') + l[1]; if (l[0] === INK.sel.L) o.selected = true; o.disabled = lset(l[0]).lock && l[0] !== INK.sel.L; sl.appendChild(o); });
+    }
+    var rr = $('drawRail').hidden || bar.hidden ? null : $('drawRail').getBoundingClientRect(), br = bar.getBoundingClientRect();   // clear of the tool rail
+    if (rr && rr.width && br.top < rr.bottom && br.left < rr.right) bar.style.left = Math.round(rr.right + 8) + 'px';
+  }
+  // ---- gestures: a loop, or the frame (move inside it, scale at a corner or edge, turn at the round handle)
+  function selHit(cx, cy) {
+    var F = selFrame(); if (!F) return null;
+    var pl = []; F.poly.forEach(function (q) { pl.push(q.x, q.y); });
+    var inside = inPoly(pl, cx, cy), side = Math.min(Math.hypot(F.H[1].x - F.H[0].x, F.H[1].y - F.H[0].y), Math.hypot(F.H[3].x - F.H[0].x, F.H[3].y - F.H[0].y));
+    // a small frame is mostly handles: inside it, a drag moves unless it starts right on a handle
+    var rH = inside && side < 140 ? 10 : 24, rE = inside && side < 140 ? 8 : 20;
+    if (Math.hypot(cx - F.rot.x, cy - F.rot.y) < 24) return { kind: 'rotate' };
+    for (var i = 0; i < F.H.length; i++) if (Math.hypot(cx - F.H[i].x, cy - F.H[i].y) < (i < 4 ? rH : rE)) return { kind: 'scale', h: F.H[i] };
+    if (inside) return { kind: 'move' };
+    return null;
+  }
+  function selDown(e) {
+    if (lset(S.activeLayer).lock && !INK.sel) { lockedToast(S.activeLayer); return; }
+    var hit = INK.sel ? selHit(e.clientX, e.clientY) : null, wp = toWorld(e.clientX, e.clientY);
+    INK.selG = { id: e.pointerId, pen: e.pointerType === 'pen', kind: hit ? hit.kind : 'lasso', h: hit && hit.h, pts: [e.clientX, e.clientY], w0: wp, moved: false };
+    if (hit) {
+      if (lset(INK.sel.L).lock) { INK.selG = null; lockedToast(INK.sel.L); return; }
+      var sel = INK.sel, G = INK.selG; G.before = snap('ink');
+      if (!selLift()) { INK.selG = null; return; }
+      G.T0 = Object.assign({}, sel.T);
+      var M = selMatrix(sel.T, sel.box), b = sel.box; G.C = mApply(M, (b.x0 + b.x1) / 2, (b.y0 + b.y1) / 2);
+      if (hit.kind === 'scale') { var hw = mApply(M, hit.h.wx, hit.h.wy); G.q0 = selLocal(sel.T, G.C, hw); }
+      selCacheStart();
+    }
+    try { stage.setPointerCapture(e.pointerId); } catch (err) {}
+    selDraw();
+  }
+  function selLocal(T, C, w) { var dx = w.x - C.x, dy = w.y - C.y, c = Math.cos(-T.rot), s2 = Math.sin(-T.rot); return { x: dx * c - dy * s2, y: dx * s2 + dy * c }; }
+  function selMove(e) {
+    var G = INK.selG, list = e.getCoalescedEvents ? e.getCoalescedEvents() : null; if (!list || !list.length) list = [e];
+    if (G.kind === 'lasso') {
+      list.forEach(function (ev) { var n = G.pts.length; if (Math.hypot(ev.clientX - G.pts[n - 2], ev.clientY - G.pts[n - 1]) >= 2) G.pts.push(ev.clientX, ev.clientY); });
+      selDraw(); return;
+    }
+    var sel = INK.sel, wp = toWorld(e.clientX, e.clientY), T = sel.T, T0 = G.T0;
+    if (Math.hypot(e.clientX - G.pts[0], e.clientY - G.pts[1]) > 3) G.moved = true;
+    if (G.kind === 'move') { T.tx = T0.tx + wp.x - G.w0.x; T.ty = T0.ty + wp.y - G.w0.y; G.tag = ''; }
+    else if (G.kind === 'rotate') {
+      var a = Math.atan2(wp.y - G.C.y, wp.x - G.C.x) - Math.atan2(G.w0.y - G.C.y, G.w0.x - G.C.x), r = T0.rot + a, deg = r * 180 / Math.PI, near = Math.round(deg / 45) * 45;
+      if (Math.abs(deg - near) < 3) r = near * Math.PI / 180;   // a small pull towards 0, 45, 90°…
+      T.rot = r; var dd = Math.round(((r * 180 / Math.PI) % 360 + 540) % 360 - 180); G.tag = dd + '°';
+    } else {
+      var q = selLocal(T0, G.C, wp), q0 = G.q0, h = G.h;
+      if (h.hx && h.hy) { var f = Math.max(0.03, (q.x * q0.x + q.y * q0.y) / (q0.x * q0.x + q0.y * q0.y || 1)); T.sx = T0.sx * f; T.sy = T0.sy * f; G.tag = Math.round(f * 100) + '%'; }
+      else if (h.hx) { var fx = q0.x ? Math.max(0.03, q.x / q0.x) : 1; T.sx = T0.sx * fx; G.tag = Math.round(fx * 100) + '% wide'; }
+      else { var fy = q0.y ? Math.max(0.03, q.y / q0.y) : 1; T.sy = T0.sy * fy; G.tag = Math.round(fy * 100) + '% tall'; }
+    }
+    inkShow(); selDraw();
+  }
+  function selUp(e, cancel) {
+    var G = INK.selG; INK.selG = null; if (!G) return;
+    if (G.kind === 'lasso') {
+      if (cancel) { selDraw(); return; }
+      var pts = G.pts, len = 0; for (var i = 2; i < pts.length; i += 2) len += Math.hypot(pts[i] - pts[i - 2], pts[i + 1] - pts[i - 1]);
+      var L = S.activeLayer;
+      if (len < 10) {   // a tap: pick the line under it, or let go of the selection
+        var st = strokeAtPoint(L, toWorld(pts[0], pts[1]));
+        if (st) selFromList(L, [st], null); else { INK.sel = null; selDraw(); syncDraw(); }
+        return;
+      }
+      var poly = []; for (i = 0; i < pts.length; i += 2) { var w = toWorld(pts[i], pts[i + 1]); poly.push(Math.round(w.x * 100) / 100, Math.round(w.y * 100) / 100); }
+      var found = strokesInLoop(L, poly);
+      if (!found.length) { INK.sel = null; selDraw(); syncDraw(); toast('Nothing on the ' + layerName(L) + ' layer inside the loop. Pick the layer in Layers first.'); return; }
+      // a loop round whole lines keeps them as lines; a loop that cuts through lines takes the pixels inside it
+      var cuts = found.some(function (o) { return o.f < 0.9; });
+      selFromList(L, found.map(function (o) { return o.st; }), poly, cuts);
+      return;
+    }
+    INK.selCache = null;
+    INK.sel.list.forEach(function (st) { st._selHide = false; });
+    if (cancel || !G.moved) { if (cancel) INK.sel.T = G.T0; INK.dirty = true; inkShow(); selDraw(); return; }
+    selApply(); pushUndoKeep(G.before); inkChanged(); selDraw();
+  }
+  function selFromList(L, list, poly, cuts) {
+    var later = poly && !cuts && touchedLater(L, list);
+    if (poly && (cuts || later)) {
+      var bx = { x0: 1e9, y0: 1e9, x1: -1e9, y1: -1e9 };
+      for (var i = 0; i < poly.length; i += 2) { bx.x0 = Math.min(bx.x0, poly[i]); bx.y0 = Math.min(bx.y0, poly[i + 1]); bx.x1 = Math.max(bx.x1, poly[i]); bx.y1 = Math.max(bx.y1, poly[i + 1]); }
+      var lb = unionBox(list); bx = { x0: Math.max(bx.x0, lb.x0), y0: Math.max(bx.y0, lb.y0), x1: Math.min(bx.x1, lb.x1), y1: Math.min(bx.y1, lb.y1) };
+      if (bx.x1 <= bx.x0 || bx.y1 <= bx.y0) bx = lb;
+      INK.sel = { L: L, list: [], base: [], box: bx, T: selIdentity(), pix: true, poly: poly };
+      selDraw(); syncDraw();
+      if (later) toast('Part of this was erased or shaded, so the pixels inside the loop move as a picture.');
+      return;
+    }
+    if (!poly && list.some(function (st) { return touchedLater(L, [st]); })) { toast('An eraser or shading touches this line: draw a loop round it to move it with them.'); }
+    selStart(L, list);
+  }
+  function selCancelGesture() { if (INK.selG) selUp({}, true); }
+  // while the frame moves: the selection is drawn once to a bitmap and moved; the strokes are re-drawn sharp at the end
+  function selCacheStart() {
+    var sel = INK.sel, t = viewK(), b = sel.box, pad = 8;
+    var x0 = Math.floor(b.x0 * t.k + t.tx) - pad, y0 = Math.floor(b.y0 * t.k + t.ty) - pad;
+    var w = Math.ceil((b.x1 - b.x0) * t.k) + pad * 2, h = Math.ceil((b.y1 - b.y0) * t.k) + pad * 2;
+    var sc = Math.min(1, Math.sqrt(16e6 / Math.max(1, w * h))), c = document.createElement('canvas');
+    c.width = Math.max(1, Math.round(w * sc)); c.height = Math.max(1, Math.round(h * sc));
+    var x = c.getContext('2d');
+    sel.list.forEach(function (st) { renderStroke(x, st, t.k * sc, (t.tx - x0) * sc, (t.ty - y0) * sc); st._selHide = true; });
+    INK.selCache = { cv: c, x0: x0, y0: y0, w: w, h: h, sc: sc, k: t.k, tx: t.tx, ty: t.ty, M0: selMatrix(sel.T, sel.box) };
+    INK.dirty = true; inkShow();
+  }
+  // the device-pixel matrix that moves the cached bitmap from where it was drawn to where the frame is now
+  function selCacheMatrix() {
+    var C = INK.selCache, t = viewK(), D = [t.k, 0, 0, t.k, t.tx, t.ty], D0inv = mInv([C.k, 0, 0, C.k, C.tx, C.ty]);
+    var M = selMatrix(INK.sel.T, INK.sel.box);
+    return mMul(mMul(D, mMul(M, mInv(C.M0))), D0inv);
+  }
+  // actions
+  function selDelete() {
+    var sel = INK.sel; if (!sel) return;
+    if (lset(sel.L).lock) { lockedToast(sel.L); return; }
+    pushUndo(snap('ink'));
+    if (sel.pix && !sel.lifted) INK.strokes = INK.strokes.concat([{ t: 'cut', e: true, L: sel.L, poly: sel.poly.slice(), p: [] }]);
+    else { var gone = new Set(sel.list); INK.strokes = INK.strokes.filter(function (st) { return !gone.has(st); }); }
+    INK.sel = null; inkChanged(); selDraw();
+  }
+  function selCopy() {
+    var sel = INK.sel; if (!sel) return false;
+    var list;
+    if (sel.pix && !sel.lifted) { var pic = loopPicture(sel.L, sel.poly); if (!pic) return false; list = [pic]; }
+    else { var M = selMatrix(sel.T, sel.box); list = sel.base.map(function (st) { return mIsId(M) ? cloneStroke(st) : transformStroke(st, M); }); }
+    INK.clip = { list: list.map(function (st) { return cloneStroke(st); }), n: 0 };
+    return true;
+  }
+  function selPaste() {
+    if (!INK.clip) return;
+    var L = S.activeLayer; if (lset(L).lock) { lockedToast(L); return; }
+    INK.clip.n++; var off = 18 / V.s * INK.clip.n, M = [1, 0, 0, 1, off, off];
+    var list = INK.clip.list.map(function (st) { var c = transformStroke(st, M); c.L = L; return c; });
+    pushUndo(snap('ink')); INK.strokes = INK.strokes.concat(list);
+    if (!INK.selMode) INK.selMode = true;
+    selStart(L, list); inkChanged();
+    toast('Pasted on ' + layerName(L) + '. Drag it into place.');
+  }
+  function selDuplicate() {
+    var sel = INK.sel; if (!sel) return;
+    if (lset(sel.L).lock) { lockedToast(sel.L); return; }
+    var before = snap('ink'); if (!selLift()) return;
+    selApply();
+    var off = 18 / V.s, copies = sel.list.map(function (st) { return transformStroke(st, [1, 0, 0, 1, off, off]); });
+    INK.strokes = INK.strokes.concat(copies); pushUndoKeep(before);
+    selStart(sel.L, copies); inkChanged();
+  }
+  function selToLayer(L) {
+    var sel = INK.sel; if (!sel || L === sel.L) return;
+    if (lset(L).lock) { lockedToast(L); syncSelBar(); return; }
+    var before = snap('ink'); if (!selLift()) return;
+    selApply();
+    var moved = sel.list.map(function (st) { return cloneStroke(st, { L: L }); }), gone = new Set(sel.list);
+    INK.strokes = INK.strokes.filter(function (st) { return !gone.has(st); }).concat(moved);   // on top of that layer
+    pushUndoKeep(before); S.activeLayer = L; persist();
+    selStart(L, moved); inkChanged(); toast('Moved to ' + layerName(L) + '.');
+  }
+  $('selBar').addEventListener('click', function (e) {
+    var b = e.target.closest('button[data-a]'); if (!b) return;
+    var a = b.dataset.a;
+    if (a === 'done') { setSelMode(false); return; }
+    if (a === 'paste') { selPaste(); return; }
+    if (!INK.sel) return;
+    // flips are on the page (left↔right, top↕bottom), whatever way the frame is turned: F·R(a)·S = R(−a)·F·S
+    if (a === 'flipH') selEdit(function (s2) { s2.T.rot = -s2.T.rot; s2.T.sx = -s2.T.sx; });
+    else if (a === 'flipV') selEdit(function (s2) { s2.T.rot = -s2.T.rot; s2.T.sy = -s2.T.sy; });
+    else if (a === 'dup') selDuplicate();
+    else if (a === 'copy') { if (selCopy()) toast('Copied. Paste puts it on the layer you are on.'); syncSelBar(); }
+    else if (a === 'cut') { if (selCopy()) { selDelete(); toast('Cut. Paste puts it back on the layer you are on.'); } }
+    else if (a === 'del') selDelete();
+  });
+  $('selLayer').addEventListener('change', function () { selToLayer(this.value); });
+  $('railSelect').addEventListener('click', function () { setSelMode(!INK.selMode); if (INK.selMode && !S._selHinted) { S._selHinted = true; toast('Draw round strokes to select them, then drag, scale or turn the frame.'); } });
+  function selectAllOnLayer() {
+    var L = S.activeLayer, list = layerStrokes(L).filter(function (st) { return !isEraserKind(st); });
+    if (!list.length) { toast('Nothing on the ' + layerName(L) + ' layer yet.'); return; }
+    if (!INK.selMode) setSelMode(true);
+    if (list.length < layerStrokes(L).length) {   // the layer has erasing: take all of it as pixels
+      var b = unionBox(list), pad = 20; selFromList(L, list, [b.x0 - pad, b.y0 - pad, b.x1 + pad, b.y0 - pad, b.x1 + pad, b.y1 + pad, b.x0 - pad, b.y1 + pad]);
+    } else selStart(L, list);
+  }
+  // keyboard: copy, cut, paste, duplicate, select all, delete, arrows nudge, Escape lets go
+  document.addEventListener('keydown', function (e) {
+    var t = e.target, typing = t && (t.isContentEditable || t.tagName === 'TEXTAREA' || t.tagName === 'SELECT' || (t.tagName === 'INPUT' && !/^(range|checkbox|radio|button|color|file)$/i.test(t.type)));
+    if (typing || !screenMode || !drawing || !inkActive() || !$('ask').hidden || INK.ptr != null || INK.selG) return;
+    var k = (e.key || '').toLowerCase(), mod = (e.metaKey || e.ctrlKey) && !e.altKey;
+    if (mod && k === 'v') { e.preventDefault(); selPaste(); return; }
+    if (mod && k === 'a') { e.preventDefault(); selectAllOnLayer(); return; }
+    if (!INK.sel) return;
+    if (mod && k === 'c') { e.preventDefault(); if (selCopy()) toast('Copied.'); syncSelBar(); return; }
+    if (mod && k === 'x') { e.preventDefault(); if (selCopy()) selDelete(); return; }
+    if (mod && k === 'd') { e.preventDefault(); selDuplicate(); return; }
+    if (!mod && (k === 'delete' || k === 'backspace')) { e.preventDefault(); selDelete(); return; }
+    if (!mod && k === 'escape') { e.preventDefault(); e.stopImmediatePropagation(); INK.sel = null; selDraw(); syncDraw(); return; }
+    var nd = { arrowleft: [-1, 0], arrowright: [1, 0], arrowup: [0, -1], arrowdown: [0, 1] }[k];
+    if (nd && !mod) { e.preventDefault(); var st2 = (e.shiftKey ? 10 : 1) / V.s; selEdit(function (s2) { s2.T.tx += nd[0] * st2; s2.T.ty += nd[1] * st2; }); }
+  }, true);
+  // the device check (?selftest) reads the drawing's state through this; nothing is exposed otherwise
+  if (SELFTEST) window.__trace = {
+    get INK() { return INK; }, get S() { return S; }, get V() { return V; }, LAYERS: LAYERS,
+    layerState: layerState, setLayers: setLayers, strokeLayer: strokeLayer, kindOf: kindOf, inkSvgText: inkSvgText, inkPngBlob: inkPngBlob,
+    renderLayers: renderLayers, inkPaint: inkPaint, saveSession: function () { return saveSession(true); }, store: store, selDraw: selDraw,
+    mergeDown: mergeDown, duplicateLayer: duplicateLayer, moveLayer: moveLayer, layerPicture: layerPicture, selectAll: selectAllOnLayer,
+    selPaste: selPaste, selCopy: selCopy, selDelete: selDelete, selToLayer: selToLayer, setSelMode: setSelMode, layerCap: layerCap, get PROJ() { return PROJ; }
+  };
   $('inkMirrorBtn').addEventListener('click', function () {
     var on = !(S.mirrorOn && S.cfOn); S.mirrorOn = on; if (on) S.cfOn = true; persist(); drawGuides(); syncUI();
     toast(on ? 'Mirror on: what you draw is copied across the centre line. Move the line in Tools → Flats.' : 'Mirror off.');
@@ -3194,7 +3958,9 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
   $('inkClear').addEventListener('click', function () {
     if (!INK.strokes.length) return;
     ask('Clear the drawing?', 'Removes everything you drew on screen, on every layer. Undo brings it back.', 'Clear').then(function (yes) {
-      if (!yes) return; pushUndo(snap('ink')); INK.strokes = []; inkChanged();
+      if (!yes) return; pushUndo(snap('ink')); selClear(true);
+      var kept = INK.strokes.filter(function (st) { return lset(strokeLayer(st)).lock; }); INK.strokes = kept; inkChanged();
+      if (kept.length) toast('Cleared. Locked layers were kept.');
     });
   });
   function syncDraw() {
@@ -3203,8 +3969,10 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
     $('drawRail').hidden = !show; if (!show && INK.pop) { INK.pop = ''; $('inkPop').hidden = true; }
     var key = curBrush(), set = S.brushSet[key];
     $('railBrushIcon').innerHTML = iconSvg(S.inkBrush); var pbr = myBrush(); $('railBrushName').textContent = pbr && pbr.base === S.inkBrush ? (pbr.name.length > 10 ? pbr.name.slice(0, 9) + '…' : pbr.name) : BRUSHES[S.inkBrush].short || BRUSHES[S.inkBrush].name;
-    $('railBrush').setAttribute('aria-pressed', !S.inkErase && !S.inkFill ? 'true' : 'false'); $('railEraser').setAttribute('aria-pressed', S.inkErase ? 'true' : 'false');
-    $('railFill').setAttribute('aria-pressed', S.inkFill ? 'true' : 'false');
+    if (!show && INK.selG) selCancelGesture();
+    $('railBrush').setAttribute('aria-pressed', !S.inkErase && !S.inkFill && !INK.selMode ? 'true' : 'false'); $('railEraser').setAttribute('aria-pressed', S.inkErase && !INK.selMode ? 'true' : 'false');
+    $('railSelect').setAttribute('aria-pressed', INK.selMode ? 'true' : 'false'); selDraw();
+    $('railFill').setAttribute('aria-pressed', S.inkFill && !INK.selMode ? 'true' : 'false');
     $('railSwatch').style.background = S.inkColor; $('railColour').classList.toggle('picking', !!INK.picking);
     var px = Math.round(Math.max(4, Math.min(22, 3 + Math.log2(set.size * BRUSHES[key].w + 1) * 3.4)));
     $('inkSizeDot').style.width = px + 'px'; $('inkSizeDot').style.height = px + 'px'; $('inkSizeDot').style.opacity = Math.max(0.25, set.op / 100);
@@ -3223,7 +3991,7 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
     setSwitch('waterPaperSw', S.paper === 'water');
     document.body.classList.toggle('paperWater', screenMode && S.paper === 'water');
     if (INK.pop === 'layers') renderLayerPop();
-    setSwitch('fingerSw', S.fingerDraw);
+    setSwitch('fingerSw', S.fingerDraw); setSwitch('holdPickSw', !!S.holdPick);
     var none = !INK.strokes.length; ['inkPng', 'inkSvg', 'inkLineup', 'inkClear'].forEach(function (id) { $(id).disabled = none; });
   }
 
@@ -3239,8 +4007,10 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
     if (INK.W && (INK.W !== W || INK.H !== H) && INK.strokes.length) {
       var dx = (W - INK.W) / 2, dy = (H - INK.H) / 2;
       INK.strokes = INK.strokes.map(function (st) {
+        if (st.tf) return transformStroke(st, [1, 0, 0, 1, dx, dy]);   // moved fills and pictures carry their matrix
         var p = (st.p || []).slice(); for (var i = 0; i < p.length; i += 3) { p[i] += dx; p[i + 1] += dy; }
         var c = cloneStroke(st, { L: strokeLayer(st), p: p }); if (c.m) { c.m.x += dx; c.m.y += dy; }
+        if (c.poly) for (var j = 0; j < c.poly.length; j += 2) { c.poly[j] += dx; c.poly[j + 1] += dy; }
         return c;
       });
     }
@@ -3253,7 +4023,7 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
   function inkBox() {
     var x0 = 1e9, y0 = 1e9, x1 = -1e9, y1 = -1e9;
     INK.strokes.forEach(function (st) {
-      if (st.e || !S.layerSet[strokeLayer(st)].on) return;
+      if (st.e || !lset(strokeLayer(st)).on) return;
       var b = strokeBox(st), pad = isRaster(st) ? avgWidth(st) * 0.7 : 0;
       x0 = Math.min(x0, b.x0 - pad); y0 = Math.min(y0, b.y0 - pad); x1 = Math.max(x1, b.x1 + pad); y1 = Math.max(y1, b.y1 + pad);
     });
@@ -3264,12 +4034,12 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
     var c = document.createElement('canvas'); c.width = Math.max(1, Math.round(box.w * k)); c.height = Math.max(1, Math.round(box.h * k));
     var x = c.getContext('2d');
     LAYERS.forEach(function (l) {
-      var ls = S.layerSet[l[0]]; if (!ls.on) return;
+      var ls = lset(l[0]); if (!ls.on) return;
       var lc = document.createElement('canvas'); lc.width = c.width; lc.height = c.height; var lx = lc.getContext('2d');
       INK.strokes.forEach(function (st) { if (strokeLayer(st) === l[0]) renderStroke(lx, st, k, -box.x * k, -box.y * k); });
-      x.globalAlpha = ls.op / 100; x.drawImage(lc, 0, 0);
+      x.globalAlpha = ls.op / 100; x.globalCompositeOperation = ls.blend || 'source-over'; x.drawImage(lc, 0, 0);
     });
-    x.globalAlpha = 1;
+    x.globalAlpha = 1; x.globalCompositeOperation = 'source-over';
     return c;
   }
   function inkPngBlob() {
@@ -3277,6 +4047,7 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
     var k = Math.min(3, 3000 / Math.max(b.w, b.h));   // about 3000 px on the long side: print quality, light on memory
     return new Promise(function (res) { inkCanvasOf(b, k).toBlob(res, 'image/png'); });
   }
+  function svgId(name) { var t = String(name).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, ''); return /^[a-z]/.test(t) ? t : 'layer-' + t; }
   function inkSvgText() {   // line brushes only: watercolour, airbrush and soft erasing are painted pixels (they are in the PNG)
     var b = inkBox(); if (!b) return null;
     var f = function (v) { return (Math.round(v * 10) / 10).toString(); };
@@ -3290,9 +4061,9 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
     }
     // painted pieces (watercolour, airbrush, shading, fills and prints, soft erasing) go in as pictures at 2 px per point;
     // lines stay vector shapes; soft lines get a blur filter; pencil, charcoal and pastel keep their paper grain as a pattern
-    var defs = '', m = 0, groups = '', filt = {}, pats = {}, kk = 2;
+    var defs = '', m = 0, groups = '', filt = {}, pats = {}, kk = 2, ids = {};
     function img(cv, x, y, w, h, extra) {
-      return '<image x="' + f(x - b.x) + '" y="' + f(y - b.y) + '" width="' + f(w) + '" height="' + f(h) + '" preserveAspectRatio="none"' + (extra || '') + ' href="' + cv.toDataURL('image/png') + '"/>';
+      return '<image x="' + f(x - b.x) + '" y="' + f(y - b.y) + '" width="' + f(w) + '" height="' + f(h) + '" preserveAspectRatio="none"' + (extra || '') + ' href="' + (cv.toDataURL ? cv.toDataURL('image/png') : cv.src) + '"/>';
     }
     function blendAttr(bl) { return bl && bl !== 'source-over' ? ' style="mix-blend-mode:' + bl + '"' : ''; }
     function softFilter(st) {
@@ -3312,13 +4083,17 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
       return 'url(#' + pats[key] + ')';
     }
     LAYERS.forEach(function (l) {
-      var ls = S.layerSet[l[0]]; if (!ls.on) return;
+      var ls = lset(l[0]); if (!ls.on) return;
       var body = '', sofar = [];
       INK.strokes.forEach(function (st) {
         if (strokeLayer(st) !== l[0]) return;
         var k = kindOf(st), bb = BRUSHES[st.t] || {};
         sofar.push(st);
-        if (k === 'fill') { var fc = fillCanvas(st); if (fc) body += img(fc, st.m.x, st.m.y, st.m.w, st.m.h, st.a < 1 ? ' opacity="' + st.a + '"' : ''); return; }
+        if (k === 'fill' || k === 'img') {
+          var fc = k === 'fill' ? fillCanvas(st) : picImage(st); if (!fc) return;
+          var tfa = st.tf ? ' transform="translate(' + f(-b.x) + ' ' + f(-b.y) + ') matrix(' + st.tf.map(function (v) { return Math.round(v * 1e5) / 1e5; }).join(' ') + ') translate(' + f(b.x) + ' ' + f(b.y) + ')"' : '';
+          body += img(fc, st.m.x, st.m.y, st.m.w, st.m.h, (st.a != null && st.a < 1 ? ' opacity="' + st.a + '"' : '') + blendAttr(st.bl) + tfa); return;
+        }
         if (k === 'water' || k === 'air') { var r = rasterStroke(st, kk); body += img(r.cv, r.ox, r.oy, r.w / r.k, r.h / r.k, blendAttr(bb.blend)); return; }
         if (k === 'shade') {
           var rr = rasterStroke(st, kk), pic = rr.cv;
@@ -3343,7 +4118,8 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
         defs += '<mask id="e' + m + '" maskUnits="userSpaceOnUse" x="0" y="0" width="' + f(b.w) + '" height="' + f(b.h) + '"><rect width="100%" height="100%" fill="#fff"/><path fill="#000" d="' + d(st) + '"/></mask>';
         body = '<g mask="url(#e' + m + ')">' + body + '</g>'; m++;
       });
-      if (body) groups += '<g id="' + l[1].toLowerCase() + '"' + (ls.op < 100 ? ' opacity="' + ls.op / 100 + '"' : '') + '>' + body + '</g>';
+      var gid = svgId(l[1]); while (ids[gid]) gid += '-2'; ids[gid] = 1;
+      if (body) groups += '<g id="' + gid + '"' + (ls.op < 100 ? ' opacity="' + ls.op / 100 + '"' : '') + blendAttr(ls.blend) + '>' + body + '</g>';
     });
     return '<svg xmlns="http://www.w3.org/2000/svg" width="' + f(b.w) + '" height="' + f(b.h) + '" viewBox="0 0 ' + f(b.w) + ' ' + f(b.h) + '">' +
       (defs ? '<defs>' + defs + '</defs>' : '') + groups + '</svg>';
@@ -3464,7 +4240,7 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
     $('photoFig').hidden = true; $('file').value = ''; $('startBaseFile').value = '';
     BASE.front = null; BASE.back = null; placed.picture = false; placed.base = false;
     setGhost(null); boardId = null; boardTitle = '';
-    if (INK) { INK.strokes = []; INK.W = 0; INK.H = 0; INK.dirty = true; INK.live = null; INK.liveM = null; }
+    if (INK) { selClear(true); INK.strokes = []; INK.W = 0; INK.H = 0; INK.dirty = true; INK.live = null; INK.liveM = null; setLayers(defaultLayerState()); S.activeLayer = BRUSHES[S.inkBrush].layer; persist(); }
     undoStack = []; redoStack = []; updateUndo();
     renderBase(); syncStart(); syncSamples(); syncFashion(); if (MUSE.mine.length) renderMine();
   }
@@ -3874,7 +4650,7 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
     if (dbP) return dbP;
     dbP = new Promise(function (res, rej) {
       if (!window.indexedDB) { rej(new Error('no storage')); return; }
-      var r = indexedDB.open('numotif-trace', 1);
+      var r = indexedDB.open('numotif-trace' + SK, 1);
       r.onupgradeneeded = function () { var d = r.result; d.createObjectStore('kv'); d.createObjectStore('boards', { keyPath: 'id' }); };
       r.onsuccess = function () { res(r.result); };
       r.onerror = function () { rej(r.error); };
@@ -3915,7 +4691,7 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
       back: BASE.back && BASE.back.blob, backName: BASE.back && BASE.back.name,
       ghost: ghost && ghost.blob, T: placed.picture ? frac(T) : null, B: placed.base ? frac(B) : null,
       boardId: boardId, boardTitle: boardTitle, savedAt: Date.now(),
-      screen: screenMode, ink: inkForSave(), inkW: INK.W, inkH: INK.H };
+      screen: screenMode, ink: inkForSave(), inkW: INK.W, inkH: INK.H, layers: layerState(), activeLayer: S.activeLayer };
     if (!PROJ.id) PROJ.id = 'p' + Date.now().toString(36) + Math.floor(Math.random() * 1296).toString(36);
     var id = PROJ.id, thumb = withThumb || !PROJ.thumbed ? projThumb() : null; if (thumb) PROJ.thumbed = true;
     rec.id = id;
@@ -4019,6 +4795,12 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
     });
     box.hidden = !list.length; $('recentHead').hidden = !list.length;
   }
+  // projects saved before layers could change: the three layers, with how they were last shown (and any layer a stroke names)
+  function legacyLayers(ink) {
+    var out = BASE_LAYERS.map(function (id, i) { var o = lset(id); return { id: id, name: ['Colour', 'Sketch', 'Lines'][i], on: o.on, op: o.op, blend: 'source-over', lock: false }; });
+    (ink || []).forEach(function (st) { if (st.L && !out.some(function (l) { return l.id === st.L; })) out.push({ id: st.L, name: 'Layer ' + (out.length + 1) }); });
+    return out;
+  }
   function openSession(rec, btn, id) {
     if (!rec) return;
     freshProject(); PROJ.id = id || rec.id || null; PROJ.thumbed = true;
@@ -4035,6 +4817,7 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
       if (rec.T && img) { unfrac(T, rec.T); placed.picture = true; }
       if (rec.B && hasBase()) { unfrac(B, rec.B); placed.base = true; }
       boardId = rec.boardId || null; boardTitle = rec.boardTitle || '';
+      setLayers(rec.layers || legacyLayers(rec.ink)); if (rec.activeLayer && layerExists(rec.activeLayer)) S.activeLayer = rec.activeLayer;
       inkLoad(rec.ink, rec.inkW, rec.inkH);
       renderBase(); return rec.screen ? enterScreen() : enterDrawing();
     }).catch(function (e) { showErr(e && e.message || 'The last session could not be opened.'); })

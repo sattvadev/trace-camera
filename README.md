@@ -106,7 +106,27 @@ and your chosen photo floats see-through on top, so you can draw while watching 
 - **SVG export is complete:** lines stay vector (soft lines with a blur filter; pencil, charcoal and pastel filled with
   their paper-grain pattern); watercolour, airbrush, shading, fills and prints and soft erasing are embedded as pictures
   at 2 px per point, in layer order, with erasers as masks.
-- **Keyboard:** Cmd/Ctrl+Z undo; Shift+Cmd/Ctrl+Z or Ctrl+Y redo (ignored while typing in a text field).
+- **Layers (rail: Layers):** every project starts with Colour, Sketch and Lines; + New layer adds one above the current
+  layer (up to 12). Each row has a thumbnail, show/hide, lock and opacity; ⋯ has Blend (Normal, Multiply, Screen, Overlay,
+  Soft light, Darken, Lighten, Colour), Rename (or double-tap the name), Move up/down, Duplicate, Merge down, Clear and
+  Delete. Every change is one undo step and the layers are saved with the project. A locked layer cannot be drawn on,
+  erased, filled or moved, and Clear keeps it. Brushes jump to their own layer only while you are on the starting three.
+  Fills go on Colour (or on your own layer when you are on one); every other shown layer is an edge. Merge down keeps plain
+  strokes as strokes; a layer that erases, blends, is faded or shades only its paint is merged as one picture so it looks
+  the same. Blends show in the PNG and as mix-blend-mode in the SVG.
+- **Select (rail: Select):** draw a loop on the current layer. A loop round whole lines takes them as lines (they stay
+  vector); a loop that cuts through lines, or round lines an eraser or "only on paint" shading touched, takes the pixels
+  inside as one picture and leaves a cut where they were. Tap a line to pick just it. Drag inside the frame to move,
+  corners to scale, edge squares to stretch, the round handle to turn (it pulls to 0/45/90°); the bar has Flip ↔ and ↕ (on
+  the page), Duplicate, Copy, Cut, Paste, Delete and a layer menu to move the selection to another layer. Two fingers still
+  move and zoom the page. While dragging, the selection is a bitmap; it is redrawn sharp when you let go. Fills and
+  pictures keep their pixels and carry a transform (also in the SVG); strokes are recomputed, widths scale and the
+  calligraphy nib turns with them.
+- **Pick a colour:** touch and hold with the Pencil (or finger, when finger drawing is on) for half a second: a loupe shows
+  the new colour over the current one, and lifting keeps it. It reads the drawing where there is paint, else the photo. A
+  resting palm never picks. Option-click picks at once with a mouse. Switch it off in Colour.
+- **Keyboard:** Cmd/Ctrl+Z undo; Shift+Cmd/Ctrl+Z or Ctrl+Y redo (ignored while typing in a text field). With a selection:
+  Cmd+C, Cmd+X, Cmd+V, Cmd+D duplicate, Delete, arrows nudge (Shift ×10), Escape lets go; Cmd+A selects the whole layer.
 - **Update banner:** the page carries its build number (`<meta name="app-build">`) and `version.json` on the server holds
   the newest. The app checks when it opens, when it comes back to the front and every 30 minutes; if the server is
   newer it offers "A new version of Trace is ready. Update". Update saves the open drawing first and waits while a
