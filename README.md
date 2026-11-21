@@ -40,6 +40,16 @@ and your chosen photo floats see-through on top, so you can draw while watching 
 
 ## For fashion designers (release 1)
 
+- **Painting editor (draw-on-screen mode):** a rail on the left with Brush, Eraser, Colour, Size, Layers and Mirror.
+  Brushes: pencil (paper grain, tilt to shade), fineliner, brush pen (tapered, pressure-swelling), alcohol marker
+  (see-through, multiplies where it overlaps), watercolour, gouache, airbrush; hard or soft eraser on the chosen layer.
+  Each brush keeps its own size and opacity. Colour: recent colours, the value-step greys, neutrals, six skin tones, a
+  fashion palette, the system colour picker, and Pick colour from photo (averages the reference photo's real pixels
+  under the tap). Layers bottom to top: Colour, Sketch, Lines, each shown/hidden with its own opacity; brushes pick
+  their layer (paint goes under the lines). Watercolour, airbrush and the soft eraser are painted per stroke from the
+  stroke's shape: blurred body and bleed, darker drying edge, soft pigment variation and paper granulation, multiplied
+  so washes glaze; they are cached per zoom. Optional watercolour paper texture behind the page. PNG export has every
+  shown layer; SVG has the line brushes, grouped by layer (watercolour and airbrush are pixels).
 - **AI sketch from photos (Meta Muse Image):** start screen link or Tools → View. Pick up to 10 dress photos; make one
   sketch per photo or one combined look; style line art, pencil or technical flat; 1, 2 or 4 versions. Calls
   `POST https://api.meta.ai/v1/images/edits` (model `muse-image-1.0`, JSON with base64 images, web/image search turned off)
