@@ -49,6 +49,16 @@ and your chosen photo floats see-through on top, so you can draw while watching 
   per stroke so a saved drawing looks the same), pastel (waxy, paper showing through), airbrush. Hard or soft eraser on
   the chosen layer. Every line stroke is built from simple shapes (round dabs, a swept nib, or bristles) shared by the
   screen and the SVG export; charcoal and pastel texture is in the PNG, the SVG has them as solid lines.
+- **Brush settings panel (rail: Settings):** a live preview stroke drawn by the real engine, then Size and Opacity and
+  only the settings that apply to the brush: Hardness (soft edges, for line and paint brushes), Nib angle, Nib
+  thickness and "Nib turns with Apple Pencil" (calligraphy; the nib edge sits across the barrel, from the Pencil's
+  azimuth), Size with pressure (0-200%), Tilt to shade, Smoothing, Taper start and end, Size jitter, Paper grain
+  (pencil, charcoal, pastel) and, for Shadow and Highlight, "Only on paint already there" (off by default: shading then
+  works over lines, the croquis and paper; strokes saved before this setting keep the old only-on-paint behaviour).
+  Each brush keeps its own settings; Reset this brush restores them. What a stroke needs is saved with the stroke, so
+  changing settings later never changes earlier lines.
+- **Size ring:** a circle at the brush's size under a hovering Apple Pencil (or mouse), under the eraser while erasing,
+  and in the middle of the screen while dragging Size.
   Each brush keeps its own size and opacity. Colour: recent colours, the value-step greys, neutrals, six skin tones, a
   fashion palette, the system colour picker, and Pick colour from photo (averages the reference photo's real pixels
   under the tap). Layers bottom to top: Colour, Sketch, Lines, each shown/hidden with its own opacity; brushes pick
