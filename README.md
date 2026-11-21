@@ -84,6 +84,8 @@ downloaded on first use and kept in Cache Storage. Nothing leaves the phone.
 
 ## For fashion designers (release 3)
 
+  The frames are encoded straight to an H.264 MP4 with WebCodecs and mp4-muxer 5.1.3 (MIT, loaded on demand with an
+  integrity hash); browsers without WebCodecs fall back to recording an on-page canvas with MediaRecorder.
 - **Grey markers** (View → Values → Markers): each value step is labelled with a marker number on the usual 0 (light) to
   10 (dark) grey scale: cool C, neutral N, warm W, or % greys. The number comes from that step's real average tone in the
   photo, not its position in the strip. Shown on the step buttons and in the step label.

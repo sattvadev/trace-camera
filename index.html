@@ -2642,7 +2642,7 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
     $('recTag').textContent = '● REC ' + mm + ':' + (ss < 10 ? '0' : '') + ss + ' · ' + TL.frames.length + ' frames';
   }
   function tlStart() {
-    if (!window.MediaRecorder || !HTMLCanvasElement.prototype.captureStream) { toast('This browser cannot record video.'); return; }
+    if (!window.VideoEncoder && !(window.MediaRecorder && HTMLCanvasElement.prototype.captureStream)) { toast('This browser cannot make videos.'); return; }
     TL.on = true; TL.frames = []; TL.started = Date.now(); tlGrab();
     TL.timer = setInterval(tlGrab, TL.every); TL.tick = setInterval(tlLabel, 1000); tlLabel();
     $('recTag').hidden = false; syncUI(); toast('Recording a time-lapse. Stop it in Export when you are done.');
@@ -2651,30 +2651,103 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
     TL.on = false; clearInterval(TL.timer); clearInterval(TL.tick); $('recTag').hidden = true; syncUI();
     var frames = TL.frames; TL.frames = [];
     if (frames.length < 3) { toast('Too short to make a time-lapse.'); return; }
+    // 30 frames make a second; short sessions hold each frame longer so the video is at least 3 seconds
+    var hold = Math.max(1, Math.ceil(90 / frames.length));
+    toastSticky('Making the time-lapse… 0%');
+    var progress = function (n) { toastSticky('Making the time-lapse… ' + Math.round(n / frames.length * 100) + '%'); };
+    // Encode the frames straight into an MP4 (WebCodecs). Recording a canvas while it plays (MediaRecorder) is the
+    // fallback only: on iPhone it can record nothing from a canvas that is not on screen, which gave blank videos.
+    tlEncodeMp4(frames, hold, progress).catch(function (e) {
+      console.warn('time-lapse: direct MP4 encoding failed, recording instead', e);
+      return tlRecord(frames, hold, progress);
+    }).then(function (blob) {
+      if (!blob || blob.size < 1000) throw new Error('the video came out empty');
+      TL.result = blob; $('toast').hidden = true; $('tlSave').hidden = false;
+      var secs = frames.length * hold / 30;
+      toast('Time-lapse ready (' + (secs < 10 ? secs.toFixed(1) : Math.round(secs)) + ' s). Tap Save video in Export.');
+      syncUI();
+    }).catch(function (e) { toast('The time-lapse could not be made: ' + (e && e.message || e)); });
+  }
+  var MP4MUX = { src: 'https://cdn.jsdelivr.net/npm/mp4-muxer@5.1.3/build/mp4-muxer.js',
+                 sri: 'sha384-SujebcgqCNlLMRSnVkLD+3eWOzsxobv30Bct+0lV+fc1EHHEuvcePwmDgMzpnptj' };   // MIT, by Vanilagy
+  function loadMp4Muxer() {
+    if (window.Mp4Muxer) return Promise.resolve(window.Mp4Muxer);
+    return new Promise(function (res, rej) {
+      var el = document.createElement('script'); el.src = MP4MUX.src; el.integrity = MP4MUX.sri; el.crossOrigin = 'anonymous';
+      el.onload = function () { window.Mp4Muxer ? res(window.Mp4Muxer) : rej(new Error('video maker missing')); };
+      el.onerror = function () { rej(new Error('the video maker could not load (check your connection)')); };
+      document.head.appendChild(el);
+    });
+  }
+  function tlEncodeMp4(frames, hold, progress) {
+    if (!window.VideoEncoder || !window.VideoFrame) return Promise.reject(new Error('no WebCodecs'));
+    return Promise.all([loadMp4Muxer(), loadImageBlob(frames[0])]).then(function (r) {
+      var M = r[0], first = r[1];
+      var w = first.naturalWidth & ~1, h = first.naturalHeight & ~1;
+      var c = document.createElement('canvas'); c.width = w; c.height = h; var x = c.getContext('2d');
+      var bitrate = Math.round(Math.min(8e6, Math.max(2e6, w * h * 4)));
+      var codecs = ['avc1.640028', 'avc1.4d0028', 'avc1.42e028', 'avc1.640033'];   // H.264 High / Main / Baseline, level 4.0 (5.1 last)
+      function pick(i) {
+        if (i >= codecs.length) return Promise.reject(new Error('no H.264 encoder'));
+        var cfg = { codec: codecs[i], width: w, height: h, bitrate: bitrate, framerate: 30, avc: { format: 'avc' } };
+        return VideoEncoder.isConfigSupported(cfg).then(function (ok) { return ok && ok.supported ? cfg : pick(i + 1); }, function () { return pick(i + 1); });
+      }
+      return pick(0).then(function (cfg) {
+        var target = new M.ArrayBufferTarget();
+        var muxer = new M.Muxer({ target: target, video: { codec: 'avc', width: w, height: h, frameRate: 30 }, fastStart: 'in-memory', firstTimestampBehavior: 'offset' });
+        var failed = null;
+        var enc = new VideoEncoder({ output: function (chunk, meta) { muxer.addVideoChunk(chunk, meta); }, error: function (e) { failed = e; } });
+        enc.configure(cfg);
+        var step = Math.round(1e6 / 30 * hold), n = 0;
+        function next() {
+          if (failed) return Promise.reject(failed);
+          if (n >= frames.length) return enc.flush().then(function () {
+            if (failed) throw failed;
+            muxer.finalize(); enc.close();
+            return new Blob([target.buffer], { type: 'video/mp4' });
+          });
+          if (enc.encodeQueueSize > 4) return new Promise(function (res) { setTimeout(res, 15); }).then(next);   // let the encoder catch up
+          return loadImageBlob(frames[n]).then(function (im) {
+            x.drawImage(im, 0, 0, w, h);
+            var vf = new VideoFrame(c, { timestamp: n * step, duration: step });
+            enc.encode(vf, { keyFrame: n % 30 === 0 }); vf.close();
+            n++; progress(n);
+            return next();
+          });
+        }
+        return next().catch(function (e) { try { enc.close(); } catch (e2) {} throw e; });
+      });
+    });
+  }
+  function tlRecord(frames, hold, progress) {
+    if (!window.MediaRecorder || !HTMLCanvasElement.prototype.captureStream) return Promise.reject(new Error('this browser cannot make videos'));
     var types = ['video/mp4;codecs=avc1', 'video/mp4', 'video/webm;codecs=vp9', 'video/webm'], type = '';
     for (var i = 0; i < types.length; i++) if (MediaRecorder.isTypeSupported && MediaRecorder.isTypeSupported(types[i])) { type = types[i]; break; }
-    loadImageBlob(frames[0]).then(function (first) {
+    return loadImageBlob(frames[0]).then(function (first) {
       var c = document.createElement('canvas'); c.width = first.naturalWidth; c.height = first.naturalHeight;
-      var x = c.getContext('2d'), stream = c.captureStream(30), rec = new MediaRecorder(stream, type ? { mimeType: type, videoBitsPerSecond: 6e6 } : undefined), chunks = [];
+      // Safari only captures a canvas that is in the page, so keep it there (invisible) while recording.
+      c.style.cssText = 'position:fixed;left:0;top:0;width:2px;height:2px;opacity:0.01;pointer-events:none;z-index:-1';
+      document.body.appendChild(c);
+      var x = c.getContext('2d'); x.drawImage(first, 0, 0, c.width, c.height);
+      var stream = c.captureStream(30), track = stream.getVideoTracks()[0];
+      var rec = new MediaRecorder(stream, type ? { mimeType: type, videoBitsPerSecond: 6e6 } : undefined), chunks = [];
       rec.ondataavailable = function (e) { if (e.data && e.data.size) chunks.push(e.data); };
-      var done = new Promise(function (res) { rec.onstop = res; });
-      rec.start(500);
-      // 30 frames make a second; short sessions hold each frame longer so the video is at least 3 seconds
-      var n = 0, hold = Math.max(1, Math.ceil(90 / frames.length));
+      var done = new Promise(function (res, rej) { rec.onstop = res; rec.onerror = function (e) { rej(e.error || new Error('recording failed')); }; });
+      rec.start(250);
+      var n = 0;
       function next() {
-        if (n >= frames.length) { setTimeout(function () { rec.stop(); }, 1000 / 30 * hold + 150); return; }   // let the last frame show for its full time
-        loadImageBlob(frames[n]).then(function (im) { x.drawImage(im, 0, 0, c.width, c.height); n++; toastSticky('Making the time-lapse… ' + Math.round(n / frames.length * 100) + '%'); setTimeout(next, 1000 / 30 * hold); });
+        if (n >= frames.length) { setTimeout(function () { rec.stop(); }, 1000 / 30 * hold + 300); return; }   // let the last frame show for its full time
+        loadImageBlob(frames[n]).then(function (im) {
+          x.drawImage(im, 0, 0, c.width, c.height); if (track && track.requestFrame) track.requestFrame();
+          n++; progress(n); setTimeout(next, 1000 / 30 * hold);
+        });
       }
-      next();
+      setTimeout(next, 200);   // give the recorder a moment to start before the first frame
       return done.then(function () {
-        stream.getTracks().forEach(function (t) { t.stop(); });
-        var blob = new Blob(chunks, { type: (type || 'video/webm').split(';')[0] });
-        TL.result = blob; $('toast').hidden = true; $('tlSave').hidden = false;
-        var secs = frames.length * Math.max(1, Math.ceil(90 / frames.length)) / 30;
-        toast('Time-lapse ready (' + (secs < 10 ? secs.toFixed(1) : Math.round(secs)) + ' s). Tap Save video in Export.');
-        syncUI();
-      });
-    }).catch(function (e) { toast('The time-lapse could not be made: ' + (e && e.message || e)); });
+        stream.getTracks().forEach(function (t) { t.stop(); }); c.remove();
+        return new Blob(chunks, { type: (type || 'video/webm').split(';')[0] });
+      }, function (e) { c.remove(); throw e; });
+    });
   }
   $('tlBtn').addEventListener('click', function () { if (TL.on) tlStop(); else tlStart(); });
   $('tlSave').addEventListener('click', function () { if (TL.result) saveFile(TL.result, 'numotif-trace-timelapse-' + stamp() + (TL.result.type.indexOf('mp4') >= 0 ? '.mp4' : '.webm')); });
