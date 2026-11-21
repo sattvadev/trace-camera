@@ -11,6 +11,7 @@
 <link rel="icon" type="image/png" sizes="32x32" href="assets/favicon-32.png">
 <link rel="icon" type="image/png" sizes="192x192" href="assets/icon-192.png">
 <link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
+<link rel="manifest" href="manifest.webmanifest">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&display=swap">
@@ -604,7 +605,7 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
     <div class="samples" id="startSamples" role="group" aria-label="Sample designs"></div>
     <button type="button" class="big primary" id="go" disabled>Start camera</button>
     <p class="msg" id="err" hidden></p>
-    <p class="fine">Photos stay on your phone. Nothing is uploaded.</p>
+    <p class="fine">Photos stay on your phone. Nothing is uploaded. After your first visit it also works offline.</p>
     <p class="fine">AI sketch uses the Informative Drawings model by Caroline Chan, Frédo Durand and Phillip Isola (MIT License), run on your phone.</p>
   </div>
 </section>
@@ -650,7 +651,7 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
   var undoStack = [], redoStack = [];
 
   function toastSticky(t) { var el = $('toast'); clearTimeout(toast.t); el.textContent = t; el.hidden = false; }
-  function toast(t) { var el = $('toast'); el.textContent = t; el.hidden = false; clearTimeout(toast.t); toast.t = setTimeout(function () { el.hidden = true; }, 2200); }
+  function toast(t) { var el = $('toast'); el.textContent = t; el.hidden = false; clearTimeout(toast.t); toast.t = setTimeout(function () { el.hidden = true; }, Math.max(2200, Math.min(7000, t.length * 60))); }   // longer messages stay longer
 
   // ---------- photo
   function usePhoto(blob, name) {
@@ -698,6 +699,17 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
     });
   }
   buildSamples($('startSamples')); buildSamples($('toolSamples'));
+
+  // ---------- offline: a service worker saves the app, croquis and samples, so it opens without a connection
+  if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost' || location.hostname === '127.0.0.1')) {
+    var firstInstall = !navigator.serviceWorker.controller;
+    navigator.serviceWorker.register('sw.js').then(function (reg) {
+      var w = reg.installing; if (!w || !firstInstall) return;
+      w.addEventListener('statechange', function () {
+        if (w.state === 'activated') toast('Saved for offline use. Add it to your Home Screen to open it like an app.');
+      });
+    }).catch(function (e) { console.warn('offline support is not available here', e); });
+  }
   function showErr(t) { $('err').textContent = t; $('err').hidden = false; }
 
   // ---------- camera
@@ -1561,7 +1573,24 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
   var WINE = [124, 42, 52];
 
   function hasBase() { return !!(BASE.front || BASE.back); }
-  function curBase() { return BASE[S.flatView] || BASE.front || BASE.back; }
+  function curBase() {
+    var b = BASE[S.flatView] || BASE.front || BASE.back;
+    // the back is drawn at the front's size and place (head top, feet and centre lined up), so flipping Front/Back
+    // keeps the body still and the head lines stay put, even when the two drawings were made at different sizes
+    if (b && b === BASE.back && BASE.front) return alignedBack(BASE.front, b);
+    return b;
+  }
+  var ALIGNED = { f: null, b: null, val: null };
+  function alignedBack(f, bk) {
+    if (ALIGNED.f === f && ALIGNED.b === bk) return ALIGNED.val;
+    var k = (f.box.y1 - f.box.y0) / Math.max(1, bk.box.y1 - bk.box.y0);
+    var fcx = (f.box.x0 + f.box.x1) / 2, bcx = (bk.box.x0 + bk.box.x1) / 2;
+    var c = document.createElement('canvas'); c.width = f.w; c.height = f.h;
+    var x = c.getContext('2d'); x.setTransform(k, 0, 0, k, fcx - bcx * k, f.box.y0 - bk.box.y0 * k); x.drawImage(bk.canvas, 0, 0);
+    var box = { x0: fcx - (bcx - bk.box.x0) * k, x1: fcx + (bk.box.x1 - bcx) * k, y0: f.box.y0, y1: f.box.y1 };
+    ALIGNED = { f: f, b: bk, val: { canvas: c, w: f.w, h: f.h, box: box, blob: bk.blob, name: bk.name, thumb: bk.thumb } };
+    return ALIGNED.val;
+  }
   function backFallback() { return S.flatView === 'back' && !BASE.back && !!BASE.front; }
   function clamp(v, a, b) { return Math.max(a, Math.min(b, v)); }
   function smooth(a, b, v) { var u = clamp((v - a) / (b - a), 0, 1); return u * u * (3 - 2 * u); }
@@ -1574,11 +1603,14 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
       im.src = url;
     });
   }
-  function thumbOf(canvas, size) {
+  function thumbOf(canvas, size, bold) {
     var k = Math.min(1, size / Math.max(canvas.width, canvas.height)), c = document.createElement('canvas');
     c.width = Math.max(1, Math.round(canvas.width * k)); c.height = Math.max(1, Math.round(canvas.height * k));
-    var x = c.getContext('2d'); x.fillStyle = '#fff'; x.fillRect(0, 0, c.width, c.height); x.drawImage(canvas, 0, 0, c.width, c.height);
-    return c.toDataURL('image/jpeg', 0.8);
+    var x = c.getContext('2d'); x.fillStyle = '#fff'; x.fillRect(0, 0, c.width, c.height);
+    // thin line art (a croquis) almost vanishes when shrunk: lay it down a few times, nudged, so the lines read
+    var passes = bold ? [[0, 0], [0.5, 0], [0, 0.5], [0.5, 0.5]] : [[0, 0]];
+    passes.forEach(function (o) { x.drawImage(canvas, o[0], o[1], c.width, c.height); });
+    return c.toDataURL('image/jpeg', 0.85);
   }
 
   // ---------- the photo to trace (used by the file pickers and by "continue where you left off")
@@ -1626,7 +1658,7 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
       }
       x.clearRect(0, 0, w, h); x.putImageData(id, 0, 0);
       var box = x1 > x0 && y1 > y0 ? { x0: x0, y0: y0, x1: x1 + 1, y1: y1 + 1 } : { x0: 0, y0: 0, x1: w, y1: h };
-      BASE[view] = { canvas: c, w: w, h: h, box: box, blob: blob, name: name || 'Base', thumb: thumbOf(c, 200) };
+      BASE[view] = { canvas: c, w: w, h: h, box: box, blob: blob, name: name || 'Base', thumb: thumbOf(c, 200, true) };
     });
   }
   function renderBase() {
@@ -2256,6 +2288,19 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
     mpTasks[key] = p; return p;
   }
   function aiFail(e) { toast('The on-phone AI could not run: ' + (e && e.message || e) + '.'); }
+  // A pencil drawing (almost no colour, mostly white paper) rather than a photo: the people-reading AI has nothing to find.
+  var DRAWING_HINT = 'This picture looks like a drawing. Clothes, Person, Pick and Croquis from pose read photos of people, so use Outlines or Values to trace it.';
+  function looksLikeDrawing() {
+    if (!img) return false;
+    if (img.drawingLike != null) return img.drawingLike;
+    var d = img.rgb, n = 0, sat = 0, white = 0, step = Math.max(1, Math.floor(img.w * img.h / 40000)) * 4;
+    for (var p = 0; p < d.length; p += step) {
+      var mx = Math.max(d[p], d[p + 1], d[p + 2]), mn = Math.min(d[p], d[p + 1], d[p + 2]);
+      sat += (mx - mn) / 255; if (mn > 215) white++; n++;
+    }
+    img.drawingLike = n > 0 && sat / n < 0.05 && white / n > 0.45;
+    return img.drawingLike;
+  }
 
   // ---------- isolate the garment: show only the clothes, only the person, or the pieces you tap
   var ISO = { clothes: null, person: null, pieces: [], maskCanvas: null, busy: false };
@@ -2312,7 +2357,8 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
     if (ISO.clothes && ISO.person) { buildMaskCanvas(); return; }
     segMasks().then(function (r) {
       var N = img.w * img.h, cover = 0; for (var j = 0; j < N; j += 7) cover += r.clothes[j] > 0.5 ? 1 : 0;
-      if (S.iso === 'clothes' && cover < N / 7 * 0.01) toast('No clothes found in this photo. Try Person, or Pick and tap a garment.');
+      if (looksLikeDrawing()) toast(DRAWING_HINT);
+      else if (S.iso === 'clothes' && cover < N / 7 * 0.01) toast('No clothes found in this photo. Try Person, or Pick and tap a garment.');
     }).catch(aiFail).then(function () { buildMaskCanvas(); render(); syncUI(); });
   }
   // One garment piece from a tap, by a competitive watershed over the clothes area:
@@ -2562,7 +2608,7 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
       return new Promise(function (r) { setTimeout(r, 30); }).then(function () {
         var res = pose.detect(srcCanvas), L = res.landmarks && res.landmarks[0], WL = res.worldLandmarks && res.worldLandmarks[0];
         if (res.close) res.close();
-        if (!L) throw new Error('no person was found in the photo');
+        if (!L) { var none = new Error(looksLikeDrawing() ? DRAWING_HINT : 'No person found in this photo. Croquis from pose needs a photo of a real person with the body in view.'); none.plain = true; throw none; }
         var need = [LM.lSh, LM.rSh, LM.lHip, LM.rHip, LM.lKn, LM.rKn, LM.lAn, LM.rAn];
         var vis = need.filter(function (i) { return (L[i].visibility == null || L[i].visibility > 0.35); }).length;
         if (vis < 6) toast('Part of the body is out of the photo, so the legs are estimated.');
@@ -2586,7 +2632,7 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
           });
         });
       });
-    }).catch(aiFail).then(function () { btn.disabled = false; });
+    }).catch(function (e) { if (e && e.plain) { $('toast').hidden = true; toast(e.message); } else aiFail(e); }).then(function () { btn.disabled = false; });
   });
 
   // ---------- symmetry check for flats: compares the two halves of the sheet across the centre line

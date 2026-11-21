@@ -40,6 +40,14 @@ and your chosen photo floats see-through on top, so you can draw while watching 
 
 ## For fashion designers (release 1)
 
+- **Works offline:** `sw.js` saves the app, icons, built-in croquis and samples on the first visit, and the jsDelivr
+  libraries and fonts the first time they are used (the AI models are cached by the page). The page is fetched fresh
+  when online, so updates still arrive. `manifest.webmanifest` lets it be added to the Home Screen. Bump `VERSION` in
+  `sw.js` when the list of app files changes.
+- **Front and back line up:** the back base is drawn at the front's size and position (head top, feet and centre), so
+  flipping Front/Back keeps the body still even when the two drawings were made at different sizes.
+- **Drawings vs photos:** Clothes, Person, Pick and Croquis from pose need photos of people; on a pencil drawing the
+  app says so and points to Outlines or Values.
 - **Built-in croquis:** a matched 9-head front and back (same body, PNG) in `assets/croquis/`, one tap from the start screen
   ("or use the built-in 9-head croquis") or Tools → Base. It loads both views and turns on 9 head lines.
 - **Sample designs:** seven line drawings in `assets/samples/` (a gown front and back, blazer + wide-leg trousers,

@@ -1,0 +1,16 @@
+{
+  "name": "NUMOTIFSTUDIO - Trace",
+  "short_name": "Trace",
+  "description": "Camera tracing for fashion sketching: your picture floats over the live camera so you can draw on paper.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#FBFAF8",
+  "theme_color": "#7C2A34",
+  "icons": [
+    { "src": "assets/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "assets/icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "assets/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
