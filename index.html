@@ -126,7 +126,14 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
 .colChip .swatchDot { width: 18px; height: 18px; }
 .chip.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
 .chip:disabled { opacity: .45; cursor: default; }
-.samples { display: flex; gap: 10px; overflow-x: auto; padding: 4px 2px 8px; scroll-snap-type: x proximity; -webkit-overflow-scrolling: touch; }
+.lineup { display: flex; flex: none; min-height: 132px; gap: 8px; overflow-x: auto; overflow-y: hidden; padding: 8px 8px 6px 2px; }
+.lineup:empty { display: none; }
+#lineupPreview { flex: none; }
+.look { position: relative; flex: 0 0 auto; width: 64px; display: grid; gap: 3px; justify-items: center; font-size: .72rem; font-weight: 600; color: var(--gray-700); }
+.look img { width: 64px; height: 96px; object-fit: contain; background: #fff; border: 1px solid var(--gray-200); border-radius: var(--radius-xs); }
+.look button { position: absolute; top: -6px; right: -6px; width: 24px; height: 24px; border-radius: 50%; border: 1px solid var(--gray-200); background: #fff; color: var(--gray-700); font: 700 14px/1 var(--font); cursor: pointer; padding: 0; }
+#lineupPreview { width: 100%; border: 1px solid var(--gray-200); border-radius: var(--radius-xs); background: #fff; display: block; }
+.samples { display: flex; flex: none; min-height: 196px; gap: 10px; overflow-x: auto; padding: 4px 2px 8px; scroll-snap-type: x proximity; -webkit-overflow-scrolling: touch; }
 .sample { flex: 0 0 auto; width: 84px; display: grid; gap: 4px; justify-items: center; background: none; border: 0; padding: 0; cursor: pointer; scroll-snap-align: start; font: inherit; color: var(--gray-700); }
 .sample img { width: 72px; height: 144px; object-fit: cover; border-radius: var(--radius-xs); border: 1px solid var(--gray-200); background: #fff; }
 .sample[aria-pressed="true"] img { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent); }
@@ -428,6 +435,18 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
     <div class="note">Photograph your finished sheet, straighten it, and save it as clean line art: a see-through PNG, or an SVG for Illustrator. You can also make it your base.</div>
     <div class="row"><button type="button" class="chip primary" id="capStart">Capture sheet</button></div>
     <div class="note">Tip: lay the paper flat on a darker surface so its corners are found automatically. Hide the overlays first if you only want your drawing.</div>
+    <div class="row"><span class="sub">Line-up</span><span class="note" id="lineupNote">Capture each finished look and tap Add to line-up. Up to 8 looks.</span></div>
+    <div class="lineup" id="lineupList" aria-label="Looks in the line-up"></div>
+    <div class="row" id="lineupRow" hidden>
+      <input class="textIn" id="lineupTitle" maxlength="60" placeholder="Collection name" aria-label="Collection name">
+      <button type="button" class="chip primary" id="lineupMake">Make sheet</button>
+    </div>
+    <img id="lineupPreview" alt="Line-up sheet preview" hidden>
+    <div class="row" id="lineupSaveRow" hidden>
+      <button type="button" class="chip primary" id="lineupPng">Save PNG</button>
+      <button type="button" class="chip" id="lineupPdf">Save PDF</button>
+      <button type="button" class="chip" id="lineupClear">Clear line-up</button>
+    </div>
     <div class="row"><span class="sub">Time-lapse</span>
       <div class="seg" id="tlEvery" role="group" aria-label="One frame every"><button type="button" data-v="1000" aria-pressed="false">1 s</button><button type="button" data-v="2000" aria-pressed="true">2 s</button><button type="button" data-v="5000" aria-pressed="false">5 s</button></div></div>
     <div class="row"><button type="button" class="chip primary" id="tlBtn">Start time-lapse</button><button type="button" class="chip" id="tlSave" hidden>Save video</button></div>
@@ -545,6 +564,7 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
         <button type="button" class="chip primary" id="capPng" disabled>Save PNG</button>
         <button type="button" class="chip" id="capSvg" disabled>Save SVG</button>
         <button type="button" class="chip" id="capBase">Use as base</button>
+        <button type="button" class="chip" id="capLineup">Add to line-up</button>
         <button type="button" class="chip" id="capRedo">Corners</button>
       </div>
     </div>
@@ -2154,6 +2174,7 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
     $('capPng').disabled = true; $('capSvg').disabled = true;
     $('capKindSeg').querySelectorAll('button').forEach(function (b) { b.setAttribute('aria-pressed', b.dataset.v === CAP.kind ? 'true' : 'false'); });
     $('capCleanRow').hidden = CAP.kind !== 'lines'; $('capSvg').hidden = CAP.kind !== 'lines'; $('capBase').hidden = CAP.kind !== 'lines';
+    $('capLineup').disabled = LINEUP.length >= LINEUP_MAX;
     CAP.out = CAP.kind === 'lines' ? inkCanvas(inkFrom(w, +$('capClean').value), w.width, w.height, [15, 14, 12]) : w;
     var st = $('capStage').getBoundingClientRect(), f = Math.min(st.width / w.width, st.height / w.height), box = $('capResultBox');
     var dpr = Math.min(2, window.devicePixelRatio || 1);
@@ -2198,6 +2219,138 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
   $('capKindSeg').querySelectorAll('button').forEach(function (b) { b.addEventListener('click', function () { CAP.kind = b.dataset.v; showResult(); }); });
   var cleanTimer = 0;
   $('capClean').addEventListener('input', function () { $('capCleanOut').textContent = this.value; clearTimeout(cleanTimer); cleanTimer = setTimeout(showResult, 120); });
+  // ---------- line-up: captured looks side by side on one sheet, at the same scale, as PNG or PDF
+  var LINEUP = [], LINEUP_MAX = 8, lineupSheet = null;   // each look: { id, blob, kind, name }
+  store('kv', 'readonly', function (st) { return st.get('lineup'); }).then(function (rec) {
+    if (rec && rec.looks) { LINEUP = rec.looks; $('lineupTitle').value = rec.title || ''; renderLineup(); }
+  }).catch(function () {});
+  setTimeout(renderLineup, 0);
+  function saveLineup() {
+    store('kv', 'readwrite', function (st) { return st.put({ looks: LINEUP, title: $('lineupTitle').value.trim() }, 'lineup'); })
+      .catch(function () { toast('The line-up could not be saved on this phone (storage is off).'); });
+  }
+  function renderLineup() {
+    var box = $('lineupList'); box.innerHTML = '';
+    LINEUP.forEach(function (lk, i) {
+      var el = document.createElement('div'); el.className = 'look';
+      var im = document.createElement('img'); im.alt = 'Look ' + (i + 1); var url = URL.createObjectURL(lk.blob); im.src = url;
+      im.onload = function () { setTimeout(function () { URL.revokeObjectURL(url); }, 500); };
+      var x = document.createElement('button'); x.type = 'button'; x.textContent = '×'; x.setAttribute('aria-label', 'Remove look ' + (i + 1));
+      x.addEventListener('click', function () { LINEUP.splice(i, 1); lineupSheet = null; saveLineup(); renderLineup(); });
+      var sp = document.createElement('span'); sp.textContent = 'Look ' + (i + 1);
+      el.appendChild(im); el.appendChild(x); el.appendChild(sp); box.appendChild(el);
+    });
+    var n = LINEUP.length;
+    $('lineupNote').textContent = n ? n + (n === 1 ? ' look' : ' looks') + (n < LINEUP_MAX ? '. Capture the next one and tap Add to line-up.' : ' (the most a sheet takes).')
+      : 'Capture each finished look and tap Add to line-up. Up to 8 looks.';
+    $('lineupRow').hidden = !n; $('lineupMake').disabled = n < 1;
+    $('lineupPreview').hidden = !lineupSheet; $('lineupSaveRow').hidden = !lineupSheet;
+    $('capLineup').textContent = n >= LINEUP_MAX ? 'Line-up full' : 'Add to line-up'; $('capLineup').disabled = n >= LINEUP_MAX;
+  }
+  $('capLineup').addEventListener('click', function () {
+    if (!CAP.out || LINEUP.length >= LINEUP_MAX) return;
+    var kind = CAP.kind;
+    CAP.out.toBlob(function (bl) {
+      if (!bl) return;
+      LINEUP.push({ id: Date.now().toString(36), blob: bl, kind: kind }); lineupSheet = null; saveLineup(); renderLineup();
+      toast('Look ' + LINEUP.length + ' added. Make the sheet in Export → Line-up.');
+    }, kind === 'lines' ? 'image/png' : 'image/jpeg', 0.92);
+  });
+  $('lineupTitle').addEventListener('change', function () { lineupSheet = null; saveLineup(); renderLineup(); });
+  $('lineupClear').addEventListener('click', function () {
+    ask('Clear the line-up?', 'Removes all ' + LINEUP.length + ' looks from it. Sheets you saved are not affected.', 'Clear').then(function (yes) {
+      if (!yes) return; LINEUP = []; lineupSheet = null; saveLineup(); renderLineup();
+    });
+  });
+  // Every sheet is the same paper, so each look is scaled to the same page height: drawn on the same croquis, the
+  // figures stand the same size and on the same line. The band from the highest to the lowest mark over all the
+  // looks is kept; each look is cropped left and right to its own drawing.
+  function makeLineup() {
+    return Promise.all(LINEUP.map(function (lk) { return loadImageBlob(lk.blob).then(function (im) { return { im: im, kind: lk.kind }; }); })).then(function (items) {
+      var PH = 1800;
+      items.forEach(function (it) {
+        var k = PH / it.im.naturalHeight, w = Math.max(1, Math.round(it.im.naturalWidth * k));
+        var c = document.createElement('canvas'); c.width = w; c.height = PH; var x = c.getContext('2d');
+        x.fillStyle = '#fff'; x.fillRect(0, 0, w, PH); x.drawImage(it.im, 0, 0, w, PH);
+        var d = x.getImageData(0, 0, w, PH).data, x0 = w, x1 = -1, y0 = PH, y1 = -1;
+        for (var y = 0; y < PH; y += 2) for (var xx = 0; xx < w; xx += 2) {
+          var p = (y * w + xx) * 4; if (0.299 * d[p] + 0.587 * d[p + 1] + 0.114 * d[p + 2] > 150) continue;
+          if (xx < x0) x0 = xx; if (xx > x1) x1 = xx; if (y < y0) y0 = y; if (y > y1) y1 = y;
+        }
+        if (x1 < 0) { x0 = 0; x1 = w - 1; y0 = 0; y1 = PH - 1; }
+        it.c = c; it.x0 = x0; it.x1 = x1; it.y0 = y0; it.y1 = y1;
+      });
+      var pad = 40, top = Math.max(0, Math.min.apply(null, items.map(function (i) { return i.y0; })) - pad);
+      var bot = Math.min(PH, Math.max.apply(null, items.map(function (i) { return i.y1; })) + pad), band = bot - top;
+      var gap = 90, margin = 110, head = 190, foot = 120;
+      var cols = items.map(function (i) { var a = Math.max(0, i.x0 - pad), b = Math.min(i.c.width, i.x1 + pad); return { a: a, w: Math.max(180, b - a) }; });
+      var W = margin * 2 + cols.reduce(function (t, c) { return t + c.w; }, 0) + gap * (items.length - 1), H = head + band + foot + margin;
+      var sc = Math.min(1, 6000 / W), out = document.createElement('canvas');
+      out.width = Math.round(W * sc); out.height = Math.round(H * sc);
+      var x = out.getContext('2d'); x.scale(sc, sc);
+      x.fillStyle = '#fff'; x.fillRect(0, 0, W, H);
+      var title = $('lineupTitle').value.trim() || 'Line-up', date = new Date().toLocaleDateString(undefined, { day: 'numeric', month: 'long', year: 'numeric' });
+      x.fillStyle = '#1b1f28'; x.font = '700 64px "DM Sans", Arial, sans-serif'; x.textBaseline = 'alphabetic'; x.fillText(title, margin, 120);
+      x.fillStyle = '#6b6560'; x.font = '500 30px "DM Sans", Arial, sans-serif';
+      x.fillText(items.length + (items.length === 1 ? ' look' : ' looks') + ' · ' + date, margin, 165);
+      x.textAlign = 'right'; x.fillText('NUMOTIFSTUDIO', W - margin, 120); x.textAlign = 'left';
+      x.strokeStyle = '#e7e2dc'; x.lineWidth = 2; x.beginPath(); x.moveTo(margin, head - 4); x.lineTo(W - margin, head - 4); x.stroke();
+      var cx = margin;
+      items.forEach(function (it, i) {
+        var col = cols[i];
+        x.drawImage(it.c, col.a, top, col.w, band, cx, head + 10, col.w, band);
+        x.fillStyle = '#1b1f28'; x.font = '600 34px "DM Sans", Arial, sans-serif'; x.textAlign = 'center';
+        x.fillText('Look ' + (i + 1), cx + col.w / 2, head + 10 + band + 60); x.textAlign = 'left';
+        cx += col.w + gap;
+      });
+      return out;
+    });
+  }
+  $('lineupMake').addEventListener('click', function () {
+    if (!LINEUP.length) return;
+    var btn = this; btn.disabled = true; toastSticky('Making the line-up sheet…');
+    (document.fonts && document.fonts.load ? Promise.all([document.fonts.load('700 64px "DM Sans"'), document.fonts.load('500 30px "DM Sans"')]).catch(function () {}) : Promise.resolve())
+      .then(makeLineup).then(function (c) {
+        lineupSheet = c;
+        var pv = $('lineupPreview'); pv.src = c.toDataURL('image/jpeg', 0.8);
+        $('toast').hidden = true; renderLineup();
+      }).catch(function (e) { toast('The sheet could not be made: ' + (e && e.message || e)); })
+      .then(function () { btn.disabled = false; });
+  });
+  function lineupName(ext) {
+    var t = ($('lineupTitle').value.trim() || 'line-up').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'line-up';
+    return 'numotif-' + t + '-' + stamp() + ext;
+  }
+  $('lineupPng').addEventListener('click', function () {
+    if (lineupSheet) lineupSheet.toBlob(function (b) { if (b) saveFile(b, lineupName('.png')); }, 'image/png');
+  });
+  $('lineupPdf').addEventListener('click', function () {
+    if (!lineupSheet) return;
+    lineupSheet.toBlob(function (jpg) {
+      if (!jpg) return;
+      jpg.arrayBuffer().then(function (buf) { saveFile(pdfFromJpeg(new Uint8Array(buf), lineupSheet.width, lineupSheet.height), lineupName('.pdf')); });
+    }, 'image/jpeg', 0.92);
+  });
+  // A one-page PDF holding the sheet as a JPEG, on A3 landscape (or portrait for a tall sheet), centred with margins.
+  function pdfFromJpeg(jpg, iw, ih) {
+    var A3 = [1190.55, 841.89], land = iw >= ih, PW = land ? A3[0] : A3[1], PH = land ? A3[1] : A3[0], m = 28;
+    var k = Math.min((PW - 2 * m) / iw, (PH - 2 * m) / ih), dw = iw * k, dh = ih * k, dx = (PW - dw) / 2, dy = (PH - dh) / 2;
+    var enc = new TextEncoder(), parts = [], len = 0, offs = [];
+    function add(x) { var b = typeof x === 'string' ? enc.encode(x) : x; parts.push(b); len += b.length; }
+    function obj(n, body) { offs[n] = len; add(n + ' 0 obj\n'); body(); add('\nendobj\n'); }
+    var content = 'q ' + dw.toFixed(2) + ' 0 0 ' + dh.toFixed(2) + ' ' + dx.toFixed(2) + ' ' + dy.toFixed(2) + ' cm /Im0 Do Q';
+    add('%PDF-1.4\n%\xE2\xE3\xCF\xD3\n');
+    obj(1, function () { add('<< /Type /Catalog /Pages 2 0 R >>'); });
+    obj(2, function () { add('<< /Type /Pages /Kids [3 0 R] /Count 1 >>'); });
+    obj(3, function () { add('<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ' + PW.toFixed(2) + ' ' + PH.toFixed(2) + '] /Resources << /XObject << /Im0 4 0 R >> >> /Contents 5 0 R >>'); });
+    obj(4, function () { add('<< /Type /XObject /Subtype /Image /Width ' + iw + ' /Height ' + ih + ' /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length ' + jpg.length + ' >>\nstream\n'); add(jpg); add('\nendstream'); });
+    obj(5, function () { add('<< /Length ' + content.length + ' >>\nstream\n' + content + '\nendstream'); });
+    var xref = len, rows = ['0000000000 65535 f \n'];
+    for (var i = 1; i <= 5; i++) rows.push(String(offs[i]).padStart(10, '0') + ' 00000 n \n');
+    add('xref\n0 6\n' + rows.join('') + 'trailer\n<< /Size 6 /Root 1 0 R >>\nstartxref\n' + xref + '\n%%EOF\n');
+    return new Blob(parts, { type: 'application/pdf' });
+  }
+
   $('capBase').addEventListener('click', function () {
     if (!CAP.out) return;
     CAP.out.toBlob(function (bl) {

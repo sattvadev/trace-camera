@@ -87,6 +87,10 @@ downloaded on first use and kept in Cache Storage. Nothing leaves the phone.
   mouth), following the head's tilt.
 - **Check symmetry** (Flats tab): compares the two halves of the sheet across the centre line; green matches (within about
   1.5 mm), red is missing on the checked side, orange has no partner; gives a percentage.
+- **Line-up sheet** (Export tab): after capturing a finished look, tap Add to line-up (up to 8, kept on the phone).
+  Make sheet lays them side by side at the same scale (every sheet is the same paper, so figures drawn on the same
+  croquis stand the same size and on the same line), each cropped to its drawing, with the collection name, date and
+  look numbers. Saves as PNG, or as a one-page A3 PDF written in the page itself (no library).
 - **Time-lapse** (Export tab): a camera frame every 1, 2 or 5 seconds, played back at 30 frames a second (at least 3 s) and
   recorded with MediaRecorder to MP4 (WebM where MP4 is not available); saved through the share sheet.
 
