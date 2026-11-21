@@ -125,6 +125,12 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
 .colChip .swatchDot { width: 18px; height: 18px; }
 .chip.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
 .chip:disabled { opacity: .45; cursor: default; }
+.samples { display: flex; gap: 10px; overflow-x: auto; padding: 4px 2px 8px; scroll-snap-type: x proximity; -webkit-overflow-scrolling: touch; }
+.sample { flex: 0 0 auto; width: 84px; display: grid; gap: 4px; justify-items: center; background: none; border: 0; padding: 0; cursor: pointer; scroll-snap-align: start; font: inherit; color: var(--gray-700); }
+.sample img { width: 72px; height: 144px; object-fit: cover; border-radius: var(--radius-xs); border: 1px solid var(--gray-200); background: #fff; }
+.sample[aria-pressed="true"] img { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent); }
+.sample span { font-size: .72rem; font-weight: 600; line-height: 1.2; text-align: center; }
+.samplesHead { font-size: .85rem; font-weight: 600; color: var(--gray-700); margin: 6px 0 0; }
 .textBtn { display: block; margin: -2px auto 2px; background: none; border: 0; padding: 8px 12px; color: var(--accent); font: inherit; font-weight: 600; text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
 .fileChip { position: relative; overflow: hidden; display: inline-flex; align-items: center; }
 .fileChip input { position: absolute; inset: 0; opacity: 0; cursor: pointer; font-size: 0; }
@@ -339,6 +345,8 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
           <button type="button" class="chip" id="mirror" aria-pressed="false">Mirror</button>
           <button type="button" class="chip" id="newPhoto">New photo</button>
         </div>
+        <p class="samplesHead">Sample designs</p>
+        <div class="samples" id="toolSamples" role="group" aria-label="Sample designs"></div>
       </div>
     </details>
   </div>
@@ -592,6 +600,8 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
     <label class="big" for="file">Choose a photo to trace<input type="file" id="file" accept="image/*"></label>
     <label class="big" for="startBaseFile">Choose your croquis or flat block<input type="file" id="startBaseFile" accept="image/*"></label>
     <button type="button" class="textBtn" id="startBuiltIn">or use the built-in 9-head croquis</button>
+    <p class="samplesHead">Or try a sample design</p>
+    <div class="samples" id="startSamples" role="group" aria-label="Sample designs"></div>
     <button type="button" class="big primary" id="go" disabled>Start camera</button>
     <p class="msg" id="err" hidden></p>
     <p class="fine">Photos stay on your phone. Nothing is uploaded.</p>
@@ -643,14 +653,51 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
   function toast(t) { var el = $('toast'); el.textContent = t; el.hidden = false; clearTimeout(toast.t); toast.t = setTimeout(function () { el.hidden = true; }, 2200); }
 
   // ---------- photo
-  $('file').addEventListener('change', function () {
-    var f = this.files && this.files[0]; this.value = ''; if (!f) return;
-    loadPhoto(f, f.name).then(function () {
+  function usePhoto(blob, name) {
+    return loadPhoto(blob, name).then(function () {
       $('err').hidden = true;
       if (!$('start').hidden) return;
       target = 'picture'; setMove(true); fit(); drawGridLayer(); ensureIso(); render(); syncUI(); scheduleSave();
     }).catch(function (e) { showErr(e.message); toast(e.message); });
+  }
+  $('file').addEventListener('change', function () {
+    var f = this.files && this.files[0]; this.value = ''; if (!f) return;
+    usePhoto(f, f.name);
   });
+
+  // ---------- sample designs shipped with the app (assets/samples/), to try tracing over the built-in croquis
+  var SAMPLES = [
+    ['gown-front', 'Gown, front', 'front'], ['gown-back', 'Gown, back', 'back'],
+    ['blazer-wide-leg-trousers', 'Blazer + wide-leg trousers'], ['blouse-pencil-skirt', 'Blouse + pencil skirt'],
+    ['wide-leg-jumpsuit', 'Wide-leg jumpsuit'], ['cable-knit-pleated-midi', 'Cable-knit sweater + pleated midi'],
+    ['cropped-jacket-fit-and-flare', 'Cropped jacket + fit-and-flare dress']];
+  function buildSamples(box) {
+    SAMPLES.forEach(function (sm) {
+      var b = document.createElement('button'); b.type = 'button'; b.className = 'sample'; b.dataset.id = sm[0];
+      b.setAttribute('aria-pressed', 'false');
+      var im = document.createElement('img'); im.src = 'assets/samples/thumb-' + sm[0] + '.jpg'; im.alt = ''; im.loading = 'lazy';
+      var sp = document.createElement('span'); sp.textContent = sm[1];
+      b.appendChild(im); b.appendChild(sp); box.appendChild(b);
+      b.addEventListener('click', function () { pickSample(sm); });
+    });
+  }
+  function pickSample(sm) {
+    fetch('assets/samples/' + sm[0] + '.jpg').then(function (r) {
+      if (!r.ok) throw new Error('That sample could not be loaded.'); return r.blob();
+    }).then(function (blob) {
+      return usePhoto(blob, sm[1]).then(function () {
+        // a front or back design shows the matching croquis view, when there is one
+        if (sm[2] && BASE[sm[2]] && S.flatView !== sm[2]) { S.flatView = sm[2]; persist(); renderBase(); syncUI(); scheduleSave(); }
+      });
+    }).catch(function (e) { showErr(e.message); toast(e.message); });
+  }
+  function syncSamples() {
+    document.querySelectorAll('.sample').forEach(function (b) {
+      var sm = SAMPLES.filter(function (x) { return x[0] === b.dataset.id; })[0];
+      b.setAttribute('aria-pressed', sm && photoName === sm[1] ? 'true' : 'false');
+    });
+  }
+  buildSamples($('startSamples')); buildSamples($('toolSamples'));
   function showErr(t) { $('err').textContent = t; $('err').hidden = false; }
 
   // ---------- camera
@@ -1548,7 +1595,7 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
       $('thumb').src = thumbOf(srcCanvas, 160); $('thumbName').textContent = photoName; $('photoFig').hidden = false; $('thumbWrap').hidden = false;
       S.step = 1; idx = null; lineMap = null; aiMap = null; $('strip').dataset.key = ''; resetIso();
       undoStack = []; redoStack = []; updateUndo(); placed.picture = false;
-      syncStart();
+      syncStart(); syncSamples();
     });
   }
 
@@ -1649,7 +1696,7 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
   $('backFile').addEventListener('change', function () { pickBase(this.files && this.files[0], 'back'); this.value = ''; });
   $('startBaseFile').addEventListener('change', function () { pickBase(this.files && this.files[0], 'front'); this.value = ''; });
   // The built-in croquis: a matched 9-head front and back shipped with the app (assets/croquis/).
-  var BUILT_IN = [['front', 'assets/croquis/croquis-9-head-front.svg', '9-head croquis, front'],
+  var BUILT_IN = [['front', 'assets/croquis/croquis-9-head-front.png', '9-head croquis, front'],
                   ['back', 'assets/croquis/croquis-9-head-back.png', '9-head croquis, back']];
   function useBuiltInBase() {
     var hadBase = hasBase();
