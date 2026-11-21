@@ -125,6 +125,7 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
 .colChip .swatchDot { width: 18px; height: 18px; }
 .chip.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
 .chip:disabled { opacity: .45; cursor: default; }
+.textBtn { display: block; margin: -2px auto 2px; background: none; border: 0; padding: 8px 12px; color: var(--accent); font: inherit; font-weight: 600; text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
 .fileChip { position: relative; overflow: hidden; display: inline-flex; align-items: center; }
 .fileChip input { position: absolute; inset: 0; opacity: 0; cursor: pointer; font-size: 0; }
 .slots { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
@@ -350,6 +351,7 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
       <div class="slot"><b>Back</b><div class="thumbBox" id="backBox"><span>Optional</span></div>
         <div class="row"><label class="chip fileChip">Choose<input type="file" id="backFile" accept="image/*"></label><button type="button" class="chip" id="backClear" hidden>Remove</button></div></div>
     </div>
+    <div class="row"><button type="button" class="chip" id="builtInBase">Use the built-in 9-head croquis</button><span class="note">Front and back, made to match the 9 head lines.</span></div>
     <div class="row">
       <div class="ctl"><button type="button" class="switch" id="baseSw" role="switch" aria-checked="true" aria-label="Show base"></button><span>Show base</span></div>
       <div class="grow"><input id="baseOpacity" type="range" min="10" max="100" step="1" value="70" aria-label="Base opacity"><span>Base opacity</span></div>
@@ -589,6 +591,7 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
     </div>
     <label class="big" for="file">Choose a photo to trace<input type="file" id="file" accept="image/*"></label>
     <label class="big" for="startBaseFile">Choose your croquis or flat block<input type="file" id="startBaseFile" accept="image/*"></label>
+    <button type="button" class="textBtn" id="startBuiltIn">or use the built-in 9-head croquis</button>
     <button type="button" class="big primary" id="go" disabled>Start camera</button>
     <p class="msg" id="err" hidden></p>
     <p class="fine">Photos stay on your phone. Nothing is uploaded.</p>
@@ -1639,12 +1642,30 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
       if (!S.baseOn) { S.baseOn = true; persist(); }
       if ($('start').hidden) { target = 'base'; move = true; }
       afterBaseChange(view);
-      if ($('start').hidden) toast(view === 'back' ? 'Back view added. Switch Front/Back in Flats.' : 'Base added. Turn on Move and choose Base to place it.');
+      if ($('start').hidden) toast(view === 'back' ? 'Back view added. Switch Front/Back in Flats.' : 'Base added. Drag it into place, then tap Lock.');
     }).catch(function (e) { toast(e.message); });
   }
   $('frontFile').addEventListener('change', function () { pickBase(this.files && this.files[0], 'front'); this.value = ''; });
   $('backFile').addEventListener('change', function () { pickBase(this.files && this.files[0], 'back'); this.value = ''; });
   $('startBaseFile').addEventListener('change', function () { pickBase(this.files && this.files[0], 'front'); this.value = ''; });
+  // The built-in croquis: a matched 9-head front and back shipped with the app (assets/croquis/).
+  var BUILT_IN = [['front', 'assets/croquis/croquis-9-head-front.svg', '9-head croquis, front'],
+                  ['back', 'assets/croquis/croquis-9-head-back.png', '9-head croquis, back']];
+  function useBuiltInBase() {
+    var hadBase = hasBase();
+    Promise.all(BUILT_IN.map(function (b) {
+      return fetch(b[1]).then(function (r) { if (!r.ok) throw new Error('The built-in croquis could not be loaded.'); return r.blob(); })
+        .then(function (blob) { return loadBase(blob, b[0], b[2]); });
+    })).then(function () {
+      if (!S.baseOn) { S.baseOn = true; persist(); }
+      if (!S.heads) { S.heads = 9; persist(); drawHeads.scale = 0; }
+      if ($('start').hidden) { if (hadBase) { pushUndo(snap('base')); placed.base = false; } target = 'base'; move = true; }
+      afterBaseChange('front');
+      if ($('start').hidden) toast('9-head croquis added, front and back. Switch Front/Back in Flats.');
+    }).catch(function (e) { toast(e.message || 'The built-in croquis could not be loaded.'); });
+  }
+  $('startBuiltIn').addEventListener('click', useBuiltInBase);
+  $('builtInBase').addEventListener('click', useBuiltInBase);
   ['front', 'back'].forEach(function (v) {
     $(v + 'Clear').addEventListener('click', function () {
       ask('Remove the ' + v + ' base?', 'It stays in any board you saved it in.', 'Remove').then(function (yes) {

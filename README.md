@@ -40,6 +40,8 @@ and your chosen photo floats see-through on top, so you can draw while watching 
 
 ## For fashion designers (release 1)
 
+- **Built-in croquis:** a matched 9-head front (SVG) and back (PNG) in `assets/croquis/`, one tap from the start screen
+  ("or use the built-in 9-head croquis") or Tools → Base. It loads both views and turns on 9 head lines.
 - **Base layer:** load your own croquis or flat block (front and back) under everything, fixed to the paper. Scanned paper is
   lifted to white and turned see-through (alpha from darkness, colour un-mixed from white), so only the figure shows. **Head lines** (8, 9 or 10 heads) split the figure from crown to
   soles and are numbered down the side. Move it with **Move → Base**; undo/redo works per layer.
