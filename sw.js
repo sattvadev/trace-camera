@@ -33,6 +33,7 @@ self.addEventListener('fetch', function (e) {
   var same = url.origin === self.location.origin;
   // the page: fresh when online (quickly), the saved copy when offline or the network is very slow
   if (url.pathname.slice(-13) === '/version.json' && same) return;   // straight to the network
+  if (url.pathname.slice(-12) === '/selftest.js' && same) return;     // the device check: always the newest
   if (req.mode === 'navigate' && same) {
     // 'no-cache' asks the server every time (a quick 'unchanged' when nothing is new), so a release shows on the next open
     e.respondWith(Promise.race([fetch(req.url, { cache: 'no-cache', credentials: 'same-origin' }), timeout(5000)]).then(function (res) {

@@ -139,6 +139,13 @@ and your chosen photo floats see-through on top, so you can draw while watching 
 - **Saving:** 0.9 s after the last change, at least every 5 s while drawing without a pause, and at once when the app goes
   to the background or the page is closed. The app asks the browser to keep its storage (persisted), and a failed save
   (for example a full device) says so once instead of failing quietly.
+- **Device check (`?selftest`, or Help → Check this device):** drives the real engine on the device with a simulated
+  Pencil: every brush, a heavy 40-stroke painting (zoom, background sharpening, worker pixels identical, cache memory),
+  PNG and SVG exports (time, longest pause, SVG vs PNG overlap), layers (merge, undo, lock, blend, duplicate), select
+  (loop, exact drag, pixel lift and undo), fill and drape speed, touch-and-hold colour, save with layers. It also reports
+  the device (screen, cores, workers, share sheet, MP4, WebGPU, storage and whether it is kept). Copy or Share the
+  report. It runs on its own storage (keys ending '-selftest', database 'numotif-trace-selftest'), cleared at the end;
+  `selftest.js` loads only in this mode and the service worker always fetches it fresh.
 - **Update banner:** the page carries its build number (`<meta name="app-build">`) and `version.json` on the server holds
   the newest. The app checks when it opens, when it comes back to the front and every 30 minutes; if the server is
   newer it offers "A new version of Trace is ready. Update". Update saves the open drawing first and waits while a

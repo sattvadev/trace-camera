@@ -7,7 +7,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="NUMOTIFSTUDIO - Trace">
 <meta name="application-name" content="NUMOTIFSTUDIO - Trace">
-<meta name="app-build" content="2026-11-21.08">
+<meta name="app-build" content="2026-11-21.09">
 <title>NUMOTIFSTUDIO - Trace</title>
 <link rel="icon" type="image/png" sizes="32x32" href="assets/favicon-32.png">
 <link rel="icon" type="image/png" sizes="192x192" href="assets/icon-192.png">
@@ -865,7 +865,8 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
       <li><b>Hide</b> and <b>Opacity</b> help you check your drawing against the paper. Hide leaves the grid and guides showing.</li>
     </ul>
     <p class="note">Photos stay on your phone. AI sketch uses the Informative Drawings model by Caroline Chan, Frédo Durand and Phillip Isola (MIT License). Clothes, pose and piece finding use Google MediaPipe models (Apache License 2.0). All run on your phone; models download once.</p>
-    <div class="btns"><button type="button" class="primary" id="helpClose">Got it</button></div>
+    <p class="note">Something slow or odd on your iPad? <b>Check this device</b> tests every drawing tool here and makes a short report to send. It uses its own storage; your drawings are not touched.</p>
+    <div class="btns"><button type="button" id="helpCheck">Check this device</button><button type="button" class="primary" id="helpClose">Got it</button></div>
   </div>
 </div>
 
@@ -6139,6 +6140,9 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
   // a reload (Safari does this after memory pressure) starts on the start screen: drop the stale drawing entry
   if (history.state && history.state.tc) history.replaceState(null, '');
   updateUndo(); syncUI(); syncStart(); showResume();
+  // the device check: its script only loads with ?selftest (fresh from the network, see sw.js)
+  if (SELFTEST) { var stS = document.createElement('script'); stS.src = 'selftest.js?b=' + encodeURIComponent((document.querySelector('meta[name=app-build]') || {}).content || ''); document.body.appendChild(stS); }
+  $('helpCheck').addEventListener('click', function () { location.href = location.pathname + '?selftest'; });
 })();
 </script>
 </body>
