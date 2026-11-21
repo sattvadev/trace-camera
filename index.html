@@ -7,7 +7,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="NUMOTIFSTUDIO - Trace">
 <meta name="application-name" content="NUMOTIFSTUDIO - Trace">
-<meta name="app-build" content="2026-11-21.02">
+<meta name="app-build" content="2026-11-21.03">
 <title>NUMOTIFSTUDIO - Trace</title>
 <link rel="icon" type="image/png" sizes="32x32" href="assets/favicon-32.png">
 <link rel="icon" type="image/png" sizes="192x192" href="assets/icon-192.png">
@@ -91,6 +91,8 @@ body.screenMode.paperWater #stage { background: #fbf8f2 var(--paperTex) repeat; 
 .brushBtn { display: grid; grid-template-columns: 26px 1fr; grid-template-rows: auto auto; column-gap: 8px; align-items: center; text-align: left;
   border: 1px solid var(--gray-200); background: #fff; border-radius: 12px; padding: 8px; cursor: pointer; font: 600 .85rem/1.15 var(--font); color: var(--gray-800, #2b2724); }
 .brushBtn svg { grid-row: 1 / 3; width: 24px; height: 24px; }
+.brushHead { grid-column: 1 / -1; margin-top: 4px; }
+.brushHead:first-child { margin-top: 0; }
 .brushBtn small { font-weight: 500; font-size: .7rem; color: var(--muted); }
 .brushBtn[aria-pressed="true"] { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent); }
 .swRow { display: flex; flex-wrap: wrap; gap: 6px; }
@@ -631,6 +633,7 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
     <div class="popTitle" id="setTitle">Pencil</div>
     <div class="grow"><input id="brushSize" type="range" min="-2" max="2" step="0.05" aria-label="Brush size"><span>Size <output id="brushSizeOut"></output></span></div>
     <div class="grow"><input id="brushOp" type="range" min="5" max="100" step="1" aria-label="Brush opacity"><span>Opacity <output id="brushOpOut"></output></span></div>
+    <div class="grow" id="nibRow"><input id="nibAngle" type="range" min="0" max="90" step="1" aria-label="Nib angle"><span>Nib angle <output id="nibAngleOut"></output></span></div>
     <div class="row" id="eraserSoftRow"><div class="ctl"><button type="button" class="switch" id="eraserSoftSw" role="switch" aria-checked="false" aria-label="Soft eraser"></button><span>Soft edge</span></div></div>
   </div>
   <div id="pop_fill" hidden>
@@ -1863,20 +1866,39 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
   // kind: grain = pencil texture; solid = even fill; water / air / softErase = painted pixel effects; erase = hard eraser
   var BRUSHES = {
     pencil:  { name: 'Pencil', layer: 'sketch', w: 2.4, op: 0.88, pMin: 0.35, pMax: 1.3, tilt: true, smooth: 0.45, kind: 'grain' },
-    pen:     { name: 'Fineliner', layer: 'lines', w: 1.9, op: 1, pMin: 0.8, pMax: 1.15, smooth: 0.55, kind: 'solid' },
-    brush:   { name: 'Brush pen', layer: 'lines', w: 4.5, op: 1, pMin: 0.12, pMax: 1.45, smooth: 0.6, kind: 'solid', taper: true },
+    charcoal: { name: 'Charcoal', layer: 'sketch', w: 6, op: 0.9, pMin: 0.45, pMax: 1.45, tilt: true, smooth: 0.5, kind: 'grain', tex: 'charcoal' },
+    pen:     { name: 'Fineliner', short: 'Liner', layer: 'lines', w: 1.9, op: 1, pMin: 0.8, pMax: 1.15, smooth: 0.55, kind: 'solid' },
+    tech:    { name: 'Technical pen', short: 'Tech pen', layer: 'lines', w: 1.3, op: 1, pMin: 1, pMax: 1, smooth: 0.5, kind: 'solid', even: true },
+    brush:   { name: 'Brush pen', short: 'Brush', layer: 'lines', w: 4.5, op: 1, pMin: 0.12, pMax: 1.45, smooth: 0.6, kind: 'solid', taper: true },
+    dip:     { name: 'Dip pen', layer: 'lines', w: 3.2, op: 1, pMin: 0.07, pMax: 2.1, curve: 1.6, smooth: 0.55, kind: 'solid', taper: true },
+    callig:  { name: 'Calligraphy', short: 'Callig.', layer: 'lines', w: 9, op: 1, pMin: 0.85, pMax: 1.15, smooth: 0.55, kind: 'nib' },
     marker:  { name: 'Marker', layer: 'colour', w: 16, op: 0.45, pMin: 0.85, pMax: 1.15, smooth: 0.6, kind: 'solid', blend: 'multiply' },
-    water:   { name: 'Watercolour', layer: 'colour', w: 22, op: 0.8, pMin: 0.6, pMax: 1.3, smooth: 0.65, kind: 'water', blend: 'multiply' },
+    water:   { name: 'Watercolour', short: 'Water', layer: 'colour', w: 22, op: 0.8, pMin: 0.6, pMax: 1.3, smooth: 0.65, kind: 'water', blend: 'multiply' },
     gouache: { name: 'Gouache', layer: 'colour', w: 14, op: 1, pMin: 0.8, pMax: 1.2, smooth: 0.6, kind: 'solid' },
+    dry:     { name: 'Dry brush', short: 'Dry brush', layer: 'colour', w: 20, op: 0.9, pMin: 0.5, pMax: 1.35, smooth: 0.6, kind: 'bristle' },
+    pastel:  { name: 'Pastel', layer: 'colour', w: 12, op: 0.95, pMin: 0.7, pMax: 1.25, tilt: true, smooth: 0.55, kind: 'grain', tex: 'pastel' },
     air:     { name: 'Airbrush', layer: 'colour', w: 34, op: 0.3, pMin: 0.6, pMax: 1.3, smooth: 0.7, kind: 'air' },
     shadow:  { name: 'Shadow', layer: 'colour', w: 26, op: 0.55, pMin: 0.6, pMax: 1.3, smooth: 0.7, kind: 'shade', blend: 'multiply', fixed: '120,116,146' },
     light:   { name: 'Highlight', layer: 'colour', w: 22, op: 0.55, pMin: 0.6, pMax: 1.3, smooth: 0.7, kind: 'shade', blend: 'screen', fixed: '255,255,255' },
     eraser:  { name: 'Eraser', w: 20, op: 1, pMin: 0.6, pMax: 1.3, smooth: 0.5, kind: 'erase' }
   };
-  var BRUSH_ORDER = ['pencil', 'pen', 'brush', 'marker', 'water', 'gouache', 'air', 'shadow', 'light'];
+  var BRUSH_GROUPS = [
+    ['Sketch', ['pencil', 'charcoal']],
+    ['Ink and lines', ['pen', 'tech', 'brush', 'dip', 'callig']],
+    ['Paint and colour', ['marker', 'water', 'gouache', 'dry', 'pastel', 'air']],
+    ['Shading', ['shadow', 'light']]
+  ];
+  var BRUSH_HINT = { tech: 'Even width, for flats', dip: 'Hairline to bold with pressure', callig: 'Flat nib, thick and thin by direction',
+    charcoal: 'Soft and grainy', pastel: 'Chalky, skips the paper grain', dry: 'Bristle streaks' };
   var BRUSH_ICON = {
     pencil: '<path d="M4.5 19.5l1-4.2L16 4.8l3.2 3.2L8.7 18.5z"/><path d="M13.8 7l3.2 3.2"/>',
     pen: '<path d="M5 19l1.6-4.6 9.2-9.2 3 3-9.2 9.2z"/><path d="M5 19l2.4-.8"/>',
+    charcoal: '<path d="M5.5 15.5l8.5-8.5 3.5 3.5-8.5 8.5z" fill="currentColor" fill-opacity=".25"/><path d="M5.5 15.5l8.5-8.5 3.5 3.5-8.5 8.5z"/><path d="M4 20.5c1-.5 2-.3 3-.8"/>',
+    tech: '<path d="M14.5 4.5l5 5-8 8-5-5z"/><path d="M6.5 12.5L4 20l7.5-2.5"/><path d="M4 20l2-2"/>',
+    dip: '<path d="M12 3.5l4.5 9L12 20.5 7.5 12.5z"/><path d="M12 20.5v-7"/><circle cx="12" cy="12" r="1.3"/>',
+    callig: '<path d="M9 3.5h6l1.5 8-4.5 3.5-4.5-3.5z"/><path d="M12 15v5.5"/><path d="M8 20.5h8"/>',
+    dry: '<path d="M4 8c4-1 12-1 16 0"/><path d="M4 12c3 0 5-.5 9 0 2 .2 4 0 7 0" stroke-dasharray="5 2"/><path d="M4 16c4 1 7 .5 10 0" stroke-dasharray="3 2.5"/>',
+    pastel: '<rect x="8" y="3.5" width="8" height="13" rx="1.5" transform="rotate(30 12 10)"/><path d="M4 20.5c3-1.5 6 .5 9-1"/>',
     brush: '<path d="M14.5 4.5c2 0 5 3 5 5L11 18c-1.5 1.5-4.5 2-6.5 1.5.5-2 0-4 1.5-5.5z"/><path d="M12 7l5 5"/>',
     marker: '<path d="M7 20h10"/><path d="M8.5 16.5l2-11h3l2 11z"/><path d="M10 9h4"/>',
     water: '<path d="M12 3.5c3 4 5.5 7 5.5 10a5.5 5.5 0 01-11 0c0-3 2.5-6 5.5-10z"/><path d="M9.5 14.5a2.5 2.5 0 002.5 2.5"/>',
@@ -1901,6 +1923,7 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
   // saved drawing settings (older saves had inkTool / inkSize)
   if (!BRUSHES[S.inkBrush]) S.inkBrush = BRUSHES[S.inkTool] && S.inkTool !== 'eraser' ? S.inkTool : 'pencil';
   if (!/^#[0-9a-f]{6}$/i.test(S.inkColor || '')) S.inkColor = '#2f2c29';
+  if (!(S.nibAngle >= 0 && S.nibAngle <= 90)) S.nibAngle = 40;   // the usual italic hand: 30-45 degrees
   if (!Array.isArray(S.recentColors)) S.recentColors = [];
   if (!S.brushSet || typeof S.brushSet !== 'object') S.brushSet = {};
   Object.keys(BRUSHES).forEach(function (k) {
@@ -1966,13 +1989,28 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
     return top * (1 - fy) + bot * fy;
   }
   var grainPatterns = {};
-  function grainPattern(x, rgb) {   // the pencil's colour with the paper's tooth in its alpha
-    if (grainPatterns[rgb]) return grainPatterns[rgb];
-    var N = GRAIN.N, c = document.createElement('canvas'); c.width = N; c.height = N;
-    var cx = c.getContext('2d'), id = cx.createImageData(N, N), d = id.data, p = rgb.split(',').map(Number);
-    for (var i = 0; i < N * N; i++) { d[i * 4] = p[0]; d[i * 4 + 1] = p[1]; d[i * 4 + 2] = p[2]; d[i * 4 + 3] = Math.round(255 * (0.45 + 0.55 * GRAIN.v[i])); }
+  // the brush's colour with the paper's tooth in its alpha: pencil (fine), charcoal (coarse, broken), pastel (waxy, skips the hollows)
+  function grainPattern(x, rgb, tex) {
+    var key = rgb + '|' + (tex || 'pencil');
+    if (grainPatterns[key]) return grainPatterns[key];
+    var N = GRAIN.N, sc = tex ? 2 : 1, M = N * sc;
+    var c = document.createElement('canvas'); c.width = M; c.height = M;
+    var cx = c.getContext('2d'), id = cx.createImageData(M, M), d = id.data, p = rgb.split(',').map(Number);
+    for (var y = 0, i = 0; y < M; y++) for (var xx = 0; xx < M; xx++, i++) {
+      var a;
+      if (tex === 'charcoal') {
+        // the paper's fine tooth breaks the line; a little slower variation keeps it from looking printed
+        var v = 0.78 * grainAt(xx, y) + 0.22 * grainSmooth(xx / sc + 11, y / sc + 23);
+        a = Math.max(0, Math.min(1, (v - 0.18) * 2.3)); a = 0.12 + 0.88 * a;
+      } else if (tex === 'pastel') {
+        // wax rides the tops of the tooth: solid colour with small flecks of paper showing through
+        var u = grainSmooth(xx / sc + 40, y / sc + 9), f = grainAt(xx + 57, y + 31);
+        a = smooth(0.26, 0.4, u * 0.45 + f * 0.55); a = 0.1 + 0.88 * a;
+      } else a = 0.45 + 0.55 * GRAIN.v[i];
+      d[i * 4] = p[0]; d[i * 4 + 1] = p[1]; d[i * 4 + 2] = p[2]; d[i * 4 + 3] = Math.round(255 * a);
+    }
     cx.putImageData(id, 0, 0);
-    return (grainPatterns[rgb] = x.createPattern(c, 'repeat'));
+    return (grainPatterns[key] = x.createPattern(c, 'repeat'));
   }
   (function paperTexture() {   // watercolour paper for the page background
     var N = GRAIN.N, c = document.createElement('canvas'); c.width = N; c.height = N;
@@ -1984,16 +2022,82 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
 
   // ----- shapes
   function inkPath(st) {
-    var p = st.p, P = new Path2D(), n = p.length;
-    for (var i = 0; i < n; i += 3) {
-      var x = p[i], y = p[i + 1], r = Math.max(0.15, p[i + 2] / 2);
-      P.moveTo(x + r, y); P.arc(x, y, r, 0, Math.PI * 2, false);
-      if (i >= 3) {
-        var q = quadOf(p[i - 3], p[i - 2], Math.max(0.15, p[i - 1] / 2), x, y, r);
-        if (q) { P.moveTo(q[0], q[1]); P.lineTo(q[2], q[3]); P.lineTo(q[4], q[5]); P.lineTo(q[6], q[7]); P.closePath(); }
-      }
-    }
+    var P = new Path2D();
+    strokeShapes(st, {
+      circle: function (x, y, r) { P.moveTo(x + r, y); P.arc(x, y, r, 0, Math.PI * 2, false); },
+      // no closePath: fill closes each shape anyway, and closePath gets slower the longer the path (Chrome), so long strokes lagged
+      poly: function (q) { P.moveTo(q[0], q[1]); for (var j = 2; j < q.length; j += 2) P.lineTo(q[j], q[j + 1]); }
+    });
     return P;
+  }
+  // every stroke is a union of simple shapes, all wound the same way so they fill evenly. The screen (Path2D) and the SVG
+  // export draw the same shapes: round dabs joined by bands (most brushes), a flat nib swept along the line (calligraphy),
+  // or a row of thin bristles that run dry (dry brush).
+  function strokeShapes(st, out) {
+    var k = kindOf(st);
+    if (k === 'nib') return nibShapes(st, out);
+    if (k === 'bristle') return bristleShapes(st, out);
+    roundShapes(st.p, out, 0, 0);
+  }
+  function roundShapes(p, out, ox, oy) {
+    for (var i = 0; i < p.length; i += 3) {
+      var x = p[i] - ox, y = p[i + 1] - oy, r = Math.max(0.15, p[i + 2] / 2);
+      out.circle(x, y, r);
+      if (i >= 3) { var q = quadOf(p[i - 3] - ox, p[i - 2] - oy, Math.max(0.15, p[i - 1] / 2), x, y, r); if (q) out.poly(q); }
+    }
+  }
+  // calligraphy: a flat nib held at a fixed angle (degrees above the baseline). Each step is the hull of the nib at both ends.
+  function nibCorners(x, y, w, ang) {
+    var a = ang * Math.PI / 180, ux = Math.cos(a), uy = -Math.sin(a), h = w / 2, t = Math.max(0.3, w * 0.09) / 2;
+    return [x - ux * h - uy * t, y - uy * h + ux * t, x + ux * h - uy * t, y + uy * h + ux * t,
+            x + ux * h + uy * t, y + uy * h - ux * t, x - ux * h + uy * t, y - uy * h - ux * t];
+  }
+  function hull(pts) {   // convex hull of x,y pairs, wound clockwise on screen (like the round dabs)
+    var P = []; for (var i = 0; i < pts.length; i += 2) P.push([pts[i], pts[i + 1]]);
+    P.sort(function (a, b) { return a[0] - b[0] || a[1] - b[1]; });
+    var cr = function (o, a, b) { return (a[0] - o[0]) * (b[1] - o[1]) - (a[1] - o[1]) * (b[0] - o[0]); };
+    var lo = [], up = [];
+    P.forEach(function (q) { while (lo.length >= 2 && cr(lo[lo.length - 2], lo[lo.length - 1], q) <= 0) lo.pop(); lo.push(q); });
+    for (i = P.length - 1; i >= 0; i--) { var q = P[i]; while (up.length >= 2 && cr(up[up.length - 2], up[up.length - 1], q) <= 0) up.pop(); up.push(q); }
+    var H = lo.slice(0, -1).concat(up.slice(0, -1)), o = [];
+    H.forEach(function (q) { o.push(q[0], q[1]); });
+    return o;
+  }
+  function nibShapes(st, out) {
+    var p = st.p, ang = st.n == null ? 45 : st.n, prev = null;
+    for (var i = 0; i < p.length; i += 3) {
+      var c = nibCorners(p[i], p[i + 1], p[i + 2], ang);
+      out.poly(prev ? hull(prev.concat(c)) : hull(c));
+      prev = c;
+    }
+  }
+  // dry brush: bristles side by side across the stroke; each has its own width, and some break up and run out towards the end
+  function bristleShapes(st, out) {
+    var p = st.p, n = p.length / 3; if (!n) return;
+    var seed = (st.s || 1) >>> 0;
+    function rnd() { seed = (seed * 1664525 + 1013904223) >>> 0; return seed / 4294967296; }
+    var len = [0]; for (var i = 1; i < n; i++) len.push(len[i - 1] + Math.hypot(p[i * 3] - p[i * 3 - 3], p[i * 3 + 1] - p[i * 3 - 2]));
+    var total = len[n - 1] || 1, aw = avgWidth(st), N = Math.max(6, Math.min(16, Math.round(aw / 1.8)));
+    var nx = [], ny = [];   // smoothed normals
+    for (i = 0; i < n; i++) {
+      var a = Math.max(0, i - 3), b = Math.min(n - 1, i + 3), dx = p[b * 3] - p[a * 3], dy = p[b * 3 + 1] - p[a * 3 + 1], L = Math.hypot(dx, dy);
+      if (L < 1e-6) { nx.push(i ? nx[i - 1] : 0); ny.push(i ? ny[i - 1] : 1); } else { nx.push(-dy / L); ny.push(dx / L); }
+    }
+    for (var j = 0; j < N; j++) {
+      var off = ((j + 0.5) / N - 0.5) * 0.92 + (rnd() - 0.5) * 0.5 / N, wf = 0.55 + 0.6 * rnd();
+      var stop = rnd() < 0.35 ? 0.55 + 0.4 * rnd() : 1, ph = rnd() * 1000, fq = 0.025 + 0.025 * rnd(), dryness = 0.15 + 0.35 * rnd();
+      var run = [];
+      for (i = 0; i < n; i++) {
+        var f = len[i] / total, w = p[i * 3 + 2];
+        var gap = Math.sin(len[i] * fq + ph) * 0.5 + 0.5 * Math.sin(len[i] * fq * 2.7 + ph * 1.3);   // -1..1, slow along the stroke
+        var keep = f <= stop && (f < 0.25 || gap > -1 + 2 * dryness * Math.min(1, f * 1.4));
+        if (keep) {
+          var r = Math.max(0.2, w / N * 0.62 * wf * (f > stop - 0.08 ? Math.max(0.3, (stop - f) / 0.08) : 1));
+          run.push(p[i * 3] + nx[i] * off * w, p[i * 3 + 1] + ny[i] * off * w, r * 2);
+        } else if (run.length) { roundShapes(run, out, 0, 0); run = []; }
+      }
+      if (run.length) roundShapes(run, out, 0, 0);
+    }
   }
   // the band joining two circles, wound like the circles (clockwise on screen) so the union fills evenly
   function quadOf(x0, y0, r0, x1, y1, r1) {
@@ -2012,7 +2116,8 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
   function strokeBox(st) {
     if (st.m) return { x0: st.m.x, y0: st.m.y, x1: st.m.x + st.m.w, y1: st.m.y + st.m.h };
     var p = st.p, x0 = 1e9, y0 = 1e9, x1 = -1e9, y1 = -1e9;
-    for (var i = 0; i < p.length; i += 3) { var r = p[i + 2] / 2; x0 = Math.min(x0, p[i] - r); y0 = Math.min(y0, p[i + 1] - r); x1 = Math.max(x1, p[i] + r); y1 = Math.max(y1, p[i + 1] + r); }
+    var m = kindOf(st) === 'bristle' ? 0.62 : 0.5;
+    for (var i = 0; i < p.length; i += 3) { var r = p[i + 2] * m; x0 = Math.min(x0, p[i] - r); y0 = Math.min(y0, p[i + 1] - r); x1 = Math.max(x1, p[i] + r); y1 = Math.max(y1, p[i + 1] + r); }
     return { x0: x0, y0: y0, x1: x1, y1: y1 };
   }
   function avgWidth(st) { if (!st.p) return 1; var s = 0, n = 0; for (var i = 2; i < st.p.length; i += 3) { s += st.p[i]; n++; } return n ? s / n : 1; }
@@ -2092,7 +2197,7 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
     else {
       x.globalCompositeOperation = b.blend || 'source-over';
       x.globalAlpha = preview && kind === 'water' ? st.a * 0.55 : preview && (kind === 'air' || kind === 'shade') ? st.a * 0.6 : st.a;
-      x.fillStyle = kind === 'grain' ? grainPattern(x, st.c) : 'rgb(' + st.c + ')';
+      x.fillStyle = kind === 'grain' ? grainPattern(x, st.c, b.tex) : 'rgb(' + st.c + ')';
     }
     x.fill(P);
     x.globalAlpha = 1; x.globalCompositeOperation = 'source-over';
@@ -2152,6 +2257,8 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
     var L = key === 'eraser' ? S.activeLayer : (INK.layers[S.activeLayer] ? S.activeLayer : b.layer);
     var mk = function () { return { t: key, c: col, a: Math.max(0.03, set.op / 100), e: key === 'eraser', soft: key === 'eraser' && !!S.eraserSoft, L: L, p: [] }; };
     INK.live = mk(); INK.liveM = S.mirrorOn && S.cfOn ? mk() : null;
+    if (b.kind === 'nib') { INK.live.n = S.nibAngle; if (INK.liveM) INK.liveM.n = 180 - S.nibAngle; }   // the mirror holds its nib the mirrored way
+    if (b.kind === 'bristle') { INK.live.s = 1 + Math.floor(Math.random() * 2147483646); if (INK.liveM) INK.liveM.s = INK.live.s; }
     INK.ptr = e.pointerId; INK.kind = e.pointerType; INK.last = null; INK.tool = b; INK.size = set.size; INK.n = 0;
     if (e.pointerType === 'pen') INK.penSeen = true;
     if (e.pointerType === 'pen' && pts.size) { pts.clear(); g = null; INK.held = []; }   // a palm had started a pinch: the pencil wins
@@ -2170,13 +2277,13 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
     list.forEach(function (ev) {
       var w0 = toWorld(ev.clientX, ev.clientY), pr = pressureOf(ev);
       INK.raw = { x: w0.x, y: w0.y };
-      var wid = t.w * size * (t.pMin + (t.pMax - t.pMin) * Math.pow(pr, 0.75));
+      var wid = t.w * size * (t.pMin + (t.pMax - t.pMin) * Math.pow(pr, t.curve || 0.75));
       if (t.tilt && ev.pointerType === 'pen') {   // pencil on its side: a wider, shading line
         var tilt = Math.min(90, Math.hypot(ev.tiltX || 0, ev.tiltY || 0)); wid *= 1 + 2.4 * smooth(35, 72, tilt);
       }
       if (t.taper && INK.n < 8) wid *= Math.pow((INK.n + 1) / 8, 0.7);   // brush pen: the line starts from a point
       var L = INK.last, sm = t.smooth;
-      if (L) { w0.x = L.x + (w0.x - L.x) * (1 - sm); w0.y = L.y + (w0.y - L.y) * (1 - sm); wid = L.w + (wid - L.w) * 0.5; }
+      if (L) { w0.x = L.x + (w0.x - L.x) * (1 - sm); w0.y = L.y + (w0.y - L.y) * (1 - sm); wid = t.even ? t.w * size : L.w + (wid - L.w) * 0.5; }
       if (L && Math.hypot(w0.x - L.x, w0.y - L.y) < 0.5 / V.s) return;   // skip points closer than half a screen pixel
       INK.last = { x: w0.x, y: w0.y, w: wid }; INK.n++;
       var r2 = function (v) { return Math.round(v * 100) / 100; };
@@ -2564,13 +2671,18 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
   function layerName(id) { return (LAYERS.filter(function (l) { return l[0] === id; })[0] || [0, id])[1]; }
   function renderBrushPop() {
     var box = $('brushGrid'); box.innerHTML = '';
-    BRUSH_ORDER.forEach(function (k) {
-      var b = document.createElement('button'); b.type = 'button'; b.className = 'brushBtn'; b.setAttribute('aria-pressed', k === S.inkBrush && !S.inkErase ? 'true' : 'false');
-      b.innerHTML = iconSvg(k) + '<span>' + BRUSHES[k].name + '</span><small>' + layerName(BRUSHES[k].layer) + ' layer</small>';
-      b.addEventListener('click', function () {
-        S.inkBrush = k; S.inkErase = false; S.inkFill = false; S.activeLayer = BRUSHES[k].layer; persist(); closeInkPop(); syncDraw();
+    BRUSH_GROUPS.forEach(function (g) {
+      var h = document.createElement('div'); h.className = 'popSub brushHead'; h.textContent = g[0]; box.appendChild(h);
+      g[1].forEach(function (k) {
+        var b = document.createElement('button'); b.type = 'button'; b.className = 'brushBtn'; b.setAttribute('aria-pressed', k === S.inkBrush && !S.inkErase ? 'true' : 'false');
+        b.title = BRUSH_HINT[k] || '';
+        b.innerHTML = iconSvg(k) + '<span>' + BRUSHES[k].name + '</span><small>' + layerName(BRUSHES[k].layer) + ' layer</small>';
+        b.addEventListener('click', function () {
+          S.inkBrush = k; S.inkErase = false; S.inkFill = false; S.activeLayer = BRUSHES[k].layer; persist(); closeInkPop(); syncDraw();
+          if (BRUSH_HINT[k]) toast(BRUSHES[k].name + ': ' + BRUSH_HINT[k].charAt(0).toLowerCase() + BRUSH_HINT[k].slice(1) + (k === 'callig' ? '. Set the nib angle in Size.' : '.'));
+        });
+        box.appendChild(b);
       });
-      box.appendChild(b);
     });
   }
   function swatchBtn(hex, label) {
@@ -2607,6 +2719,7 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
       persist(); syncDraw();
     });
   });
+  $('nibAngle').addEventListener('input', function () { S.nibAngle = +this.value; persist(); syncDraw(); });
   $('eraserSoftSw').addEventListener('click', function () { S.eraserSoft = !S.eraserSoft; persist(); syncDraw(); });
   $('paperSw').addEventListener('click', function () { S.paper = S.paper === 'water' ? 'plain' : 'water'; persist(); syncDraw(); });
   function renderLayerPop() {
@@ -2641,7 +2754,7 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
     var show = screenMode && drawing && $('start').hidden && $('tools').hidden && $('capture').hidden;
     $('drawRail').hidden = !show; if (!show && INK.pop) { INK.pop = ''; $('inkPop').hidden = true; }
     var key = curBrush(), set = S.brushSet[key];
-    $('railBrushIcon').innerHTML = iconSvg(S.inkBrush); $('railBrushName').textContent = BRUSHES[S.inkBrush].name.replace('Watercolour', 'Water').replace('Fineliner', 'Liner').replace('Brush pen', 'Brush');
+    $('railBrushIcon').innerHTML = iconSvg(S.inkBrush); $('railBrushName').textContent = BRUSHES[S.inkBrush].short || BRUSHES[S.inkBrush].name;
     $('railBrush').setAttribute('aria-pressed', !S.inkErase && !S.inkFill ? 'true' : 'false'); $('railEraser').setAttribute('aria-pressed', S.inkErase ? 'true' : 'false');
     $('railFill').setAttribute('aria-pressed', S.inkFill ? 'true' : 'false');
     $('railSwatch').style.background = S.inkColor; $('railColour').classList.toggle('picking', !!INK.picking);
@@ -2655,6 +2768,7 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
     $('brushSize').value = Math.log2(set.size); $('brushSizeOut').textContent = Math.round(set.size * 100) + '%';
     $('brushOp').value = set.op; $('brushOpOut').textContent = set.op + '%';
     $('eraserSoftRow').hidden = key !== 'eraser'; setSwitch('eraserSoftSw', !!S.eraserSoft);
+    $('nibRow').hidden = BRUSHES[key].kind !== 'nib'; $('nibAngle').value = S.nibAngle; $('nibAngleOut').textContent = S.nibAngle + '°';
     setSwitch('paperSw', S.paper === 'water');
     document.body.classList.toggle('paperWater', screenMode && S.paper === 'water');
     if (INK.pop === 'layers') renderLayerPop();
@@ -2716,15 +2830,11 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
     var b = inkBox(); if (!b) return null;
     var f = function (v) { return (Math.round(v * 10) / 10).toString(); };
     function d(st) {
-      var p = st.p, out = [];
-      for (var i = 0; i < p.length; i += 3) {
-        var x = p[i] - b.x, y = p[i + 1] - b.y, r = Math.max(0.15, p[i + 2] / 2);
-        out.push('M' + f(x + r) + ' ' + f(y) + 'A' + f(r) + ' ' + f(r) + ' 0 1 1 ' + f(x - r) + ' ' + f(y) + 'A' + f(r) + ' ' + f(r) + ' 0 1 1 ' + f(x + r) + ' ' + f(y) + 'Z');
-        if (i >= 3) {
-          var q = quadOf(p[i - 3] - b.x, p[i - 2] - b.y, Math.max(0.15, p[i - 1] / 2), x, y, r);
-          if (q) out.push('M' + f(q[0]) + ' ' + f(q[1]) + 'L' + f(q[2]) + ' ' + f(q[3]) + 'L' + f(q[4]) + ' ' + f(q[5]) + 'L' + f(q[6]) + ' ' + f(q[7]) + 'Z');
-        }
-      }
+      var out = [];
+      strokeShapes(st, {
+        circle: function (x, y, r) { x -= b.x; y -= b.y; out.push('M' + f(x + r) + ' ' + f(y) + 'A' + f(r) + ' ' + f(r) + ' 0 1 1 ' + f(x - r) + ' ' + f(y) + 'A' + f(r) + ' ' + f(r) + ' 0 1 1 ' + f(x + r) + ' ' + f(y) + 'Z'); },
+        poly: function (q) { var t = 'M' + f(q[0] - b.x) + ' ' + f(q[1] - b.y); for (var j = 2; j < q.length; j += 2) t += 'L' + f(q[j] - b.x) + ' ' + f(q[j + 1] - b.y); out.push(t + 'Z'); }
+      });
       return out.join('');
     }
     var defs = '', m = 0, groups = '';

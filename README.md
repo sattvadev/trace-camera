@@ -41,8 +41,14 @@ and your chosen photo floats see-through on top, so you can draw while watching 
 ## For fashion designers (release 1)
 
 - **Painting editor (draw-on-screen mode):** a rail on the left with Brush, Eraser, Colour, Size, Layers and Mirror.
-  Brushes: pencil (paper grain, tilt to shade), fineliner, brush pen (tapered, pressure-swelling), alcohol marker
-  (see-through, multiplies where it overlaps), watercolour, gouache, airbrush; hard or soft eraser on the chosen layer.
+  Brushes, grouped in the picker: Sketch: pencil (paper grain, tilt to shade), charcoal (coarse, broken grain). Ink and
+  lines: fineliner, technical pen (one even width, for flats), brush pen (tapered, pressure-swelling), dip pen (hairline
+  to bold with pressure), calligraphy (a flat nib at a set angle, 0-90 degrees in Size, default 40; thick and thin come
+  from the stroke's direction; Mirror draws the other side with the mirrored nib). Paint and colour: alcohol marker
+  (see-through, multiplies where it overlaps), watercolour, gouache, dry brush (bristles that streak and run dry, seeded
+  per stroke so a saved drawing looks the same), pastel (waxy, paper showing through), airbrush. Hard or soft eraser on
+  the chosen layer. Every line stroke is built from simple shapes (round dabs, a swept nib, or bristles) shared by the
+  screen and the SVG export; charcoal and pastel texture is in the PNG, the SVG has them as solid lines.
   Each brush keeps its own size and opacity. Colour: recent colours, the value-step greys, neutrals, six skin tones, a
   fashion palette, the system colour picker, and Pick colour from photo (averages the reference photo's real pixels
   under the tap). Layers bottom to top: Colour, Sketch, Lines, each shown/hidden with its own opacity; brushes pick
