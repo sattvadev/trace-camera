@@ -142,6 +142,23 @@ and your chosen photo floats see-through on top, so you can draw while watching 
     canvas pattern. Fills use every copy of the lines as edges, so a tap fills the symmetric region. The pattern is
     saved with the project. Tested: the 17 groups have the right number of moves, every move fits the lattice, and the
     tile repeated over 2×2 periods equals every copy drawn straight (all 22 symmetries).
+- **Procreate-style tools (2026-11-22):**
+  - *Clipping mask* (Layers → ⋯): the layer shows only where the layer under it has paint; several can stack on one
+    base (shown indented). *Alpha lock*: new strokes paint only over paint already on the layer. Both in PNG, SVG (alpha
+    masks) and pattern tiles. 16 blend modes (added Colour burn/dodge, Hard light, Difference, Exclusion, Hue,
+    Saturation, Luminosity).
+  - *StreamLine* per brush (Settings): a lazy string between the Pencil and the line, so wobbles never reach it; the
+    line catches up on lift. *Pencil pressure* curve (Softer–Firmer) for all brushes, with a graph and live preview.
+  - *QuickShape*: hold still at the end of a stroke and it snaps to a line, arc, ellipse, rectangle or polygon; keep
+    holding to resize or turn it; a finger on the screen makes it perfect (circle, square, regular polygon, lines at 15°).
+  - *ColorDrop*: drag the colour swatch from the rail onto a shape to fill it; hold, then slide left or right to close
+    smaller or bigger gaps (live); lift to keep.
+  - *My palettes* (Colour): from a photo (k-means, 10 colours) or imported from .ase (Adobe), .aco (Photoshop), .gpl
+    (GIMP/Inkscape) or .swatches (Procreate). Patterns can be recoloured with a palette (dark to dark).
+- **Pattern studio v2:** Start from a photo (cut to the symmetry's fundamental domain, so its copies meet edge to edge:
+  a photo kaleidoscope or seamless photo wallpaper; "Another part" tries a different piece), starter motifs Seigaiha,
+  Shippō and Asanoha (original line art), Scales and Scatter layouts (Scatter: six turned copies in a big tile, Shuffle),
+  "Edit this pattern" from a print in Fill, and the print's repeat in cm on the croquis.
 - **Keyboard:** Cmd/Ctrl+Z undo; Shift+Cmd/Ctrl+Z or Ctrl+Y redo (ignored while typing in a text field). With a selection:
   Cmd+C, Cmd+X, Cmd+V, Cmd+D duplicate, Delete, arrows nudge (Shift ×10), Escape lets go; Cmd+A selects the whole layer.
 - **Speed and memory (for iPad):** the per-pixel paint of watercolour, airbrush, shading and soft lines runs in a pool of up
