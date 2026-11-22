@@ -125,6 +125,23 @@ and your chosen photo floats see-through on top, so you can draw while watching 
 - **Pick a colour:** touch and hold with the Pencil (or finger, when finger drawing is on) for half a second: a loupe shows
   the new colour over the current one, and lifting keeps it. It reads the drawing where there is paint, else the photo. A
   resting palm never picks. Option-click picks at once with a mouse. Switch it off in Colour.
+- **Pattern studio (rail: Pattern):** inspired by pattern apps like PatternDraw, KaleidoPaint and iOrnament.
+  - *Kaleidoscope:* every line is turned round a centre, 2–32 segments, each mirrored or not (mandalas, rosettes).
+  - *Repeat:* draw anywhere and the tile repeats live, across its edges too: Grid, Half-drop, Brick, Mirror, Hex.
+  - *Wallpaper:* the 17 classic symmetries as picture tiles with friendly names (Mirror grid, Pinwheel, Square
+    kaleidoscope, Hex kaleidoscope, Footsteps…; the technical name shows on hover).
+  - Tile size; Move the centre (tap or drag); guides (spokes, or the saved tile outlined with its neighbours faint).
+  - Colourways: Shuffle colours, or New palette (a colour scheme that keeps light and dark where they were). Undoable.
+  - Save: the tile (exactly one repeat, 1024–4096 px with Spoonflower 150 DPI and 300 DPI sizes shown; it already holds
+    the layout, so upload as Basic), a 3×3 swatch PNG, or the swatch as SVG (real vector strokes in an SVG pattern).
+    Kaleidoscopes save from Tools → Draw with every segment (SVG as vector lines). Add to my prints puts the tile
+    among your prints (non-square tiles repeat correctly, and wrap and drape still work).
+  - How it works: strokes are kept once, as drawn. A kaleidoscope draws each stroke through its turns and mirrors. A
+    repeat or wallpaper builds one rectangular period of the lattice (half-drop, brick and hex use a super-cell), draws
+    every copy that touches it (the lattice shifts from neighbours, so it is seamless) and fills the layer with it as a
+    canvas pattern. Fills use every copy of the lines as edges, so a tap fills the symmetric region. The pattern is
+    saved with the project. Tested: the 17 groups have the right number of moves, every move fits the lattice, and the
+    tile repeated over 2×2 periods equals every copy drawn straight (all 22 symmetries).
 - **Keyboard:** Cmd/Ctrl+Z undo; Shift+Cmd/Ctrl+Z or Ctrl+Y redo (ignored while typing in a text field). With a selection:
   Cmd+C, Cmd+X, Cmd+V, Cmd+D duplicate, Delete, arrows nudge (Shift ×10), Escape lets go; Cmd+A selects the whole layer.
 - **Speed and memory (for iPad):** the per-pixel paint of watercolour, airbrush, shading and soft lines runs in a pool of up

@@ -7,7 +7,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="NUMOTIFSTUDIO - Trace">
 <meta name="application-name" content="NUMOTIFSTUDIO - Trace">
-<meta name="app-build" content="2026-11-21.09">
+<meta name="app-build" content="2026-11-22.01">
 <title>NUMOTIFSTUDIO - Trace</title>
 <link rel="icon" type="image/png" sizes="32x32" href="assets/favicon-32.png">
 <link rel="icon" type="image/png" sizes="192x192" href="assets/icon-192.png">
@@ -80,6 +80,7 @@ body.screenMode .camOnly, body:not(.screenMode) .screenOnly { display: none !imp
 #drawRail #railBrushIcon svg { width: 24px; height: 24px; display: block; }
 #drawRail button[aria-expanded="true"] { background: rgba(124,42,52,.12); }
 #drawRail #railColour.picking { box-shadow: inset 0 0 0 2px var(--accent); }
+#drawRail #railPattern.symOn { box-shadow: inset 0 0 0 2px var(--accent); color: var(--accent); }
 @media (max-height: 600px) { #drawRail { grid-template-columns: 54px 54px; } #drawRail .sep { grid-column: 1 / -1; } #drawRail button { min-height: 46px; } }
 /* select (lasso): the loop, the selection frame and its handles; the bar of actions */
 #selOverlay { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; overflow: visible; }
@@ -116,12 +117,12 @@ body.screenMode.paperWater #stage { background: #fbf8f2 var(--paperTex) repeat; 
 .bsMore { display: grid; gap: 10px; }
 /* settings rows: name and value on one line, the slider under it; switches on the right (compact, like a desktop brush panel) */
 #pop_settings { gap: 8px !important; }
-#pop_settings .grow { flex: none; gap: 0; }
-#pop_settings .grow span { order: -1; display: flex; justify-content: space-between; gap: 8px; text-align: left; font-size: .85rem; font-weight: 600; }
-#pop_settings .grow output { font-weight: 500; color: var(--muted); }
-#pop_settings .row { margin: 0; }
-#pop_settings .ctl { display: flex; align-items: center; justify-content: space-between; gap: 10px; width: 100%; }
-#pop_settings .ctl span { order: -1; font-size: .85rem; font-weight: 600; text-align: left; }
+#pop_settings .grow, #pop_pattern .grow { flex: none; gap: 0; }
+#pop_settings .grow span, #pop_pattern .grow span { order: -1; display: flex; justify-content: space-between; gap: 8px; text-align: left; font-size: .85rem; font-weight: 600; }
+#pop_settings .grow output, #pop_pattern .grow output { font-weight: 500; color: var(--muted); }
+#pop_settings .row, #pop_pattern .row { margin: 0; }
+#pop_settings .ctl, #pop_pattern .ctl { display: flex; align-items: center; justify-content: space-between; gap: 10px; width: 100%; }
+#pop_settings .ctl span, #pop_pattern .ctl span { order: -1; font-size: .85rem; font-weight: 600; text-align: left; }
 .bsMore .popSub { margin-top: 6px; }
 .bsMore .grow output { font-variant-numeric: tabular-nums; }
 #loupe { position: fixed; z-index: 26; width: 86px; height: 86px; margin: -43px 0 0 -43px; border-radius: 50%; pointer-events: none; overflow: hidden;
@@ -138,6 +139,9 @@ body.screenMode.paperWater #stage { background: #fbf8f2 var(--paperTex) repeat; 
 .printBtn { display: grid; justify-items: center; gap: 2px; border: 1px solid var(--gray-200); background: #fff; border-radius: 10px; padding: 4px 2px; cursor: pointer; font: 600 .62rem/1.1 var(--font); color: var(--gray-700); }
 .printBtn img { width: 40px; height: 40px; border-radius: 6px; display: block; }
 .printBtn[aria-pressed="true"] { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent); }
+.symGrid { grid-template-columns: repeat(3, 1fr); }
+.symGrid .printBtn img { width: 56px; height: 56px; }
+.symGrid .printBtn span { text-align: center; }
 #groundRow .chip[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
 .sw { width: 30px; height: 30px; border-radius: 8px; border: 1px solid rgba(0,0,0,.18); cursor: pointer; padding: 0; }
 .sw[aria-pressed="true"] { box-shadow: 0 0 0 2px #fff, 0 0 0 4px var(--accent); }
@@ -671,6 +675,7 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
   <button type="button" id="railSize" aria-expanded="false" aria-label="Brush settings"><span class="dotBox"><span class="dot" id="inkSizeDot"></span></span>Settings</button>
   <button type="button" id="railLayers" aria-expanded="false" aria-label="Layers"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M12 4l8.5 4.5L12 13 3.5 8.5z"/><path d="M3.5 12.5L12 17l8.5-4.5"/><path d="M3.5 16.5L12 21l8.5-4.5"/></svg><span id="railLayersName">Sketch</span></button>
   <button type="button" id="inkMirrorBtn" aria-pressed="false" aria-label="Mirror across the centre line"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v18" stroke-dasharray="2.5 2.5"/><path d="M9 7.5L4 12l5 4.5z"/><path d="M15 7.5l5 4.5-5 4.5z"/></svg>Mirror</button>
+  <button type="button" id="railPattern" aria-expanded="false" aria-label="Pattern: kaleidoscope and repeats"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="2.2"/><path d="M12 3.5c1.6 2.2 1.6 4.3 0 6.3-1.6-2-1.6-4.1 0-6.3z"/><path d="M12 20.5c-1.6-2.2-1.6-4.3 0-6.3 1.6 2 1.6 4.1 0 6.3z"/><path d="M3.5 12c2.2-1.6 4.3-1.6 6.3 0-2 1.6-4.1 1.6-6.3 0z"/><path d="M20.5 12c-2.2 1.6-4.3 1.6-6.3 0 2-1.6 4.1-1.6 6.3 0z"/><path d="M6 6l2.4 2.4M18 18l-2.4-2.4M18 6l-2.4 2.4M6 18l2.4-2.4" opacity=".6"/></svg>Pattern</button>
 </nav>
 <div id="selBar" class="glass" hidden role="toolbar" aria-label="Selection">
   <span id="selHint">Draw round what you want to move. Tap a line to pick it.</span>
@@ -742,6 +747,38 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
       <button type="button" class="chip" id="drapeReset">Straighten the print I tap next</button>
     </div>
     <input type="file" id="ownPrintFile" accept="image/*" hidden>
+  </div>
+  <div id="pop_pattern" hidden>
+    <div class="popTitle">Pattern</div>
+    <div class="seg" id="symModeSeg" role="group" aria-label="Pattern kind" style="justify-self:start;flex-wrap:wrap">
+      <button type="button" data-v="off" aria-pressed="true">Off</button><button type="button" data-v="kaleido" aria-pressed="false">Kaleidoscope</button><button type="button" data-v="repeat" aria-pressed="false">Repeat</button><button type="button" data-v="wall" aria-pressed="false">Wallpaper</button>
+    </div>
+    <p class="fine" id="symOffNote" style="margin:0">Kaleidoscope turns every line round a centre (mandalas). Repeat draws a seamless tile that repeats as you draw. Wallpaper has the 17 classic tiling symmetries.</p>
+    <div id="symKaleido" style="display:grid;gap:8px" hidden>
+      <div class="grow"><input id="symN" type="range" min="2" max="32" step="1" aria-label="Segments"><span>Segments <output id="symNOut"></output></span></div>
+      <div class="row"><div class="ctl"><button type="button" class="switch" id="symMirrorSw" role="switch" aria-checked="true" aria-label="Mirror each segment"></button><span>Mirror each segment</span></div></div>
+    </div>
+    <div id="symRepeat" hidden><div class="popSub">Layout</div><div id="symLayoutGrid" class="printGrid symGrid"></div></div>
+    <div id="symWall" hidden><div class="popSub">Symmetry</div><div id="symWallGrid" class="printGrid symGrid"></div></div>
+    <div id="symCommon" style="display:grid;gap:8px" hidden>
+      <div class="grow" id="symSizeRow"><input id="symSize" type="range" min="5.4" max="10" step="0.02" aria-label="Tile size"><span>Tile size <output id="symSizeOut"></output></span></div>
+      <div class="row" style="gap:6px"><button type="button" class="chip" id="symCentreBtn" aria-pressed="false">Move the centre</button><button type="button" class="chip" id="symCentreReset">Centre on page</button></div>
+      <div class="row"><div class="ctl"><button type="button" class="switch" id="symGuidesSw" role="switch" aria-checked="true" aria-label="Show guides"></button><span>Show guides</span></div></div>
+      <div class="popSub">Colourways</div>
+      <div class="row" style="gap:6px"><button type="button" class="chip" id="symShuffle">Shuffle colours</button><button type="button" class="chip" id="symPalette">New palette</button></div>
+      <div id="symSaveSec" style="display:grid;gap:8px">
+        <div class="popSub">Save the pattern</div>
+        <label class="fine" style="display:flex;gap:8px;align-items:center;margin:0">Tile width
+          <select id="symExpSize" style="font:inherit;padding:6px 8px;border-radius:8px;border:1px solid var(--gray-300);background:#fff;flex:1">
+            <option value="1024">1024 px</option><option value="1200">1200 px (8 in at 150 DPI)</option><option value="1800">1800 px (12 in at 150 DPI)</option>
+            <option value="2048" selected>2048 px</option><option value="2400">2400 px (8 in at 300 DPI)</option><option value="3600">3600 px (24 in at 150 DPI)</option><option value="4096">4096 px</option>
+          </select></label>
+        <div class="row" style="gap:6px"><button type="button" class="chip primary" id="symSaveTile">Save tile (PNG)</button><button type="button" class="chip" id="symSaveSwatch">3×3 swatch (PNG)</button><button type="button" class="chip" id="symSaveSvg">Swatch (SVG)</button></div>
+        <button type="button" class="chip" id="symToPrint" style="justify-self:start">Add to my prints</button>
+        <p class="fine" id="symSpoon" style="margin:0"></p>
+      </div>
+      <p class="fine" id="symKaleidoSave" style="margin:0">Save it from Tools → Draw (PNG or SVG): every segment is in the file, the SVG as real vector lines.</p>
+    </div>
   </div>
   <div id="pop_layers" hidden>
     <div class="layerHead"><div class="popTitle">Layers</div><button type="button" class="chip primary" id="layerAdd">+ New layer</button></div>
@@ -848,7 +885,7 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
     <h2 id="helpTitle">How to trace</h2>
     <ul>
       <li><b>Set up:</b> prop the phone 25–40 cm above the paper, camera facing down.</li>
-      <li><b>On iPad:</b> tap <b>Draw on screen with Apple Pencil</b> on the start screen. The Pencil draws (pencil, liner, grey marker, eraser on the left); two fingers move and zoom; tap with two fingers to undo, three to redo. <b>Select</b> on the rail: draw a loop, then drag, scale or turn it. <b>Layers</b>: add, lock, blend, merge and reorder. Touch and hold to pick a colour.</li>
+      <li><b>On iPad:</b> tap <b>Draw on screen with Apple Pencil</b> on the start screen. The Pencil draws (pencil, liner, grey marker, eraser on the left); two fingers move and zoom; tap with two fingers to undo, three to redo. <b>Select</b> on the rail: draw a loop, then drag, scale or turn it. <b>Layers</b>: add, lock, blend, merge and reorder. Touch and hold to pick a colour. <b>Pattern</b>: a kaleidoscope (mandalas), a seamless repeat tile (grid, half-drop, brick, mirror, hex) or one of the 17 wallpaper symmetries, drawn live; save the tile for print, or add it to your prints to fill a garment.</li>
       <li><b>Place the picture:</b> drag, pinch and twist it onto the paper. Tap <b>Move</b> first if it is locked.</li>
       <li><b>Lock it:</b> tap <b>Lock</b>. Now a pinch zooms in on details and the picture stays lined up. Double-tap to zoom out.</li>
       <li><b>Steps:</b> in Values or AI outlines, tap a number at the bottom to jump to that step, lightest first. <b>All</b> shows everything.</li>
@@ -2432,11 +2469,13 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
   }
   function rasterStroke(st, k) {
     var c = st._r, full = !!INK.syncRaster;
-    if (full && INK.full) { var pre = INK.full.get(st); if (pre && Math.abs(pre.req - k) < 1e-6) return pre; }   // painted by the workers for this export
+    if (full && INK.full) { var pre = INK.full.get(st); if (pre && Math.abs(pre.req - k) < 1e-3 * k) return pre; }   // painted for this export (by the workers, or once for all a pattern's copies)
     if (c && Math.abs(c.req - k) < 1e-6 && (!full || c.full)) { memTouch(st); return c; }
     if (c && !full && RW.ok()) { RW.queue(st, k); memTouch(st); return c; }   // the old one, scaled, until the worker is done
     var job = rasterPrep(st, k, full ? k : displayScale(st, k)); job.full = full;
-    return rasterFinish(st, job, rasterPaint(job.A, job.w, job.h, job.P));
+    var res = rasterFinish(st, job, rasterPaint(job.A, job.w, job.h, job.P));
+    if (full && INK.full) INK.full.set(st, res);   // every copy of it in this export uses the same painting
+    return res;
   }
   // the paint workers: built from the same functions as above, so they paint exactly what the page would. A small pool
   // (up to 4): exports first (all their strokes at once, in parallel), then sharpening the screen after a zoom.
@@ -2500,25 +2539,27 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
   })();
   // before an export at scale k: paint every soft stroke at full resolution in the workers; the export then uses them
   function prepareExport(k) {
-    var list = INK.strokes.filter(function (st) { var kd = kindOf(st); return (kd === 'water' || kd === 'air' || kd === 'softErase' || kd === 'shade' || isSoft(st)) && lset(strokeLayer(st)).on; });
+    var list = exportStrokes().filter(function (st) { var kd = kindOf(st); return (kd === 'water' || kd === 'air' || kd === 'softErase' || kd === 'shade' || isSoft(st)) && lset(strokeLayer(st)).on; });
     INK.full = new Map();
     if (!list.length || !RW.ok()) return Promise.resolve();
     return Promise.all(list.map(function (st) { return RW.full(st, k).then(function (r) { if (r) INK.full.set(st, r); }); }))
       .catch(function () { INK.full = new Map(); });   // a worker failed: the export paints on the page instead
   }
   // draw one stroke into ctx whose world→device transform is (k, tx, ty)
-  function renderStroke(x, st, k, tx, ty, preview) {
+  // M (optional): a world-space matrix applied before the view (a symmetry copy: turned, mirrored or moved)
+  function renderStroke(x, st, k, tx, ty, preview, M) {
     var kind = kindOf(st), b = BRUSHES[st.t] || {};
+    var setW = function () { x.setTransform(k, 0, 0, k, tx, ty); if (M) x.transform(M[0], M[1], M[2], M[3], M[4], M[5]); };
     if (kind === 'fill' || kind === 'img') {
       var fc = kind === 'fill' ? fillCanvas(st) : picImage(st); if (!fc) return;
-      x.setTransform(k, 0, 0, k, tx, ty); if (st.tf) x.transform(st.tf[0], st.tf[1], st.tf[2], st.tf[3], st.tf[4], st.tf[5]);
+      setW(); if (st.tf) x.transform(st.tf[0], st.tf[1], st.tf[2], st.tf[3], st.tf[4], st.tf[5]);
       x.globalAlpha = st.a == null ? 1 : st.a; x.imageSmoothingEnabled = true; x.imageSmoothingQuality = 'high';
       if (st.bl) x.globalCompositeOperation = st.bl;
       x.drawImage(fc, st.m.x, st.m.y, st.m.w, st.m.h); x.globalAlpha = 1; x.globalCompositeOperation = 'source-over'; return;
     }
     // shadow / highlight with "Only on paint": a soft stroke that only changes paint already on its layer.
     // (Strokes saved before the setting existed have no 'clip' and keep that behaviour.)
-    if (kind === 'shade' && !preview && st.clip !== false) {
+    if (kind === 'shade' && !preview && st.clip !== false && !M) {
       var rr = rasterStroke(st, k), dx = rr.ox * k + tx, dy = rr.oy * k + ty, dw = rr.w * k / rr.k, dh = rr.h * k / rr.k;
       var t2 = document.createElement('canvas'); t2.width = Math.max(1, Math.ceil(dw)); t2.height = Math.max(1, Math.ceil(dh));
       var tx2 = t2.getContext('2d'); tx2.drawImage(rr.cv, 0, 0, dw, dh);
@@ -2527,14 +2568,14 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
       x.globalCompositeOperation = 'source-over'; return;
     }
     if (!preview && (kind === 'water' || kind === 'air' || kind === 'softErase' || kind === 'shade' || isSoft(st))) {
-      var r = rasterStroke(st, k);
-      x.setTransform(1, 0, 0, 1, 0, 0);
+      var r = rasterStroke(st, M ? k * Math.sqrt(Math.abs(M[0] * M[3] - M[1] * M[2])) : k);
       x.globalCompositeOperation = kind === 'softErase' ? 'destination-out' : (b.blend || 'source-over');
-      x.drawImage(r.cv, r.ox * k + tx, r.oy * k + ty, r.w * k / r.k, r.h * k / r.k);
+      if (M) { setW(); x.imageSmoothingEnabled = true; x.drawImage(r.cv, r.ox, r.oy, r.w / r.k, r.h / r.k); }   // in world units, through the copy's matrix
+      else { x.setTransform(1, 0, 0, 1, 0, 0); x.drawImage(r.cv, r.ox * k + tx, r.oy * k + ty, r.w * k / r.k, r.h * k / r.k); }
       x.globalCompositeOperation = 'source-over';
       return;
     }
-    x.setTransform(k, 0, 0, k, tx, ty);
+    setW();
     var P = st._path || (st._path = inkPath(st));
     if (kind === 'erase' || kind === 'softErase' || kind === 'cut') { x.globalCompositeOperation = 'destination-out'; x.globalAlpha = kind === 'softErase' ? 0.5 : 1; x.fillStyle = '#000'; }
     else {
@@ -2542,7 +2583,7 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
       x.globalAlpha = preview && kind === 'water' ? st.a * 0.55 : preview && (kind === 'air' || kind === 'shade') ? st.a * 0.6 : st.a;
       x.fillStyle = kind === 'grain' ? grainPattern(x, st.c, b.tex, st.g) : 'rgb(' + st.c + ')';
     }
-    if (preview && isSoft(st)) {   // a soft line while it is drawn: the path's blurred shadow, cast from far off the canvas
+    if (preview && isSoft(st) && !M) {   // a soft line while it is drawn: the path's blurred shadow, cast from far off the canvas
       var OFF = 30000, blurDev = Math.max(0.6, avgWidth(st) * (1 - st.h) * 0.55) * k;
       x.setTransform(k, 0, 0, k, tx - OFF, ty);
       x.shadowColor = 'rgb(' + st.c + ')'; x.shadowBlur = blurDev * 0.82; x.shadowOffsetX = OFF; x.shadowOffsetY = 0; x.fillStyle = '#000';
@@ -2554,6 +2595,215 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
     x.globalAlpha = 1; x.globalCompositeOperation = 'source-over';
   }
 
+  // ================= Pattern studio: kaleidoscope, seamless repeats and the 17 wallpaper symmetries =================
+  // Strokes are stored once, as drawn. A symmetry is a set of copies: a kaleidoscope turns (and mirrors) each stroke round
+  // a centre, drawn straight onto its layer; a repeat or wallpaper pattern copies each stroke inside one rectangular
+  // period (a "tile", with the copies that cross its edges coming in from the neighbours, so it is seamless), and the
+  // layer is filled with that tile. The period is a super-cell of the lattice, so half-drop, brick and hex repeat with a
+  // plain rectangular tile. S.sym belongs to the project: { mode: 'off'|'kaleido'|'repeat'|'wall', n, mirror, layout,
+  // group, size, ox, oy (the centre / origin, world px), guides }.
+  var SQ3 = Math.sqrt(3);
+  function mT(x, y) { return [1, 0, 0, 1, x, y]; }
+  function mRot(a) { var c = Math.cos(a), s2 = Math.sin(a); return [c, s2, -s2, c, 0, 0]; }
+  var M_I = [1, 0, 0, 1, 0, 0], M_FX = [-1, 0, 0, 1, 0, 0], M_FY = [1, 0, 0, -1, 0, 0], M_R2 = [-1, 0, 0, -1, 0, 0], M_R4 = [0, 1, -1, 0, 0, 0];
+  // the 17 wallpaper groups: technical name, friendly name, lattice and the moves that make the rest (s = cell size)
+  var WALL = [
+    ['p1', 'Simple repeat', 'rect', function () { return []; }],
+    ['p2', 'Half turns', 'rect', function () { return [M_R2]; }],
+    ['pm', 'Mirror rows', 'rect', function () { return [M_FX]; }],
+    ['pg', 'Footsteps', 'rect', function (s) { return [[-1, 0, 0, 1, 0, s / 2]]; }],
+    ['cm', 'Offset mirror', 'rect', function (s) { return [M_FX, mT(s / 2, s / 2)]; }],
+    ['pmm', 'Mirror grid', 'rect', function () { return [M_FX, M_FY]; }],
+    ['pmg', 'Mirror and turn', 'rect', function (s) { return [M_R2, [-1, 0, 0, 1, s / 2, 0]]; }],
+    ['pgg', 'Woven glides', 'rect', function (s) { return [M_R2, [1, 0, 0, -1, s / 2, s / 2]]; }],
+    ['cmm', 'Diamond mirrors', 'rect', function (s) { return [M_FX, M_FY, mT(s / 2, s / 2)]; }],
+    ['p4', 'Pinwheel', 'rect', function () { return [M_R4]; }],
+    ['p4m', 'Square kaleidoscope', 'rect', function () { return [M_R4, M_FX]; }],
+    ['p4g', 'Twisted squares', 'rect', function (s) { return [M_R4, [0, -1, -1, 0, s / 2, s / 2]]; }],
+    ['p3', 'Three-way turn', 'hex', function () { return [mRot(2 * Math.PI / 3)]; }],
+    ['p3m1', 'Triangle kaleidoscope', 'hex', function () { return [mRot(2 * Math.PI / 3), M_FX]; }],
+    ['p31m', 'Triangle turns', 'hex', function () { return [mRot(2 * Math.PI / 3), M_FY]; }],
+    ['p6', 'Six-way turn', 'hex', function () { return [mRot(Math.PI / 3)]; }],
+    ['p6m', 'Hex kaleidoscope', 'hex', function () { return [mRot(Math.PI / 3), M_FY]; }]
+  ];
+  var LAYOUTS = [['grid', 'Grid'], ['halfdrop', 'Half-drop'], ['brick', 'Brick'], ['mirror', 'Mirror'], ['hex', 'Hex']];
+  var SPOON = { grid: 'Basic', halfdrop: 'Half-drop', brick: 'Half-brick', mirror: 'Basic', hex: 'Basic' };
+  function symDefaults(o) {
+    o = o && typeof o === 'object' ? o : {};
+    var d = { mode: 'off', n: 8, mirror: true, layout: 'grid', group: 'p4m', size: 220, ox: null, oy: null, guides: true };
+    Object.keys(d).forEach(function (k) { if (o[k] === undefined) o[k] = d[k]; });
+    if (['off', 'kaleido', 'repeat', 'wall'].indexOf(o.mode) < 0) o.mode = 'off';
+    o.n = Math.max(2, Math.min(32, o.n | 0)); o.size = Math.max(40, Math.min(1200, +o.size || 220));
+    if (!LAYOUTS.some(function (l) { return l[0] === o.layout; })) o.layout = 'grid';
+    if (!WALL.some(function (g) { return g[0] === o.group; })) o.group = 'p4m';
+    o.mirror = o.mirror !== false; o.guides = o.guides !== false;
+    return o;
+  }
+  S.sym = symDefaults(S.sym);
+  function symOn() { return S.sym.mode !== 'off' && screenMode; }
+  function symPeriodic() { return symOn() && (S.sym.mode === 'repeat' || S.sym.mode === 'wall'); }
+  function symCentre() {   // the centre of a kaleidoscope, the origin of a pattern: the middle of the page unless moved
+    if (S.sym.ox == null || S.sym.oy == null) { S.sym.ox = Math.round(window.innerWidth / 2); S.sym.oy = Math.round(window.innerHeight / 2); }
+    return { x: S.sym.ox, y: S.sym.oy };
+  }
+  // reduce a matrix's translation into the lattice cell (lattice coords in [0,1))
+  function latticeReduce(M, a, b) {
+    var det = a[0] * b[1] - a[1] * b[0], u = (M[4] * b[1] - M[5] * b[0]) / det, v = (a[0] * M[5] - a[1] * M[4]) / det;
+    u -= Math.floor(u + 1e-7); v -= Math.floor(v + 1e-7); if (u > 1 - 1e-7) u = 0; if (v > 1 - 1e-7) v = 0;
+    return [M[0], M[1], M[2], M[3], u * a[0] + v * b[0], u * a[1] + v * b[1]];
+  }
+  function mKey(M) { return M.map(function (v) { return Math.round(v * 1e4); }).join(','); }
+  // every move of the group (up to lattice shifts), from its generators
+  function closeGroup(gens, a, b) {
+    var out = [M_I], seen = {}; seen[mKey(M_I)] = 1;
+    for (var i = 0; i < out.length && out.length < 48; i++) {
+      gens.forEach(function (g) {
+        var m = latticeReduce(mMul(g, out[i]), a, b), k = mKey(m);
+        if (!seen[k]) { seen[k] = 1; out.push(m); }
+      });
+    }
+    return out;
+  }
+  // the current symmetry, in world coordinates: { kind: 'rosette', ops } or { kind: 'tile', ops, a, b, P: [w, h], O }
+  var symCache = { key: '', v: null };
+  function symKey() { var sy = S.sym, O = symCentre(); return [sy.mode, sy.n, sy.mirror, sy.layout, sy.group, sy.size, O.x, O.y].join('|'); }
+  function symBuild(sy, O) {
+    var v = null, s = sy.size, toW = function (M) { return mMul(mMul(mT(O.x, O.y), M), mT(-O.x, -O.y)); };
+    if (sy.mode === 'kaleido') {
+      var ops = [];
+      for (var i = 0; i < sy.n; i++) { var R = mRot(2 * Math.PI * i / sy.n); ops.push(toW(R)); if (sy.mirror) ops.push(toW(mMul(R, M_FX))); }
+      v = { kind: 'rosette', ops: ops, O: O };
+    } else if (sy.mode === 'repeat' || sy.mode === 'wall') {
+      var a, b, P, gens = [];
+      if (sy.mode === 'repeat') {
+        var L = sy.layout;
+        if (L === 'grid') { a = [s, 0]; b = [0, s]; P = [s, s]; }
+        else if (L === 'halfdrop') { a = [s, s / 2]; b = [0, s]; P = [2 * s, s]; }
+        else if (L === 'brick') { a = [s, 0]; b = [s / 2, s]; P = [s, 2 * s]; }
+        else if (L === 'mirror') { a = [2 * s, 0]; b = [0, 2 * s]; P = [2 * s, 2 * s]; gens = [M_FX, M_FY]; }   // flipped in the next column and row
+        else { a = [s, 0]; b = [s / 2, s * SQ3 / 2]; P = [s, s * SQ3]; }
+      } else {
+        var g = WALL.filter(function (w) { return w[0] === sy.group; })[0];
+        if (g[2] === 'hex') { a = [s, 0]; b = [s / 2, s * SQ3 / 2]; P = [s, s * SQ3]; } else { a = [s, 0]; b = [0, s]; P = [s, s]; }
+        gens = g[3](s);
+      }
+      var cell = closeGroup(gens, a, b);
+      v = { kind: 'tile', ops: cell.map(toW), a: a, b: b, P: P, O: O };
+    }
+    return v;
+  }
+  function symGet() {
+    var key = symKey(); if (symCache.key === key) return symCache.v;
+    symCache = { key: key, v: symBuild(S.sym, symCentre()) }; return symCache.v;
+  }
+  // the lattice shifts t that bring a (transformed) box into the period rectangle at O
+  function tileShifts(sv, bx) {
+    var a = sv.a, b = sv.b, det = a[0] * b[1] - a[1] * b[0], O = sv.O, P = sv.P;
+    var t0x = O.x - bx.x1, t1x = O.x + P[0] - bx.x0, t0y = O.y - bx.y1, t1y = O.y + P[1] - bx.y0;
+    var us = [], vs = [];
+    [[t0x, t0y], [t1x, t0y], [t0x, t1y], [t1x, t1y]].forEach(function (c) { us.push((c[0] * b[1] - c[1] * b[0]) / det); vs.push((a[0] * c[1] - a[1] * c[0]) / det); });
+    var out = [];
+    for (var i = Math.floor(Math.min.apply(null, us)); i <= Math.ceil(Math.max.apply(null, us)); i++)
+      for (var j = Math.floor(Math.min.apply(null, vs)); j <= Math.ceil(Math.max.apply(null, vs)); j++) {
+        var tx = i * a[0] + j * b[0], ty = i * a[1] + j * b[1];
+        if (bx.x1 + tx < O.x || bx.x0 + tx > O.x + P[0] || bx.y1 + ty < O.y || bx.y0 + ty > O.y + P[1]) continue;
+        out.push([tx, ty]);
+      }
+    return out;
+  }
+  function boxThrough(bx, M) {
+    var c = [mApply(M, bx.x0, bx.y0), mApply(M, bx.x1, bx.y0), mApply(M, bx.x0, bx.y1), mApply(M, bx.x1, bx.y1)];
+    return { x0: Math.min(c[0].x, c[1].x, c[2].x, c[3].x), y0: Math.min(c[0].y, c[1].y, c[2].y, c[3].y), x1: Math.max(c[0].x, c[1].x, c[2].x, c[3].x), y1: Math.max(c[0].y, c[1].y, c[2].y, c[3].y) };
+  }
+  function strokePad(st) { return isRaster(st) ? avgWidth(st) * 1.2 + 6 : 2; }
+  // every copy of a stroke a symmetry makes: a list of world matrices (for a tile: only the copies that touch the period)
+  function symCopies(sv, st) {
+    if (sv.kind === 'rosette') return sv.ops;
+    var bx = strokeBox(st), p = strokePad(st), out = [];
+    bx = { x0: bx.x0 - p, y0: bx.y0 - p, x1: bx.x1 + p, y1: bx.y1 + p };
+    sv.ops.forEach(function (M) { tileShifts(sv, boxThrough(bx, M)).forEach(function (t) { out.push(mMul(mT(t[0], t[1]), M)); }); });
+    return out;
+  }
+  // ---- the tile (one period) of a layer, as a bitmap at about k device px per world px
+  function tileCanvas(sv, list, k, maxPx) {
+    var P = sv.P, kc = Math.min(k, Math.sqrt((maxPx || 4.2e6) / (P[0] * P[1])));
+    var W = Math.max(1, Math.round(P[0] * kc)), H = Math.max(1, Math.round(P[1] * kc)), sx = W / P[0], sy = H / P[1];
+    var c = document.createElement('canvas'); c.width = W; c.height = H;
+    var t = { cv: c, sx: sx, sy: sy, W: W, H: H };
+    list.forEach(function (st) { tileAdd(sv, t, st); });
+    return t;
+  }
+  function tileAdd(sv, t, st, preview) {   // the stroke's copies into the tile (in order, so erasers erase what is under them)
+    var x = t.cv.getContext('2d'), Y = [1, 0, 0, t.sy / t.sx, 0, 0];
+    symCopies(sv, st).forEach(function (M) { renderStroke(x, st, t.sx, -t.sx * sv.O.x, -t.sy * sv.O.y, preview, mMul(Y, M)); });
+    x.setTransform(1, 0, 0, 1, 0, 0);
+  }
+  // fill a canvas (device px, view k/tx/ty) with a tile
+  function fillWithTile(x, sv, t, view) {
+    x.setTransform(1, 0, 0, 1, 0, 0);
+    var pat = x.createPattern(t.cv, 'repeat'); if (!pat) return;
+    pat.setTransform(new DOMMatrix([view.k / t.sx, 0, 0, view.k / t.sy, view.tx + view.k * sv.O.x, view.ty + view.k * sv.O.y]));
+    x.fillStyle = pat; x.fillRect(0, 0, x.canvas.width, x.canvas.height);
+  }
+  // ---- rendering a layer with the symmetry (called by renderLayers and when a stroke ends)
+  INK.tiles = {};
+  function symRenderLayer(id, c, list, t) {
+    var sv = symGet(), x = c.getContext('2d');
+    if (sv.kind === 'rosette') { list.forEach(function (st) { sv.ops.forEach(function (M) { renderStroke(x, st, t.k, t.tx, t.ty, false, M); }); }); return; }
+    var tl = tileCanvas(sv, list, t.k); INK.tiles[id] = { tile: tl, key: symCache.key, k: t.k };
+    fillWithTile(x, sv, tl, t);
+  }
+  function symAppend(st, c) {   // a finished stroke, added without redrawing the layer
+    var sv = symGet(), t = viewK(), x = c.getContext('2d'), id = strokeLayer(st);
+    if (sv.kind === 'rosette') { sv.ops.forEach(function (M) { renderStroke(x, st, t.k, t.tx, t.ty, false, M); }); return true; }
+    var e = INK.tiles[id]; if (!e || e.key !== symCache.key || Math.abs(e.k - t.k) > 1e-6) return false;
+    tileAdd(sv, e.tile, st); x.setTransform(1, 0, 0, 1, 0, 0); x.clearRect(0, 0, c.width, c.height); fillWithTile(x, sv, e.tile, t);
+    return true;
+  }
+  // the live stroke on its layer: the layer as it is plus the stroke's copies (src = the layer's canvas, sc = scratch)
+  function symLive(src, sc, strokes, t) {
+    var sv = symGet(), sx = sc.getContext('2d');
+    sx.setTransform(1, 0, 0, 1, 0, 0); sx.clearRect(0, 0, sc.width, sc.height);
+    if (sv.kind === 'rosette') {
+      sx.drawImage(src, 0, 0);
+      strokes.forEach(function (st) { st._path = null; sv.ops.forEach(function (M) { renderStroke(sx, st, t.k, t.tx, t.ty, true, M); }); });
+      return;
+    }
+    var e = INK.tiles[strokeLayer(strokes[0])];
+    var base = e && e.key === symCache.key && Math.abs(e.k - t.k) < 1e-6 ? e.tile : tileCanvas(sv, [], t.k);
+    var tmp = INK.symTmp || (INK.symTmp = document.createElement('canvas'));
+    if (tmp.width !== base.W || tmp.height !== base.H) { tmp.width = base.W; tmp.height = base.H; }
+    var tx2 = tmp.getContext('2d'); tx2.setTransform(1, 0, 0, 1, 0, 0); tx2.clearRect(0, 0, base.W, base.H); tx2.drawImage(base.cv, 0, 0);
+    var lt = { cv: tmp, sx: base.sx, sy: base.sy, W: base.W, H: base.H };
+    strokes.forEach(function (st) { st._path = null; tileAdd(sv, lt, st, true); });
+    fillWithTile(sx, sv, lt, t);
+  }
+  // ---- guides: the kaleidoscope's spokes, or the tile's outline and the cells round it
+  function symGuides(x, t) {
+    if (!symOn() || !S.sym.guides) return;
+    var sv = symGet(), d = inkDpr(); x.save(); x.setTransform(1, 0, 0, 1, 0, 0);
+    var toD = function (wx, wy) { return [wx * t.k + t.tx, wy * t.k + t.ty]; };
+    x.lineWidth = Math.max(1, d); x.strokeStyle = 'rgba(124,42,52,.45)'; x.setLineDash([5 * d, 5 * d]);
+    if (sv.kind === 'rosette') {
+      var c = toD(sv.O.x, sv.O.y), R = Math.hypot(x.canvas.width, x.canvas.height);
+      for (var i = 0; i < S.sym.n; i++) { var a = -Math.PI / 2 + 2 * Math.PI * i / S.sym.n; x.beginPath(); x.moveTo(c[0], c[1]); x.lineTo(c[0] + Math.cos(a) * R, c[1] + Math.sin(a) * R); x.stroke(); }
+      x.setLineDash([]); x.fillStyle = 'rgba(124,42,52,.8)'; x.beginPath(); x.arc(c[0], c[1], 5 * d, 0, 7); x.fill();
+    } else {
+      x.strokeStyle = 'rgba(124,42,52,.18)';   // the neighbouring periods, faint
+      var P = sv.P, p0 = toD(sv.O.x, sv.O.y), pw = P[0] * t.k, ph = P[1] * t.k;
+      var i0 = Math.floor(-p0[0] / pw) - 1, i1 = Math.ceil((x.canvas.width - p0[0]) / pw) + 1, j0 = Math.floor(-p0[1] / ph) - 1, j1 = Math.ceil((x.canvas.height - p0[1]) / ph) + 1;
+      if ((i1 - i0) * (j1 - j0) < 900) for (var ii = i0; ii <= i1; ii++) for (var jj = j0; jj <= j1; jj++) x.strokeRect(p0[0] + ii * pw, p0[1] + jj * ph, pw, ph);
+      x.strokeStyle = 'rgba(124,42,52,.75)'; x.setLineDash([]); x.lineWidth = 2 * d; x.strokeRect(p0[0], p0[1], pw, ph);   // the tile that is saved
+      x.fillStyle = 'rgba(124,42,52,.8)'; x.beginPath(); x.arc(p0[0], p0[1], 5 * d, 0, 7); x.fill();
+    }
+    x.restore();
+  }
+  // ---- the strokes with every copy, for exports that need real strokes (kaleidoscope PNG/SVG, a tile's SVG)
+  function symExpanded(list, sv) {
+    var out = [];
+    list.forEach(function (st) { symCopies(sv, st).forEach(function (M) { out.push(transformStroke(st, M)); }); });
+    return out;
+  }
   // ----- rendering: each layer's finished strokes are cached at the current zoom; the stroke being drawn goes into its layer
   function inkResize() {
     INK.dprEff = wantDpr();
@@ -2579,7 +2829,11 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
     MEM.frame++; layerCanvasesFit();
     var t = viewK();
     LAYERS.forEach(function (l) { var c = INK.layers[l[0]], x = c.getContext('2d'); x.setTransform(1, 0, 0, 1, 0, 0); x.clearRect(0, 0, c.width, c.height); });
-    INK.strokes.forEach(function (st) { if (st._selHide) return; var c = INK.layers[strokeLayer(st)]; if (c) renderStroke(c.getContext('2d'), st, t.k, t.tx, t.ty); });
+    if (symOn()) {   // a pattern: each layer drawn with its symmetry
+      var per = {}; INK.strokes.forEach(function (st) { if (st._selHide) return; var L = strokeLayer(st); (per[L] || (per[L] = [])).push(st); });
+      INK.tiles = {};
+      Object.keys(per).forEach(function (L) { var c = INK.layers[L]; if (c && c.width > 1) symRenderLayer(L, c, per[L], t); });
+    } else INK.strokes.forEach(function (st) { if (st._selHide) return; var c = INK.layers[strokeLayer(st)]; if (c) renderStroke(c.getContext('2d'), st, t.k, t.tx, t.ty); });
     INK.rv = { x: V.x, y: V.y, s: V.s }; INK.dirty = false;
   }
   function heavyDrawing() { return INK.strokes.length > 400 || INK.strokes.some(isRaster); }
@@ -2593,7 +2847,9 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
     LAYERS.forEach(function (l) {
       var ls = lset(l[0]); if (!ls.on) return;
       var src = INK.layers[l[0]];
-      if (live && l[0] === liveL && !pinching) {   // the layer being drawn on: its strokes plus the live one
+      if (live && l[0] === liveL && !pinching && symOn()) {   // a pattern: the live stroke with all its copies
+        symLive(src, INK.scratch, [live], t); src = INK.scratch;
+      } else if (live && l[0] === liveL && !pinching) {   // the layer being drawn on: its strokes plus the live one
         var sc = INK.scratch, sx = sc.getContext('2d'); sx.setTransform(1, 0, 0, 1, 0, 0); sx.clearRect(0, 0, sc.width, sc.height); sx.drawImage(src, 0, 0);
         live._path = null; renderStroke(sx, live, t.k, t.tx, t.ty, true);
         if (INK.liveM) { INK.liveM._path = null; renderStroke(sx, INK.liveM, t.k, t.tx, t.ty, true); }
@@ -2612,6 +2868,7 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
       x.drawImage(src, 0, 0);
     });
     x.globalAlpha = 1; x.globalCompositeOperation = 'source-over'; x.setTransform(1, 0, 0, 1, 0, 0);
+    if (symOn() && !pinching) symGuides(x, t);
     if (INK.selMode) selDraw();
   }
   function inkChanged() { INK.dirty = true; inkShow(); scheduleSave(); syncDraw(); }
@@ -2627,7 +2884,7 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
     var L = key === 'eraser' ? S.activeLayer : (INK.layers[S.activeLayer] ? S.activeLayer : b.layer);
     if (set.cjit > 0 && key !== 'eraser' && !b.fixed) col = varyColour(col, set.cjit / 100);
     var mk = function () { var st = { t: key, c: col, a: Math.max(0.03, set.op / 100), e: key === 'eraser', soft: key === 'eraser' && !!S.eraserSoft, L: L, p: [] }; strokeExtras(st, b, set); return st; };
-    INK.live = mk(); INK.liveM = S.mirrorOn && S.cfOn ? mk() : null;
+    INK.live = mk(); INK.liveM = S.mirrorOn && S.cfOn && !symOn() ? mk() : null;
     if (INK.liveM && INK.live.n != null) INK.liveM.n = 180 - INK.live.n;   // the mirror holds its nib the mirrored way
     if (b.kind === 'bristle' || INK.live.sp) { INK.live.s = 1 + Math.floor(Math.random() * 2147483646); if (INK.liveM) INK.liveM.s = INK.live.s; }
     INK.nibPen = b.kind === 'nib' && set.nibPencil && e.pointerType === 'pen';
@@ -2733,7 +2990,8 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
     layerCanvasesFit();   // the first stroke on a layer gives it a canvas (a full redraw)
     if (!INK.dirty) {   // add to its layer's cache, no full re-draw
       var c = INK.layers[strokeLayer(st)], t = viewK();
-      if (c) { var x = c.getContext('2d'); renderStroke(x, st, t.k, t.tx, t.ty); if (sm) renderStroke(x, sm, t.k, t.tx, t.ty); }
+      if (c && symOn()) { if (!symAppend(st, c)) INK.dirty = true; }
+      else if (c) { var x = c.getContext('2d'); renderStroke(x, st, t.k, t.tx, t.ty); if (sm) renderStroke(x, sm, t.k, t.tx, t.ty); }
     }
     inkShow(); scheduleSave(); syncDraw();
   }
@@ -2923,7 +3181,10 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
   }
   // one tile of a print, px pixels square, drawn in tile units (0..1)
   function printTile(pat, motif, ground, px, img2) {
-    var c = document.createElement('canvas'); c.width = c.height = Math.max(4, Math.round(px)); var x = c.getContext('2d'), s = c.width;
+    var c = document.createElement('canvas'); c.width = c.height = Math.max(4, Math.round(px));
+    var ar = pat === 'own' && img2 && img2.naturalWidth ? img2.naturalHeight / img2.naturalWidth : 1;   // a pattern tile need not be square
+    if (Math.abs(ar - 1) > 0.005) c.height = Math.max(4, Math.round(c.width * ar));
+    var x = c.getContext('2d'), s = c.width;
     var M = 'rgb(' + motif + ')', Ma = function (a) { return 'rgba(' + motif + ',' + a + ')'; };
     if (ground) { x.fillStyle = 'rgb(' + ground + ')'; x.fillRect(0, 0, s, s); }
     x.save(); x.scale(s, s); x.fillStyle = M; x.strokeStyle = M;
@@ -2962,7 +3223,7 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
           x.fillStyle = M; for (var q = 0; q < 4; q++) { x.beginPath(); x.arc(Math.cos(q * 1.7) * r[2] * 1.05, Math.sin(q * 1.7) * r[2] * 0.8, r[2] * 0.28, 0, 7); x.fill(); }
           x.restore();
         }); break;
-      case 'own': if (img2) { x.restore(); x.drawImage(img2, 0, 0, s, s); return c; } break;
+      case 'own': if (img2) { x.restore(); x.drawImage(img2, 0, 0, s, c.height); return c; } break;
     }
     x.restore(); return c;
   }
@@ -2991,7 +3252,7 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
   // cylinder; "drape" (st.dr, a coarse grid of pushes) bends it where the designer dragged. Sampled from the repeating
   // tile, so it never runs out at the edges.
   function warpFill(x, st, tile, k) {
-    var m = st.m, W = m.mw, H = m.mh, T = tile.width, td = tile.getContext('2d').getImageData(0, 0, T, T).data;
+    var m = st.m, W = m.mw, H = m.mh, T = tile.width, TH = tile.height, td = tile.getContext('2d').getImageData(0, 0, T, TH).data;
     var out = x.createImageData(W, H), d = out.data, a = m.a, ox = m.x * k, oy = m.y * k, wrap = (st.wrap || 0), dr = st.dr;
     var L = new Float32Array(H), R = new Float32Array(H), one = new Uint8Array(H);
     if (wrap) {   // rows with a single span: edges smoothed over neighbouring rows so the curve does not shimmer
@@ -3009,8 +3270,8 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
       L = L2; R = R2;
     }
     function tex(u, v, q) {   // bilinear from the repeating tile
-      u = ((u % T) + T) % T; v = ((v % T) + T) % T;
-      var x0 = Math.floor(u), y0 = Math.floor(v), fx = u - x0, fy = v - y0, x1 = (x0 + 1) % T, y1 = (y0 + 1) % T;
+      u = ((u % T) + T) % T; v = ((v % TH) + TH) % TH;
+      var x0 = Math.floor(u), y0 = Math.floor(v), fx = u - x0, fy = v - y0, x1 = (x0 + 1) % T, y1 = (y0 + 1) % TH;
       var i00 = (y0 * T + x0) * 4, i10 = (y0 * T + x1) * 4, i01 = (y1 * T + x0) * 4, i11 = (y1 * T + x1) * 4;
       for (var ch = 0; ch < 4; ch++) {
         var top = td[i00 + ch] * (1 - fx) + td[i10 + ch] * fx, bot = td[i01 + ch] * (1 - fx) + td[i11 + ch] * fx;
@@ -3058,7 +3319,9 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
     LAYERS.forEach(function (l) {   // the outlines: every shown layer except the one the fill goes on (normally Sketch and Lines)
       var L = l[0]; if (L === into || !lset(L).on) return;
       var lc = document.createElement('canvas'); lc.width = w; lc.height = h; var lx = lc.getContext('2d');
-      INK.strokes.forEach(function (st) { if (strokeLayer(st) === L) renderStroke(lx, st, k, 0, 0); });
+      var lst = INK.strokes.filter(function (st) { return strokeLayer(st) === L; });
+      if (symOn() && lst.length) symRenderLayer('_fill', lc, lst, { k: k, tx: 0, ty: 0 });   // a pattern: every copy of the lines is an edge
+      else lst.forEach(function (st) { renderStroke(lx, st, k, 0, 0); });
       x.setTransform(1, 0, 0, 1, 0, 0); x.drawImage(lc, 0, 0);
     });
     var b = curBase();
@@ -3292,7 +3555,8 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
   function openInkPop(which) {
     if (INK.pop === which) { closeInkPop(); return; }
     INK.pop = which; $('inkPop').hidden = false;
-    ['brushes', 'colour', 'settings', 'layers', 'fill'].forEach(function (n) { $('pop_' + n).hidden = n !== which; });
+    ['brushes', 'colour', 'settings', 'layers', 'fill', 'pattern'].forEach(function (n) { $('pop_' + n).hidden = n !== which; });
+    if (which === 'pattern') renderPatternPop();
     if (which === 'colour') renderColourPop();
     if (which === 'fill') renderFillPop();
     if (which === 'brushes') renderBrushPop();
@@ -3309,6 +3573,7 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
   $('railColour').addEventListener('click', function () { openInkPop('colour'); });
   $('railSize').addEventListener('click', function () { openInkPop('settings'); });
   $('railLayers').addEventListener('click', function () { openInkPop('layers'); });
+  $('railPattern').addEventListener('click', function () { openInkPop('pattern'); });
   $('inkPopClose').addEventListener('click', closeInkPop);
   // a brush goes to its own layer (pencil to Sketch, ink to Lines, paint to Colour) while you are on the starting layers;
   // on a layer you made yourself, it stays there
@@ -4082,13 +4347,223 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
     var nd = { arrowleft: [-1, 0], arrowright: [1, 0], arrowup: [0, -1], arrowdown: [0, 1] }[k];
     if (nd && !mod) { e.preventDefault(); var st2 = (e.shiftKey ? 10 : 1) / V.s; selEdit(function (s2) { s2.T.tx += nd[0] * st2; s2.T.ty += nd[1] * st2; }); }
   }, true);
+  // ----- the Pattern panel: kaleidoscope, repeat, wallpaper; size, centre and guides; colourways; saving the tile
+  // a small picture of a symmetry: a little leaf and dot (no symmetry of its own) through its moves
+  function symIcon(sy, px) {
+    px = px || 88; var c = document.createElement('canvas'); c.width = c.height = px; var x = c.getContext('2d');
+    x.fillStyle = '#fbf8f4'; x.fillRect(0, 0, px, px);
+    var o = symDefaults(Object.assign({}, sy)), size = sy.mode === 'kaleido' ? 1 : (sy.mode === 'repeat' && (sy.layout === 'mirror') ? px / 3.3 : px / 2.6);
+    o.size = Math.max(4, size); var O = sy.mode === 'kaleido' ? { x: px / 2, y: px / 2 } : { x: 0, y: 0 }, sv = symBuild(o, O);
+    var motif = function () {
+      var u = sy.mode === 'kaleido' ? px * 0.42 : o.size;
+      x.beginPath(); x.moveTo(u * 0.18, u * 0.12); x.quadraticCurveTo(u * 0.62, u * 0.02, u * 0.5, u * 0.38); x.quadraticCurveTo(u * 0.32, u * 0.26, u * 0.18, u * 0.12); x.fill();
+      x.beginPath(); x.arc(u * 0.22, u * 0.42, u * 0.07, 0, 7); x.fill();
+    };
+    var cols = ['#7c2a34', '#c49a3a'];
+    if (sv.kind === 'rosette') {
+      sv.ops.forEach(function (M, i) { x.setTransform(M[0], M[1], M[2], M[3], M[4], M[5]); x.translate(px / 2, px / 2); x.fillStyle = cols[0]; x.save(); x.translate(4, -px * 0.36); motif(); x.restore(); });
+    } else {
+      var a = sv.a, b = sv.b;
+      if (sy.mode === 'repeat') {   // the tiles' outlines, so grid, half-drop and brick look different
+        var cs = sy.layout === 'mirror' ? o.size : o.size, lat = sy.layout === 'mirror' ? [[cs, 0], [0, cs]] : [a, b];
+        x.strokeStyle = 'rgba(124,42,52,.35)'; x.lineWidth = 1;
+        for (var ti = -4; ti <= 8; ti++) for (var tj = -4; tj <= 8; tj++) {
+          var ox2 = ti * lat[0][0] + tj * lat[1][0], oy2 = ti * lat[0][1] + tj * lat[1][1];
+          if (sy.layout === 'hex') { x.beginPath(); for (var h = 0; h < 6; h++) { var an = Math.PI / 6 + h * Math.PI / 3, r2 = cs / SQ3; x.lineTo(ox2 + cs / 2 + r2 * Math.cos(an), oy2 + cs / (2 * SQ3) + r2 * Math.sin(an)); } x.closePath(); x.stroke(); }
+          else x.strokeRect(ox2 + 0.5, oy2 + 0.5, cs, cs);
+        }
+      }
+      for (var i = -3; i <= 6; i++) for (var j = -3; j <= 6; j++) sv.ops.forEach(function (M, k) {
+        var T = mMul(mT(i * a[0] + j * b[0], i * a[1] + j * b[1]), M);
+        x.setTransform(T[0], T[1], T[2], T[3], T[4], T[5]); x.fillStyle = k % 2 && sy.mode === 'wall' ? cols[1] : cols[0]; motif();
+      });
+    }
+    x.setTransform(1, 0, 0, 1, 0, 0); return c.toDataURL();
+  }
+  var symIcons = {};
+  function symIconFor(key, sy) { return symIcons[key] || (symIcons[key] = symIcon(sy)); }
+  function renderPatternPop() {
+    var sy = S.sym;
+    $('symModeSeg').querySelectorAll('button').forEach(function (b) { b.setAttribute('aria-pressed', b.dataset.v === sy.mode ? 'true' : 'false'); });
+    $('symKaleido').hidden = sy.mode !== 'kaleido'; $('symRepeat').hidden = sy.mode !== 'repeat'; $('symWall').hidden = sy.mode !== 'wall';
+    $('symCommon').hidden = sy.mode === 'off'; $('symSizeRow').hidden = sy.mode === 'kaleido' || sy.mode === 'off';
+    $('symOffNote').hidden = sy.mode !== 'off';
+    $('symN').value = sy.n; $('symNOut').textContent = sy.n; setSwitch('symMirrorSw', sy.mirror); setSwitch('symGuidesSw', sy.guides);
+    $('symSize').value = Math.round(Math.log2(sy.size) * 100) / 100; $('symSizeOut').textContent = Math.round(sy.size) + ' px';
+    var grid = function (box, items, cur, mk) {
+      if (box.childElementCount !== items.length) {
+        box.innerHTML = '';
+        items.forEach(function (it) {
+          var b = document.createElement('button'); b.type = 'button'; b.className = 'printBtn'; b.dataset.v = it[0];
+          var im = document.createElement('img'); im.alt = ''; im.src = symIconFor(mk(it)[0], mk(it)[1]);
+          var sp = document.createElement('span'); sp.textContent = it[1]; b.title = it[2] || it[1];
+          b.appendChild(im); b.appendChild(sp); box.appendChild(b);
+        });
+      }
+      box.querySelectorAll('button').forEach(function (b) { b.setAttribute('aria-pressed', b.dataset.v === cur ? 'true' : 'false'); });
+    };
+    grid($('symLayoutGrid'), LAYOUTS, sy.layout, function (it) { return ['L' + it[0], { mode: 'repeat', layout: it[0] }]; });
+    grid($('symWallGrid'), WALL.map(function (g) { return [g[0], g[1], g[1] + ' (' + g[0] + ')']; }), sy.group, function (it) { return ['W' + it[0], { mode: 'wall', group: it[0] }]; });
+    var sv = symOn() ? symGet() : null;
+    $('symSaveSec').hidden = !(sv && sv.kind === 'tile');
+    $('symKaleidoSave').hidden = !(sv && sv.kind === 'rosette');
+    if (sv && sv.kind === 'tile') {
+      var px = symExportPx(), h = Math.round(px * sv.P[1] / sv.P[0]);
+      $('symSpoon').textContent = 'The tile is ' + px + ' × ' + h + ' px: ' + (px / 150).toFixed(1) + ' × ' + (h / 150).toFixed(1) + ' in at 150 DPI (Spoonflower), ' +
+        (px / 300).toFixed(1) + ' × ' + (h / 300).toFixed(1) + ' in at 300 DPI. It already holds the repeat, so choose “Basic” when you upload.';
+    }
+    $('symToPrint').hidden = typeof OWN_PRINT === 'undefined';
+    $('symCentreBtn').setAttribute('aria-pressed', INK.symPlace ? 'true' : 'false');
+  }
+  function symChanged() {
+    symCache.key = ''; INK.tiles = {}; persist(); INK.dirty = true; inkShow(); scheduleSave(); syncDraw();
+    if (INK.pop === 'pattern') renderPatternPop();
+  }
+  $('symModeSeg').querySelectorAll('button').forEach(function (b) {
+    b.addEventListener('click', function () {
+      var was = S.sym.mode; S.sym.mode = b.dataset.v; if (S.sym.mode !== 'off' && INK.selMode) setSelMode(false);
+      if (was === 'off' && S.sym.mode !== 'off' && S.mirrorOn) { S.mirrorOn = false; drawGuides(); }   // the flats mirror and a pattern don't mix
+      symChanged();
+      if (S.sym.mode !== 'off' && !INK.symHinted) { INK.symHinted = true; toast(S.sym.mode === 'kaleido' ? 'Draw anywhere: every line is turned round the centre.' : 'Draw anywhere: the pattern repeats as you draw, across the tile edges too.'); }
+    });
+  });
+  $('symLayoutGrid').addEventListener('click', function (e) { var b = e.target.closest('button[data-v]'); if (!b) return; S.sym.layout = b.dataset.v; symChanged(); });
+  $('symWallGrid').addEventListener('click', function (e) { var b = e.target.closest('button[data-v]'); if (!b) return; S.sym.group = b.dataset.v; symChanged(); });
+  $('symN').addEventListener('input', function () { S.sym.n = +this.value; $('symNOut').textContent = this.value; symChanged(); });
+  $('symMirrorSw').addEventListener('click', function () { S.sym.mirror = !S.sym.mirror; symChanged(); });
+  $('symGuidesSw').addEventListener('click', function () { S.sym.guides = !S.sym.guides; symChanged(); });
+  $('symSize').addEventListener('input', function () { S.sym.size = Math.round(Math.pow(2, +this.value)); $('symSizeOut').textContent = S.sym.size + ' px'; symChanged(); });
+  $('symCentreBtn').addEventListener('click', function () {
+    INK.symPlace = !INK.symPlace; renderPatternPop();
+    if (INK.symPlace) { closeInkPop(); toast(S.sym.mode === 'kaleido' ? 'Tap or drag on the page to put the centre there.' : 'Tap or drag on the page to move where the tile starts.'); }
+  });
+  $('symCentreReset').addEventListener('click', function () { S.sym.ox = null; S.sym.oy = null; symChanged(); toast('Centred on the page.'); });
+  // placing the centre: a tap or a drag (any pen, finger or mouse), before anything else gets the pointer
+  stage.addEventListener('pointerdown', function (e) {
+    if (!INK.symPlace || !inkActive()) return;
+    e.stopImmediatePropagation(); INK.symPlaceId = e.pointerId;
+    var w = toWorld(e.clientX, e.clientY); S.sym.ox = Math.round(w.x); S.sym.oy = Math.round(w.y); symChanged();
+    try { stage.setPointerCapture(e.pointerId); } catch (err) {}
+  }, true);
+  stage.addEventListener('pointermove', function (e) {
+    if (INK.symPlaceId !== e.pointerId) return; e.stopImmediatePropagation();
+    var w = toWorld(e.clientX, e.clientY); S.sym.ox = Math.round(w.x); S.sym.oy = Math.round(w.y); symCache.key = ''; INK.dirty = true; inkShow();
+  }, true);
+  ['pointerup', 'pointercancel'].forEach(function (t) {
+    stage.addEventListener(t, function (e) {
+      if (INK.symPlaceId !== e.pointerId) return; e.stopImmediatePropagation();
+      INK.symPlaceId = null; INK.symPlace = false; symChanged(); toast('Centre placed.');
+    }, true);
+  });
+  // ---- colourways: shuffle the colours used, or a new palette that keeps light and dark where they were
+  function colourMap(map) {
+    var n = 0;
+    pushUndo(snap('ink'));
+    INK.strokes = INK.strokes.map(function (st) {
+      if (st.e || (BRUSHES[st.t] || {}).fixed) return st;
+      var c = map[st.c], c2 = st.c2 ? map[st.c2] : null; if (!c && !c2) return st;
+      n++; var o = cloneStroke(st, {}); if (c) o.c = c; if (c2) o.c2 = c2; return o;
+    });
+    inkChanged(); return n;
+  }
+  function lumOf(rgb) { var p = rgb.split(',').map(Number); return 0.2126 * p[0] + 0.7152 * p[1] + 0.0722 * p[2]; }
+  function hslRgb(h, sat, l) {
+    var c = (1 - Math.abs(2 * l - 1)) * sat, x2 = c * (1 - Math.abs((h / 60) % 2 - 1)), m2 = l - c / 2, q;
+    q = h < 60 ? [c, x2, 0] : h < 120 ? [x2, c, 0] : h < 180 ? [0, c, x2] : h < 240 ? [0, x2, c] : h < 300 ? [x2, 0, c] : [c, 0, x2];
+    return q.map(function (v) { return Math.round((v + m2) * 255); }).join(',');
+  }
+  $('symShuffle').addEventListener('click', function () {
+    var used = usedColours(); if (used.length < 2) { toast('Use two or more colours to shuffle them.'); return; }
+    var perm = used.slice(); do { for (var i = perm.length - 1; i > 0; i--) { var j = Math.floor(Math.random() * (i + 1)), t = perm[i]; perm[i] = perm[j]; perm[j] = t; } } while (perm.some(function (c, i) { return c === used[i]; }) && used.length > 1 && Math.random() < 0.97);
+    var map = {}; used.forEach(function (c, i) { map[c] = perm[i]; }); colourMap(map); toast('Colours shuffled. Undo brings them back.');
+  });
+  $('symPalette').addEventListener('click', function () {
+    var used = usedColours(); if (!used.length) { toast('Draw something in colour first.'); return; }
+    var base = Math.random() * 360, schemes = [[0, 30, -30, 60], [0, 180, 30, 210], [0, 120, 240, 60], [0, 150, 210, 180]], sc = schemes[Math.floor(Math.random() * schemes.length)];
+    var sorted = used.slice().sort(function (a, b) { return lumOf(a) - lumOf(b); }), n = sorted.length, map = {};
+    sorted.forEach(function (c, i) {   // darkest stays darkest: lightness follows the old order, hues from the scheme
+      var l = n === 1 ? 0.5 : 0.18 + 0.7 * i / (n - 1), h = (base + sc[i % sc.length] + 360) % 360, sat = 0.45 + 0.35 * ((i * 7) % 5) / 4;
+      map[c] = hslRgb(h, sat, l);
+    });
+    colourMap(map); toast('A new colourway. Tap again for another; Undo goes back.');
+  });
+  // ---- saving: the tile (exactly one repeat), a 3×3 swatch, the swatch as SVG, or (Trace) as one of your prints
+  function symExportPx() { return +$('symExpSize').value || 2048; }
+  // all shown layers, as one tile at w px wide (layer opacity and blend kept)
+  function symTileImage(w) {
+    var sv = symGet(); if (!sv || sv.kind !== 'tile') return Promise.resolve(null);
+    var k = w / sv.P[0], cap = 4096 * 4096;
+    return prepareExport(k).then(function () {
+      var was = INK.syncRaster; INK.syncRaster = true;
+      try {
+        var out = null;
+        LAYERS.forEach(function (l) {
+          var ls = lset(l[0]); if (!ls.on) return;
+          var list = INK.strokes.filter(function (st) { return strokeLayer(st) === l[0]; }); if (!list.length) return;
+          var t = tileCanvas(sv, list, k, cap);
+          if (!out) { out = document.createElement('canvas'); out.width = t.W; out.height = t.H; }
+          var x = out.getContext('2d'); x.globalAlpha = ls.op / 100; x.globalCompositeOperation = ls.blend || 'source-over'; x.drawImage(t.cv, 0, 0, out.width, out.height);
+          x.globalAlpha = 1; x.globalCompositeOperation = 'source-over';
+        });
+        return out;
+      } finally { INK.syncRaster = was; INK.full = null; }
+    });
+  }
+  function swatchOf(tile, nx, ny, ground) {
+    var c = document.createElement('canvas'); c.width = tile.width * nx; c.height = tile.height * ny; var x = c.getContext('2d');
+    if (ground) { x.fillStyle = ground; x.fillRect(0, 0, c.width, c.height); }
+    for (var i = 0; i < nx; i++) for (var j = 0; j < ny; j++) x.drawImage(tile, i * tile.width, j * tile.height);
+    return c;
+  }
+  function symName() { return S.sym.mode === 'wall' ? S.sym.group : S.sym.layout; }
+  $('symSaveTile').addEventListener('click', function () {
+    toastSticky('Making the tile…');
+    symTileImage(symExportPx()).then(function (t) { $('toast').hidden = true; if (!t) { toast('Draw something first.'); return; } t.toBlob(function (bl) { saveFile(bl, 'pattern-tile-' + symName() + '-' + stamp() + '.png'); }, 'image/png'); })
+      .catch(function (e) { toast('The tile could not be made: ' + (e && e.message || e)); });
+  });
+  $('symSaveSwatch').addEventListener('click', function () {
+    toastSticky('Making the swatch…');
+    symTileImage(Math.min(symExportPx(), 1360)).then(function (t) { $('toast').hidden = true; if (!t) { toast('Draw something first.'); return; } swatchOf(t, 3, 3).toBlob(function (bl) { saveFile(bl, 'pattern-swatch-' + symName() + '-' + stamp() + '.png'); }, 'image/png'); })
+      .catch(function (e) { toast('The swatch could not be made: ' + (e && e.message || e)); });
+  });
+  // the swatch as SVG: one tile of real vector strokes (every copy, clipped to the tile) in an SVG pattern, repeated 3×3
+  function symSvgText() {
+    var sv = symGet(); if (!sv || sv.kind !== 'tile' || !INK.strokes.length) return Promise.resolve(null);
+    INK.exportList = symExpanded(INK.strokes.filter(function (st) { return lset(strokeLayer(st)).on; }), sv);
+    INK.svgBox = { x: sv.O.x, y: sv.O.y, w: sv.P[0], h: sv.P[1] };
+    return prepareExport(2).then(function () {
+      var inner = inkSvgText(); if (!inner) return null;
+      var f = function (v) { return (Math.round(v * 100) / 100).toString(); }, W = sv.P[0], H = sv.P[1];
+      inner = inner.replace('<svg xmlns="http://www.w3.org/2000/svg"', '<svg overflow="hidden"');
+      return '<svg xmlns="http://www.w3.org/2000/svg" width="' + f(W * 3) + '" height="' + f(H * 3) + '" viewBox="0 0 ' + f(W * 3) + ' ' + f(H * 3) + '">' +
+        '<defs><pattern id="tile" patternUnits="userSpaceOnUse" width="' + f(W) + '" height="' + f(H) + '">' + inner + '</pattern></defs>' +
+        '<rect width="100%" height="100%" fill="url(#tile)"/></svg>';
+    }).then(function (t) { INK.exportList = null; INK.svgBox = null; INK.full = null; return t; }, function (e) { INK.exportList = null; INK.svgBox = null; INK.full = null; throw e; });
+  }
+  $('symSaveSvg').addEventListener('click', function () {
+    toastSticky('Making the SVG…');
+    symSvgText().then(function (t) { $('toast').hidden = true; if (!t) { toast('Draw something first.'); return; } saveFile(new Blob([t], { type: 'image/svg+xml' }), 'pattern-swatch-' + symName() + '-' + stamp() + '.svg'); })
+      .catch(function (e) { toast('The SVG could not be made: ' + (e && e.message || e)); });
+  });
+  $('symToPrint').addEventListener('click', function () {
+    if (typeof OWN_PRINT === 'undefined') return;
+    if (OWN_PRINT.list.length >= 16) { toast('You have 16 prints. Hold one in Fill to delete it first.'); return; }
+    symTileImage(384).then(function (t) {
+      if (!t) { toast('Draw something first.'); return; }
+      var c = document.createElement('canvas'), sc = Math.min(1, 384 / Math.max(t.width, t.height)); c.width = Math.round(t.width * sc); c.height = Math.round(t.height * sc);
+      var x = c.getContext('2d'); x.fillStyle = '#fff'; x.fillRect(0, 0, c.width, c.height); x.drawImage(t, 0, 0, c.width, c.height);
+      OWN_PRINT.url = c.toDataURL('image/jpeg', 0.9); OWN_PRINT.list.push(OWN_PRINT.url); saveOwnPrints(); S.fillOwn = OWN_PRINT.list.length - 1;
+      S.fillPrint = 'own'; persist(); printImage(OWN_PRINT.url);
+      toast('Added to your prints. Draw a garment, then Fill to use it.');
+    });
+  });
   // the device check (?selftest) reads the drawing's state through this; nothing is exposed otherwise
   if (SELFTEST) window.__trace = {
     get INK() { return INK; }, get S() { return S; }, get V() { return V; }, LAYERS: LAYERS,
     layerState: layerState, setLayers: setLayers, strokeLayer: strokeLayer, kindOf: kindOf, inkSvgText: inkSvgText, inkPngBlob: inkPngBlob,
     renderLayers: renderLayers, inkPaint: inkPaint, saveSession: function () { return saveSession(true); }, store: store, selDraw: selDraw,
     mergeDown: mergeDown, duplicateLayer: duplicateLayer, moveLayer: moveLayer, layerPicture: layerPicture, selectAll: selectAllOnLayer,
-    selPaste: selPaste, selCopy: selCopy, inkSvgReady: inkSvgReady, get SAVE() { return SAVE; }, MEM: MEM, RW: RW, inkDpr: inkDpr, viewK: viewK, selDelete: selDelete, selToLayer: selToLayer, setSelMode: setSelMode, layerCap: layerCap, get PROJ() { return PROJ; }
+    selPaste: selPaste, selCopy: selCopy, inkSvgReady: inkSvgReady, symGet: symGet, symChanged: symChanged, renderStroke: renderStroke, tileCanvas: tileCanvas, symBuild: symBuild, symTileImage: symTileImage, symSvgText: symSvgText, symCopies: symCopies, WALL: WALL, get SAVE() { return SAVE; }, MEM: MEM, RW: RW, inkDpr: inkDpr, viewK: viewK, selDelete: selDelete, selToLayer: selToLayer, setSelMode: setSelMode, layerCap: layerCap, get PROJ() { return PROJ; }
   };
   $('inkMirrorBtn').addEventListener('click', function () {
     var on = !(S.mirrorOn && S.cfOn); S.mirrorOn = on; if (on) S.cfOn = true; persist(); drawGuides(); syncUI();
@@ -4117,7 +4592,8 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
     var px = Math.round(Math.max(4, Math.min(22, 3 + Math.log2(set.size * BRUSHES[key].w + 1) * 3.4)));
     $('inkSizeDot').style.width = px + 'px'; $('inkSizeDot').style.height = px + 'px'; $('inkSizeDot').style.opacity = Math.max(0.25, set.op / 100);
     $('railLayersName').textContent = layerName(S.activeLayer);
-    ['railColour', 'railSize', 'railLayers'].forEach(function (id) { $(id).setAttribute('aria-expanded', INK.pop === { railColour: 'colour', railSize: 'settings', railLayers: 'layers' }[id] ? 'true' : 'false'); });
+    ['railColour', 'railSize', 'railLayers', 'railPattern'].forEach(function (id) { $(id).setAttribute('aria-expanded', INK.pop === { railColour: 'colour', railSize: 'settings', railLayers: 'layers', railPattern: 'pattern' }[id] ? 'true' : 'false'); });
+    $('railPattern').classList.toggle('symOn', S.sym.mode !== 'off');
     $('inkMirrorBtn').setAttribute('aria-pressed', S.mirrorOn && S.cfOn ? 'true' : 'false');
     // settings panel
     $('brushSize').value = Math.log2(set.size); $('brushSizeOut').textContent = Math.round(set.size * 100) + '%';
@@ -4146,6 +4622,7 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
     var W = window.innerWidth, H = window.innerHeight;
     if (INK.W && (INK.W !== W || INK.H !== H) && INK.strokes.length) {
       var dx = (W - INK.W) / 2, dy = (H - INK.H) / 2;
+      if (S.sym && S.sym.ox != null) { S.sym.ox += dx; S.sym.oy += dy; symCache.key = ''; }   // the pattern's centre moves with the drawing
       INK.strokes = INK.strokes.map(function (st) {
         if (st.tf) return transformStroke(st, [1, 0, 0, 1, dx, dy]);   // moved fills and pictures carry their matrix
         var p = (st.p || []).slice(); for (var i = 0; i < p.length; i += 3) { p[i] += dx; p[i + 1] += dy; }
@@ -4160,9 +4637,11 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
   }
 
   // ----- export: every shown layer, in order, with its opacity
+  function exportStrokes() { return INK.exportList || INK.strokes; }
   function inkBox() {
+    if (INK.svgBox) return INK.svgBox;
     var x0 = 1e9, y0 = 1e9, x1 = -1e9, y1 = -1e9;
-    INK.strokes.forEach(function (st) {
+    exportStrokes().forEach(function (st) {
       if (st.e || !lset(strokeLayer(st)).on) return;
       var b = strokeBox(st), pad = isRaster(st) ? avgWidth(st) * 0.7 : 0;
       x0 = Math.min(x0, b.x0 - pad); y0 = Math.min(y0, b.y0 - pad); x1 = Math.max(x1, b.x1 + pad); y1 = Math.max(y1, b.y1 + pad);
@@ -4180,20 +4659,35 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
     LAYERS.forEach(function (l) {
       var ls = lset(l[0]); if (!ls.on) return;
       var lc = document.createElement('canvas'); lc.width = c.width; lc.height = c.height; var lx = lc.getContext('2d');
-      INK.strokes.forEach(function (st) { if (strokeLayer(st) === l[0]) renderStroke(lx, st, k, -box.x * k, -box.y * k); });
+      exportStrokes().forEach(function (st) { if (strokeLayer(st) === l[0]) renderStroke(lx, st, k, -box.x * k, -box.y * k); });
       x.globalAlpha = ls.op / 100; x.globalCompositeOperation = ls.blend || 'source-over'; x.drawImage(lc, 0, 0);
     });
     x.globalAlpha = 1; x.globalCompositeOperation = 'source-over';
     return c;
   }
   function inkPngBlob() {
+    if (symOn()) {   // a pattern: a kaleidoscope with every segment; a repeat as a 3×3 swatch
+      var sv0 = symGet();
+      if (sv0.kind === 'tile') return symTileImage(1360).then(function (t) { return t ? new Promise(function (res) { swatchOf(t, 3, 3).toBlob(res, 'image/png'); }) : null; });
+      INK.exportList = symExpanded(INK.strokes, sv0);
+      return inkPngPlain().then(function (bl) { INK.exportList = null; return bl; }, function (e) { INK.exportList = null; throw e; });
+    }
+    return inkPngPlain();
+  }
+  function inkPngPlain() {
     var b = inkBox(); if (!b) return Promise.resolve(null);
     var k = Math.min(3, 3000 / Math.max(b.w, b.h));   // about 3000 px on the long side: print quality, light on memory
     return prepareExport(k).then(function () {
       return new Promise(function (res) { var c = inkCanvasOf(b, k); INK.full = null; c.toBlob(res, 'image/png'); });
     });
   }
-  function inkSvgReady() { return prepareExport(2).then(function () { try { return inkSvgText(); } finally { INK.full = null; } }); }
+  function inkSvgReady() {
+    if (symOn()) {
+      var sv0 = symGet(); if (sv0.kind === 'tile') return symSvgText();
+      INK.exportList = symExpanded(INK.strokes, sv0);
+    }
+    return prepareExport(2).then(function () { try { return inkSvgText(); } finally { INK.full = null; INK.exportList = null; } }, function (e) { INK.exportList = null; throw e; });
+  }
   function svgId(name) { var t = String(name).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, ''); return /^[a-z]/.test(t) ? t : 'layer-' + t; }
   function inkSvgText() { var was = INK.syncRaster; INK.syncRaster = true; try { return inkSvgBuild(); } finally { INK.syncRaster = was; } }
   function inkSvgBuild() {   // line brushes only: watercolour, airbrush and soft erasing are painted pixels (they are in the PNG)
@@ -4233,7 +4727,7 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
     LAYERS.forEach(function (l) {
       var ls = lset(l[0]); if (!ls.on) return;
       var body = '', sofar = [];
-      INK.strokes.forEach(function (st) {
+      exportStrokes().forEach(function (st) {
         if (strokeLayer(st) !== l[0]) return;
         var k = kindOf(st), bb = BRUSHES[st.t] || {};
         sofar.push(st);
@@ -4396,7 +4890,7 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
     $('photoFig').hidden = true; $('file').value = ''; $('startBaseFile').value = '';
     BASE.front = null; BASE.back = null; placed.picture = false; placed.base = false;
     setGhost(null); boardId = null; boardTitle = '';
-    if (INK) { selClear(true); INK.strokes = []; INK.W = 0; INK.H = 0; INK.dirty = true; INK.live = null; INK.liveM = null; setLayers(defaultLayerState()); S.activeLayer = BRUSHES[S.inkBrush].layer; persist(); }
+    if (INK) { selClear(true); INK.strokes = []; INK.W = 0; INK.H = 0; INK.dirty = true; INK.live = null; INK.liveM = null; setLayers(defaultLayerState()); S.activeLayer = BRUSHES[S.inkBrush].layer; S.sym = symDefaults({}); symCache.key = ''; INK.symPlace = false; persist(); }
     undoStack = []; redoStack = []; updateUndo();
     renderBase(); syncStart(); syncSamples(); syncFashion(); if (MUSE.mine.length) renderMine();
   }
@@ -4860,7 +5354,7 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
       back: BASE.back && BASE.back.blob, backName: BASE.back && BASE.back.name,
       ghost: ghost && ghost.blob, T: placed.picture ? frac(T) : null, B: placed.base ? frac(B) : null,
       boardId: boardId, boardTitle: boardTitle, savedAt: Date.now(),
-      screen: screenMode, ink: inkForSave(), inkW: INK.W, inkH: INK.H, layers: layerState(), activeLayer: S.activeLayer };
+      screen: screenMode, ink: inkForSave(), inkW: INK.W, inkH: INK.H, layers: layerState(), activeLayer: S.activeLayer, sym: JSON.parse(JSON.stringify(S.sym)) };
     if (!PROJ.id) PROJ.id = 'p' + Date.now().toString(36) + Math.floor(Math.random() * 1296).toString(36);
     var id = PROJ.id, thumb = withThumb || !PROJ.thumbed ? projThumb() : null; if (thumb) PROJ.thumbed = true;
     rec.id = id;
@@ -4991,6 +5485,7 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
       if (rec.B && hasBase()) { unfrac(B, rec.B); placed.base = true; }
       boardId = rec.boardId || null; boardTitle = rec.boardTitle || '';
       setLayers(rec.layers || legacyLayers(rec.ink)); if (rec.activeLayer && layerExists(rec.activeLayer)) S.activeLayer = rec.activeLayer;
+      S.sym = symDefaults(rec.sym ? JSON.parse(JSON.stringify(rec.sym)) : { mode: 'off' }); symCache.key = '';
       inkLoad(rec.ink, rec.inkW, rec.inkH);
       renderBase(); return rec.screen ? enterScreen() : enterDrawing();
     }).catch(function (e) { showErr(e && e.message || 'The last session could not be opened.'); })

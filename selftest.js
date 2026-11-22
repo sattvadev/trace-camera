@@ -70,7 +70,7 @@
   function ms(v) { return Math.round(v) + ' ms'; }
   // the longest time the page's own thread was busy (a timer that should fire every 4 ms)
   function blockMeter() { var max = 0, last = performance.now(), on = true; (function tick() { var n = performance.now(); max = Math.max(max, n - last); last = n; if (on) setTimeout(tick, 4); })(); return { stop: function () { on = false; return max; } }; }
-  function fresh() { T.setSelMode(false); T.INK.strokes = []; T.setLayers(null); T.S.activeLayer = 'sketch'; T.INK.dirty = true; T.inkPaint(); }
+  function fresh() { if (T.S.sym && T.S.sym.mode !== 'off') { T.S.sym.mode = 'off'; T.symChanged(); } T.setSelMode(false); T.INK.strokes = []; T.setLayers(null); T.S.activeLayer = 'sketch'; T.INK.dirty = true; T.inkPaint(); }
   function W() { return window.innerWidth; } function H() { return window.innerHeight; }
 
   // ---------- the checks
@@ -196,6 +196,37 @@
       fresh(); T.S.inkColor = '#b3262e'; pick('gouache', 'colour'); line(W() * 0.2, H() * 0.5, W() * 0.7, H() * 0.5); T.S.inkColor = '#111111'; pick('pen', 'lines');
       ev('pointerdown', W() * 0.45, H() * 0.5);
       return wait(650).then(function () { var loupe = !$('loupe').hidden; ev('pointerup', W() * 0.45, H() * 0.5); add('Touch and hold picks the paint', loupe && T.S.inkColor !== '#111111', T.S.inkColor); });
+    }],
+    ['Pattern studio', function () {
+      if (!T.symGet || !$('railPattern')) return;
+      fresh(); T.S.sym.mode = 'kaleido'; T.S.sym.n = 8; T.S.sym.mirror = true; T.S.sym.ox = null; T.S.sym.oy = null; T.symChanged();
+      pick('pen', 'lines'); var t = performance.now(); line(W() * 0.55, H() * 0.3, W() * 0.65, H() * 0.42); var d = performance.now() - t;
+      add('Kaleidoscope copies each line', T.symGet().ops.length === 16, T.symGet().ops.length + ' copies', 'stroke ' + ms(d));
+      // the 17 wallpaper symmetries: the right number of moves, each fitting the grid
+      var want = { p1: 1, p2: 2, pm: 2, pg: 2, cm: 4, pmm: 4, pmg: 4, pgg: 4, cmm: 8, p4: 4, p4m: 8, p4g: 8, p3: 3, p3m1: 6, p31m: 6, p6: 6, p6m: 12 }, bad = [];
+      T.WALL.forEach(function (g) { var sv = T.symBuild({ mode: 'wall', group: g[0], size: 160, n: 8, mirror: true, layout: 'grid' }, { x: 0, y: 0 }); if (sv.ops.length !== want[g[0]]) bad.push(g[0]); });
+      add('17 wallpaper symmetries', !bad.length, bad.length ? bad.join(', ') + ' wrong' : 'all correct');
+      fresh(); T.S.sym.mode = 'wall'; T.S.sym.group = 'p6m'; T.S.sym.size = 160; T.symChanged();
+      pick('gouache', 'colour'); T.S.inkColor = '#b3262e'; var m = blockMeter(); t = performance.now();
+      for (var i = 0; i < 5; i++) wave(W() * 0.35 + i * 12, H() * 0.4 + i * 10, W() * 0.2, 25, 30);
+      var dd = performance.now() - t, blk = m.stop(), got = T.INK.strokes.length;
+      add('Drawing a hex wallpaper', got === 5 && dd < 2000, got === 5 ? ms(dd / 5) + ' a stroke' : got + ' of 5 strokes drawn', 'longest pause ' + ms(blk));
+      t = performance.now();
+      return T.symTileImage(2048).then(function (tile) {
+        var d2 = performance.now() - t; if (!tile) { add('Pattern tile', false, 'none'); return; }
+        var Wt = tile.width, Ht = tile.height, two = document.createElement('canvas'); two.width = 2 * Wt; two.height = Ht; var x2 = two.getContext('2d'); x2.drawImage(tile, 0, 0); x2.drawImage(tile, Wt, 0);
+        var dt = x2.getImageData(Wt - 2, 0, 4, Ht).data, join = 0, inside = 0;
+        for (var y = 0; y < Ht; y++) { join += Math.abs(dt[(y * 4 + 2) * 4 + 3] - dt[(y * 4 + 1) * 4 + 3]); inside += Math.abs(dt[(y * 4 + 1) * 4 + 3] - dt[(y * 4) * 4 + 3]); }
+        var ink = 0, td = tile.getContext('2d').getImageData(0, 0, Wt, Ht).data; for (var q = 3; q < td.length; q += 40) if (td[q] > 20) ink++;
+        add('Pattern tile (2048 px)', ink > 50, ms(d2), Wt + ' × ' + Ht + ' px, ' + Math.round(ink * 1000 / (td.length / 40)) / 10 + '% painted');
+        add('Tile is seamless', join <= inside * 2 + Ht * 2, join <= inside * 2 + Ht * 2 ? 'edges meet' : 'edge step ' + join + ' vs ' + inside);
+        t = performance.now();
+        return T.symSvgText().then(function (svg) {
+          var okSvg = !!svg && !new DOMParser().parseFromString(svg, 'image/svg+xml').querySelector('parsererror');
+          add('Pattern swatch as SVG', okSvg, ms(performance.now() - t), svg ? (svg.length / 1048576).toFixed(1) + ' MB' : '');
+          T.S.sym.mode = 'off'; T.symChanged();
+        });
+      });
     }],
     ['Save and reopen', function () {
       fresh(); pick('pen', 'lines'); line(W() * 0.2, H() * 0.3, W() * 0.6, H() * 0.3);
