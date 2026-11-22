@@ -160,15 +160,26 @@ and your chosen photo floats see-through on top, so you can draw while watching 
   Shippō and Asanoha (original line art), Scales and Scatter layouts (Scatter: six turned copies in a big tile, Shuffle),
   "Edit this pattern" from a print in Fill, and the print's repeat in cm on the croquis.
 - **Flat blocks (rail: Blocks):** original technical flats generated from measurements (women's medium, cm), not drawn
-  pictures: 5 bases (top, shirt, skirt, trousers, dress) and 35 presets in 5 categories, each front and back. Options:
-  necklines (crew, V, scoop, boat, square, turtle, mock, slip), collars (point, band, Peter Pan), sleeves (sleeveless,
-  cap, short, elbow, long; raglan), fit, length, rib, chest pocket, shirt-tail hem, skirt silhouettes (pencil, A-line,
-  flared, pleated), waist (band, elastic), darts, trouser legs (slim, straight, wide, flare, jogger), pockets (slant,
-  5-pocket jeans), belt loops, turn-ups, dress skirts (sheath, A-line, fit-and-flare, shift). Lines have roles:
-  outline, seam, topstitch (dashed), fold, detail. Placed on Lines at one shared scale (so garments line up), as
-  ordinary strokes linked to the garment: Blocks → In this drawing → change options, views (front/back/both) or line
-  weight; each change is one undo step; saved with the project. Inspired by the workflow of template apps like
-  FashionDraw; nothing is copied from their templates (see reports/FashionDraw blocks for Trace.md).
+  pictures: 10 bases (top, shirt, cardigan, vest, jacket, coat, skirt, trousers, dress, jumpsuit) and 69 presets in 9
+  categories (Tops, Knitwear, Shirts, Jackets, Coats, Skirts, Trousers, Dresses, Jumpsuits), each front and back, with
+  search ("blazer", "puff sleeve", "cargo"). Options include necklines (crew, V, scoop, boat, square, turtle, mock, slip,
+  hood), collars (point, band, Peter Pan), lapels (notch, peak, shawl, collarless; funnel neck and hood on coats),
+  single- or double-breasted fronts (the top panel's lapel hides the one underneath), sleeves (sleeveless, cap, short,
+  puff, elbow, long, bishop, bell; raglan; two-piece set-in on jackets and coats, lying over the body), fit, length,
+  rib, knit texture (rib knit, cable knit), kangaroo, patch, flap, jetted, slanted-welt and cargo pockets, pleats,
+  belts, epaulettes and cuff straps, storm flap and back yoke, vents, skirt and dress silhouettes, trouser legs, tie
+  belts. Bodies: women's, men's, plus and child (the same garment reshaped across the torso; sleeves keep their shape).
+  Lines have roles: outline, seam, topstitch (dashed), fold, detail. Placed on Lines at one shared scale (so garments
+  line up), as ordinary strokes linked to the garment: Blocks → In this drawing → change options, body, views or line
+  weight; Surprise me (random options); Save to my garments (a Mine category; touch and hold to remove); Make plain
+  lines (unlinks it). A garment moved, turned or resized with Select stays there when its options change. Each change is
+  one undo step; saved with the project. Inspired by the workflow of template apps like FashionDraw; nothing is copied
+  from their templates (see reports/FashionDraw blocks for Trace.md).
+- **Stitch lines (Blocks → Stitch lines):** technical brushes for flats: choose one and every line drawn becomes
+  topstitching (single, double or triple needle), zigzag, gathers, rib knit, a zip with its pull, a row of buttons or a
+  scalloped edge, as vector lines in the line's colour (they export to SVG, erase and select like any line). Stitch
+  size follows the screen, so zoom in for finer stitching. A dot on Blocks shows one is on; it is off each time Trace
+  opens.
 - **Keyboard:** Cmd/Ctrl+Z undo; Shift+Cmd/Ctrl+Z or Ctrl+Y redo (ignored while typing in a text field). With a selection:
   Cmd+C, Cmd+X, Cmd+V, Cmd+D duplicate, Delete, arrows nudge (Shift ×10), Escape lets go; Cmd+A selects the whole layer.
 - **Speed and memory (for iPad):** the per-pixel paint of watercolour, airbrush, shading and soft lines runs in a pool of up

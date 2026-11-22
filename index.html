@@ -7,7 +7,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="NUMOTIFSTUDIO - Trace">
 <meta name="application-name" content="NUMOTIFSTUDIO - Trace">
-<meta name="app-build" content="2026-11-22.04">
+<meta name="app-build" content="2026-11-22.05">
 <title>NUMOTIFSTUDIO - Trace</title>
 <link rel="icon" type="image/png" sizes="32x32" href="assets/favicon-32.png">
 <link rel="icon" type="image/png" sizes="192x192" href="assets/icon-192.png">
@@ -143,6 +143,8 @@ body.screenMode.paperWater #stage { background: #fbf8f2 var(--paperTex) repeat; 
 .printBtn img { width: 40px; height: 40px; border-radius: 6px; display: block; }
 .printBtn[aria-pressed="true"] { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent); }
 .symGrid { grid-template-columns: repeat(3, 1fr); }
+.blkSearch { font: inherit; font-size: .9rem; padding: 8px 10px; border-radius: 10px; border: 1px solid var(--gray-300); background: #fff; width: 100%; box-sizing: border-box; }
+#railBlocks { position: relative; } #railBlocks.stitchOn::after { content: ''; position: absolute; top: 6px; right: 12px; width: 8px; height: 8px; border-radius: 50%; background: var(--accent); }
 .blkSel { display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: .85rem; font-weight: 600; }
 .blkSel select { font: inherit; font-weight: 500; padding: 6px 8px; border-radius: 8px; border: 1px solid var(--gray-300); background: #fff; max-width: 60%; }
 #pop_blocks .row { margin: 0; } #pop_blocks .ctl { display: flex; align-items: center; justify-content: space-between; gap: 10px; width: 100%; }
@@ -782,8 +784,11 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
   </div>
   <div id="pop_blocks" hidden>
     <div class="popTitle">Flat blocks</div>
+    <input type="search" id="blkSearch" class="blkSearch" placeholder="Find a garment: blazer, puff sleeve, cargo…" aria-label="Find a garment" autocomplete="off" enterkeyhint="search">
     <div class="seg" id="blkCatSeg" role="group" aria-label="Garment category" style="justify-self:start;flex-wrap:wrap"></div>
     <div id="blkGrid" class="printGrid symGrid"></div>
+    <p class="fine" id="blkMineNote" style="margin:0" hidden>Touch and hold one of yours to remove it.</p>
+    <div class="row" style="gap:8px;align-items:center;flex-wrap:wrap"><span class="popSub" style="margin:0">Body</span><div class="seg" id="blkBodySeg" role="group" aria-label="Body"><button type="button" data-v="women">Women's</button><button type="button" data-v="men">Men's</button><button type="button" data-v="plus">Plus</button><button type="button" data-v="child">Child</button></div></div>
     <div class="popSub" id="blkMineHead" hidden>In this drawing</div>
     <div class="row" id="blkMine" style="gap:6px;flex-wrap:wrap"></div>
     <div id="blkEdit" style="display:grid;gap:8px" hidden>
@@ -791,8 +796,13 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
       <div id="blkParams" style="display:grid;gap:6px"></div>
       <div class="seg" id="blkViewSeg" role="group" aria-label="Which views" style="justify-self:start"><button type="button" data-v="front">Front</button><button type="button" data-v="back">Back</button><button type="button" data-v="both">Both</button></div>
       <div class="grow"><input id="blkSize" type="range" min="-1" max="1" step="0.05" aria-label="Line weight"><span>Line weight</span></div>
+      <div class="row" style="gap:6px;flex-wrap:wrap"><button type="button" class="chip" id="blkSurprise">Surprise me</button><button type="button" class="chip" id="blkSaveMine">Save to my garments</button><button type="button" class="chip" id="blkDetach">Make plain lines</button></div>
       <div class="row" style="gap:6px"><button type="button" class="chip primary" id="blkDone">Done</button><button type="button" class="chip" id="blkDelete">Remove it</button></div>
     </div>
+    <div class="popSub">Stitch lines</div>
+    <p class="fine" style="margin:0">Choose one, then draw: your line becomes topstitching, a zip, buttons, gathers… Zoom in for finer stitches.</p>
+    <div id="stitchGrid" class="printGrid symGrid"></div>
+    <div class="grow"><input id="stitchSize" type="range" min="2" max="14" step="0.5" aria-label="Stitch size"><span>Stitch size <output id="stitchSizeOut"></output></span></div>
     <p class="fine" style="margin:0">Original flats made by Trace from measurements, front and back. Change the options, then draw your own details over them (Pattern, Fill and Select work on them too).</p>
   </div>
   <div id="pop_pattern" hidden>
@@ -1029,7 +1039,7 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
                'baseOn', 'baseOpacity', 'heads', 'flatView', 'cfOn', 'cfX', 'mirrorOn', 'mirrorSide', 'mirrorStrength', 'ghostOn', 'ghostOpacity', 'iso', 'faceGuide', 'markers', 'sheen', 'inkTool', 'inkSize', 'fingerDraw', 'fingerChoice', 'markerStep',
                'inkBrush', 'inkColor', 'recentColors', 'brushSet', 'layerSet', 'activeLayer', 'paper', 'inkErase', 'eraserSoft', 'inkFill', 'fillPrint', 'fillGround', 'fillScale', 'fillGap', 'fillCroquis',
                // added in later releases (they were saved but not read back: My brushes, wrap and drape settings were lost on reload)
-               'myBrushes', 'myBrush', 'fillWrap', 'fillMode', 'drapeSize', 'drapeStrength', 'fillOwn', 'holdPick', 'palettes', 'pressGamma', 'quickShape'];
+               'myBrushes', 'myBrush', 'fillWrap', 'fillMode', 'drapeSize', 'drapeStrength', 'fillOwn', 'holdPick', 'palettes', 'pressGamma', 'quickShape', 'stitchSize', 'blkBody', 'myBlocks'];
   try { var sv = JSON.parse(localStorage.getItem('trace-camera' + SK) || 'null');
     if (sv) SAVED.forEach(function (k) { if (k in sv) S[k] = sv[k]; });
     if (sv && !sv.v2) S.lineStyle = 'ai';   // one-time switch: AI sketch became the default outline style
@@ -2042,8 +2052,8 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
   function pushUndo(prev) { undoStack.push(prev); if (undoStack.length > 60) undoStack.shift(); redoStack = []; updateUndo(); }
   function updateUndo() { $('undoBtn').disabled = !undoStack.length; $('redoBtn').disabled = !redoStack.length; }
   function layerOf(l) { return l === 'base' ? B : T; }
-  function snap(l) { l = l || 'picture'; if (l === 'ink') return { layer: 'ink', strokes: INK.strokes.slice(), lay: layerState(), act: S.activeLayer }; var o = layerOf(l); return { layer: l, x: o.x, y: o.y, scale: o.scale, rot: o.rot }; }
-  function applySnap(p) { if (p.layer === 'ink') { selClear(true); if (p.lay) { setLayers(p.lay); if (p.act && layerExists(p.act)) S.activeLayer = p.act; persist(); } INK.strokes = p.strokes.slice(); inkChanged(); return; } var o = layerOf(p.layer); o.x = p.x; o.y = p.y; o.scale = p.scale; o.rot = p.rot; if (p.layer === 'base') placeBase(); else place(); scheduleSave(); }
+  function snap(l) { l = l || 'picture'; if (l === 'ink') return { layer: 'ink', strokes: INK.strokes.slice(), lay: layerState(), act: S.activeLayer, blk: INK.blocks ? Object.assign({}, INK.blocks) : null }; var o = layerOf(l); return { layer: l, x: o.x, y: o.y, scale: o.scale, rot: o.rot }; }
+  function applySnap(p) { if (p.layer === 'ink') { selClear(true); if (p.lay) { setLayers(p.lay); if (p.act && layerExists(p.act)) S.activeLayer = p.act; persist(); } INK.strokes = p.strokes.slice(); if (p.blk) { INK.blocks = Object.assign({}, p.blk); if (!$('pop_blocks').hidden) renderBlocksPop(); } inkChanged(); return; } var o = layerOf(p.layer); o.x = p.x; o.y = p.y; o.scale = p.scale; o.rot = p.rot; if (p.layer === 'base') placeBase(); else place(); scheduleSave(); }
   $('undoBtn').addEventListener('click', function () { if (!undoStack.length) return; var p = undoStack.pop(); redoStack.push(snap(p.layer)); applySnap(p); updateUndo(); });
   $('redoBtn').addEventListener('click', function () { if (!redoStack.length) return; var p = redoStack.pop(); undoStack.push(snap(p.layer)); applySnap(p); updateUndo(); });
 
@@ -3238,6 +3248,10 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
     if (tout && !st.e && !snapped) { taperEnd(st, tout); if (sm) taperEnd(sm, tout); }
     if (INK.kind !== 'pen' && INK.kind !== 'mouse') hideRing();
     st._path = null; if (sm) sm._path = null;
+    if (S.stitch && S.stitch !== 'off' && !st.e && st.p.length >= 6) {   // a stitch line: the stroke becomes stitches
+      var made = stitchStroke(st).concat(sm ? stitchStroke(sm) : []);
+      if (made.length) { pushUndo(snap('ink')); INK.strokes = INK.strokes.concat(made); layerCanvasesFit(); inkChanged(); scheduleSave(); syncDraw(); return; }
+    }
     pushUndo(snap('ink'));
     INK.strokes = INK.strokes.concat(sm && sm.p.length ? [st, sm] : [st]);
     layerCanvasesFit();   // the first stroke on a layer gives it a canvas (a full redraw)
@@ -5149,59 +5163,174 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
   });
   // ================= Flat blocks: original, adjustable technical flats (Trace's own, made from measurements) =================
   // Each garment is drawn from a few body measurements (women's medium, cm, half widths from centre front) and its
-  // options: necklines, collars, sleeves, lengths, fits, pockets, closures. The right half is built and mirrored; things on
-  // one side only (a shirt pocket, a fly) are added after. Lines have roles: outline (heaviest), seam, topstitch (dashed),
-  // fold and detail. A garment is placed as ordinary strokes on the current layer, remembered by the project so
-  // Blocks → Edit can change its options later. Nothing here copies anyone's templates: it is all generated.
+  // options: necklines, collars, lapels, sleeves, lengths, fits, pockets, closures. The right half is built and mirrored;
+  // things on one side only (a shirt pocket, a fly, the top panel of a double-breasted front) are added after. Lines have
+  // roles: outline (heaviest), seam, topstitch (dashed), fold and detail. Other bodies (men's, plus, child) are the same
+  // drawing reshaped by a table of widths down the body. A garment is placed as ordinary strokes on the current layer,
+  // remembered by the project so Blocks → Edit can change its options later. Nothing here copies anyone's templates.
+  var LEN_TOP = [['crop', 'Cropped'], ['hip', 'Hip'], ['tunic', 'Tunic']], FIT3 = [['slim', 'Slim'], ['regular', 'Regular'], ['oversized', 'Oversized']];
+  var KNIT = ['knit', 'Knit', [['plain', 'Plain'], ['rib', 'Rib knit'], ['cable', 'Cable knit']]];
   var BLK_PARAMS = {
-    top: [['neck', 'Neckline', [['crew', 'Crew'], ['v', 'V-neck'], ['scoop', 'Scoop'], ['boat', 'Boat'], ['square', 'Square'], ['turtle', 'Turtleneck'], ['mock', 'Mock neck']]],
-          ['sleeve', 'Sleeves', [['none', 'Sleeveless'], ['cap', 'Cap'], ['short', 'Short'], ['elbow', 'Elbow'], ['long', 'Long']]],
-          ['raglan', 'Raglan sleeves', 'bool'], ['fit', 'Fit', [['slim', 'Slim'], ['regular', 'Regular'], ['oversized', 'Oversized']]],
-          ['len', 'Length', [['crop', 'Cropped'], ['hip', 'Hip'], ['tunic', 'Tunic']]], ['rib', 'Rib hem and cuffs', 'bool']],
+    top: [['neck', 'Neckline', [['crew', 'Crew'], ['v', 'V-neck'], ['scoop', 'Scoop'], ['boat', 'Boat'], ['square', 'Square'], ['turtle', 'Turtleneck'], ['mock', 'Mock neck'], ['hood', 'Hood']]],
+          ['sleeve', 'Sleeves', [['none', 'Sleeveless'], ['cap', 'Cap'], ['short', 'Short'], ['puff', 'Puff'], ['elbow', 'Elbow'], ['long', 'Long'], ['bishop', 'Bishop'], ['bell', 'Bell']]],
+          ['raglan', 'Raglan sleeves', 'bool'], ['fit', 'Fit', FIT3], ['len', 'Length', LEN_TOP], ['rib', 'Rib hem and cuffs', 'bool'],
+          KNIT, ['pocket', 'Pocket', [['none', 'None'], ['kangaroo', 'Kangaroo']]]],
     shirt: [['collar', 'Collar', [['point', 'Point collar'], ['band', 'Band (mandarin)'], ['peter', 'Peter Pan'], ['none', 'Collarless']]],
-            ['sleeve', 'Sleeves', [['long', 'Long with cuff'], ['short', 'Short'], ['none', 'Sleeveless']]],
-            ['pocket', 'Chest pocket', 'bool'], ['fit', 'Fit', [['slim', 'Slim'], ['regular', 'Regular'], ['oversized', 'Oversized']]],
-            ['len', 'Length', [['crop', 'Cropped'], ['hip', 'Hip'], ['tunic', 'Long']]], ['tail', 'Curved shirt-tail hem', 'bool']],
+            ['sleeve', 'Sleeves', [['long', 'Long with cuff'], ['bishop', 'Bishop'], ['puff', 'Puff'], ['short', 'Short'], ['none', 'Sleeveless']]],
+            ['pocket', 'Chest pocket', 'bool'], ['fit', 'Fit', FIT3], ['len', 'Length', [['crop', 'Cropped'], ['hip', 'Hip'], ['tunic', 'Long']]], ['tail', 'Curved shirt-tail hem', 'bool']],
+    cardigan: [['neck', 'Neckline', [['v', 'V-neck'], ['crew', 'Crew']]], ['sleeve', 'Sleeves', [['long', 'Long'], ['elbow', 'Elbow'], ['short', 'Short']]],
+               ['fit', 'Fit', FIT3], ['len', 'Length', LEN_TOP], KNIT, ['pocket', 'Patch pockets', 'bool']],
+    vest: [['style', 'Style', [['waistcoat', 'Tailored waistcoat'], ['puffer', 'Quilted gilet'], ['sweater', 'Sweater vest']]], ['pocket', 'Pockets', 'bool'], ['fit', 'Fit', FIT3], KNIT],
+    jacket: [['lapel', 'Lapels', [['notch', 'Notch'], ['peak', 'Peak'], ['shawl', 'Shawl'], ['none', 'Collarless']]],
+             ['close', 'Fastening', [['two', 'Two buttons'], ['one', 'One button'], ['double', 'Double-breasted']]],
+             ['fit', 'Fit', [['slim', 'Slim'], ['regular', 'Regular'], ['boxy', 'Boxy']]], ['len', 'Length', [['hip', 'Hip'], ['crop', 'Cropped'], ['long', 'Long']]],
+             ['pockets', 'Pockets', [['flap', 'Flap'], ['welt', 'Jetted'], ['patch', 'Patch'], ['none', 'None']]], ['chest', 'Chest pocket', 'bool'],
+             ['vent', 'Back vent', [['centre', 'Centre'], ['side', 'Side vents'], ['none', 'None']]]],
+    coat: [['collar', 'Collar', [['notch', 'Notch lapels'], ['peak', 'Peak lapels'], ['funnel', 'Funnel neck'], ['hood', 'Hood']]],
+           ['close', 'Fastening', [['double', 'Double-breasted'], ['single', 'Single-breasted']]], ['len', 'Length', [['knee', 'Knee'], ['hip', 'Hip'], ['midi', 'Midi']]],
+           ['pockets', 'Pockets', [['welt', 'Slanted welt'], ['flap', 'Flap'], ['patch', 'Patch'], ['none', 'None']]],
+           ['belt', 'Belt', 'bool'], ['epaulettes', 'Epaulettes and cuff straps', 'bool'], ['storm', 'Storm flap and back yoke', 'bool']],
     skirt: [['shape', 'Silhouette', [['pencil', 'Pencil'], ['aline', 'A-line'], ['flared', 'Flared'], ['pleated', 'Pleated']]],
             ['len', 'Length', [['mini', 'Mini'], ['knee', 'Knee'], ['midi', 'Midi'], ['maxi', 'Maxi']]],
             ['waist', 'Waist', [['band', 'Waistband'], ['elastic', 'Elastic (gathered)']]], ['darts', 'Darts', 'bool']],
     trousers: [['leg', 'Leg', [['slim', 'Slim'], ['straight', 'Straight'], ['wide', 'Wide'], ['flare', 'Flare'], ['jogger', 'Jogger']]],
-               ['len', 'Length', [['shorts', 'Shorts'], ['crop', 'Cropped'], ['full', 'Full']]],
-               ['pockets', 'Pockets', [['slant', 'Slant'], ['jeans', 'Jeans (5-pocket)'], ['none', 'None']]], ['loops', 'Belt loops', 'bool'], ['turnup', 'Turn-ups', 'bool']],
+               ['len', 'Length', [['full', 'Full'], ['crop', 'Cropped'], ['shorts', 'Shorts']]],
+               ['pockets', 'Pockets', [['slant', 'Slant'], ['jeans', 'Jeans (5-pocket)'], ['cargo', 'Cargo'], ['none', 'None']]], ['pleats', 'Front pleats', 'bool'], ['loops', 'Belt loops', 'bool'], ['turnup', 'Turn-ups', 'bool']],
     dress: [['neck', 'Neckline', [['crew', 'Crew'], ['v', 'V-neck'], ['scoop', 'Scoop'], ['square', 'Square'], ['boat', 'Boat'], ['slip', 'Slip (straps)']]],
-            ['sleeve', 'Sleeves', [['none', 'Sleeveless'], ['cap', 'Cap'], ['short', 'Short'], ['long', 'Long']]],
+            ['sleeve', 'Sleeves', [['none', 'Sleeveless'], ['cap', 'Cap'], ['short', 'Short'], ['puff', 'Puff'], ['long', 'Long'], ['bishop', 'Bishop'], ['bell', 'Bell']]],
             ['shape', 'Skirt', [['sheath', 'Sheath'], ['aline', 'A-line'], ['flare', 'Fit and flare'], ['shift', 'Shift (no waist seam)']]],
-            ['len', 'Length', [['mini', 'Mini'], ['knee', 'Knee'], ['midi', 'Midi'], ['maxi', 'Maxi']]]]
+            ['len', 'Length', [['mini', 'Mini'], ['knee', 'Knee'], ['midi', 'Midi'], ['maxi', 'Maxi']]]],
+    jumpsuit: [['neck', 'Neckline', [['v', 'V-neck'], ['crew', 'Crew'], ['square', 'Square'], ['slip', 'Slip (straps)'], ['collar', 'Shirt collar']]],
+               ['sleeve', 'Sleeves', [['none', 'Sleeveless'], ['short', 'Short'], ['long', 'Long']]],
+               ['leg', 'Leg', [['wide', 'Wide'], ['straight', 'Straight'], ['slim', 'Slim'], ['jogger', 'Jogger']]], ['len', 'Length', [['full', 'Full'], ['crop', 'Cropped'], ['shorts', 'Shorts (playsuit)']]],
+               ['pockets', 'Pockets', [['slant', 'Slant'], ['none', 'None']]], ['belt', 'Tie belt', 'bool']]
   };
+  var BLK_NAMES = { top: 'Top', shirt: 'Shirt', cardigan: 'Cardigan', vest: 'Vest', jacket: 'Jacket', coat: 'Coat', skirt: 'Skirt', trousers: 'Trousers', dress: 'Dress', jumpsuit: 'Jumpsuit' };
   var BLK_PRESETS = [
     ['Tops', [['Crew T-shirt', 'top', { neck: 'crew', sleeve: 'short' }], ['V-neck T-shirt', 'top', { neck: 'v', sleeve: 'short' }], ['Long-sleeve top', 'top', { neck: 'crew', sleeve: 'long' }],
-              ['Tank top', 'top', { neck: 'scoop', sleeve: 'none' }], ['Boat-neck top', 'top', { neck: 'boat', sleeve: 'elbow' }], ['Turtleneck', 'top', { neck: 'turtle', sleeve: 'long', fit: 'slim', rib: true }],
-              ['Raglan sweatshirt', 'top', { neck: 'crew', sleeve: 'long', raglan: true, fit: 'oversized', rib: true }], ['Cropped tee', 'top', { neck: 'crew', sleeve: 'short', len: 'crop', fit: 'oversized' }],
-              ['Square-neck top', 'top', { neck: 'square', sleeve: 'cap', fit: 'slim' }], ['Mock-neck long sleeve', 'top', { neck: 'mock', sleeve: 'long', fit: 'slim' }]]],
+              ['Tank top', 'top', { neck: 'scoop', sleeve: 'none' }], ['Boat-neck top', 'top', { neck: 'boat', sleeve: 'elbow' }], ['Puff-sleeve top', 'top', { neck: 'square', sleeve: 'puff', fit: 'slim', len: 'crop' }],
+              ['Bishop-sleeve top', 'top', { neck: 'v', sleeve: 'bishop', fit: 'regular' }], ['Bell-sleeve top', 'top', { neck: 'boat', sleeve: 'bell', fit: 'slim' }],
+              ['Raglan sweatshirt', 'top', { neck: 'crew', sleeve: 'long', raglan: true, fit: 'oversized', rib: true }], ['Hoodie', 'top', { neck: 'hood', sleeve: 'long', fit: 'oversized', rib: true, pocket: 'kangaroo' }],
+              ['Cropped tee', 'top', { neck: 'crew', sleeve: 'short', len: 'crop', fit: 'oversized' }], ['Square-neck top', 'top', { neck: 'square', sleeve: 'cap', fit: 'slim' }], ['Mock-neck long sleeve', 'top', { neck: 'mock', sleeve: 'long', fit: 'slim' }]]],
+    ['Knitwear', [['Cable-knit sweater', 'top', { neck: 'crew', sleeve: 'long', fit: 'regular', rib: true, knit: 'cable' }], ['Rib-knit turtleneck', 'top', { neck: 'turtle', sleeve: 'long', fit: 'slim', rib: true, knit: 'rib' }],
+                  ['V-neck cardigan', 'cardigan', { neck: 'v', pocket: true }], ['Crew cardigan', 'cardigan', { neck: 'crew', len: 'crop', fit: 'slim' }], ['Cable cardigan', 'cardigan', { neck: 'v', knit: 'cable', fit: 'oversized', len: 'tunic' }],
+                  ['Sweater vest', 'vest', { style: 'sweater' }], ['Cable sweater vest', 'vest', { style: 'sweater', knit: 'cable' }]]],
     ['Shirts', [['Button-up shirt', 'shirt', { collar: 'point', sleeve: 'long', pocket: true, tail: true }], ['Short-sleeve shirt', 'shirt', { collar: 'point', sleeve: 'short' }],
                 ['Mandarin-collar shirt', 'shirt', { collar: 'band', sleeve: 'long' }], ['Peter Pan blouse', 'shirt', { collar: 'peter', sleeve: 'short', fit: 'slim', len: 'crop' }],
+                ['Bishop-sleeve blouse', 'shirt', { collar: 'band', sleeve: 'bishop', fit: 'regular' }], ['Puff-sleeve blouse', 'shirt', { collar: 'peter', sleeve: 'puff', fit: 'slim' }],
                 ['Oversized shirt', 'shirt', { collar: 'point', sleeve: 'long', fit: 'oversized', len: 'tunic', tail: true }]]],
+    ['Jackets', [['Single-breasted blazer', 'jacket', { lapel: 'notch', close: 'two', pockets: 'flap', chest: true, vent: 'centre' }], ['Double-breasted blazer', 'jacket', { lapel: 'peak', close: 'double', pockets: 'flap', chest: true, vent: 'side' }],
+                 ['One-button blazer', 'jacket', { lapel: 'peak', close: 'one', pockets: 'welt', chest: true, fit: 'slim' }], ['Shawl-collar jacket', 'jacket', { lapel: 'shawl', close: 'one', pockets: 'welt', fit: 'slim', vent: 'none' }],
+                 ['Cropped jacket', 'jacket', { lapel: 'none', close: 'two', len: 'crop', pockets: 'none', fit: 'slim', vent: 'none' }], ['Boxy blazer', 'jacket', { lapel: 'notch', close: 'one', fit: 'boxy', len: 'long', pockets: 'patch' }],
+                 ['Waistcoat', 'vest', { style: 'waistcoat', pocket: true }], ['Quilted gilet', 'vest', { style: 'puffer', pocket: true }]]],
+    ['Coats', [['Belted trench coat', 'coat', { collar: 'notch', close: 'double', len: 'knee', belt: true, epaulettes: true, storm: true, pockets: 'welt' }],
+               ['Double-breasted overcoat', 'coat', { collar: 'peak', close: 'double', len: 'midi', pockets: 'flap' }], ['Car coat', 'coat', { collar: 'notch', close: 'single', len: 'hip', pockets: 'flap' }],
+               ['Funnel-neck coat', 'coat', { collar: 'funnel', close: 'single', len: 'knee', pockets: 'welt' }], ['Hooded coat', 'coat', { collar: 'hood', close: 'single', len: 'knee', pockets: 'patch' }],
+               ['Belted coat', 'coat', { collar: 'notch', close: 'single', len: 'midi', belt: true, pockets: 'patch' }]]],
     ['Skirts', [['Pencil skirt', 'skirt', { shape: 'pencil', len: 'knee', darts: true }], ['A-line skirt', 'skirt', { shape: 'aline', len: 'knee' }], ['Flared skirt', 'skirt', { shape: 'flared', len: 'midi' }],
                 ['Pleated skirt', 'skirt', { shape: 'pleated', len: 'midi' }], ['Mini skirt', 'skirt', { shape: 'aline', len: 'mini' }], ['Maxi skirt', 'skirt', { shape: 'aline', len: 'maxi', waist: 'elastic' }]]],
-    ['Trousers', [['Straight trousers', 'trousers', { leg: 'straight', pockets: 'slant', loops: true }], ['Wide-leg trousers', 'trousers', { leg: 'wide', pockets: 'slant' }], ['Slim trousers', 'trousers', { leg: 'slim', pockets: 'slant', loops: true }],
-                  ['5-pocket jeans', 'trousers', { leg: 'straight', pockets: 'jeans', loops: true }], ['Flared jeans', 'trousers', { leg: 'flare', pockets: 'jeans', loops: true }], ['Shorts', 'trousers', { leg: 'straight', len: 'shorts', pockets: 'slant', turnup: true }],
+    ['Trousers', [['Straight trousers', 'trousers', { leg: 'straight', pockets: 'slant', loops: true }], ['Wide-leg trousers', 'trousers', { leg: 'wide', pockets: 'slant' }], ['Pleated wide-leg trousers', 'trousers', { leg: 'wide', pockets: 'slant', pleats: true, loops: true }],
+                  ['Slim trousers', 'trousers', { leg: 'slim', pockets: 'slant', loops: true }], ['5-pocket jeans', 'trousers', { leg: 'straight', pockets: 'jeans', loops: true }], ['Flared jeans', 'trousers', { leg: 'flare', pockets: 'jeans', loops: true }],
+                  ['Cargo trousers', 'trousers', { leg: 'straight', pockets: 'cargo', loops: true }], ['Shorts', 'trousers', { leg: 'straight', len: 'shorts', pockets: 'slant', turnup: true }],
                   ['Joggers', 'trousers', { leg: 'jogger', pockets: 'slant' }], ['Cropped trousers', 'trousers', { leg: 'straight', len: 'crop', pockets: 'slant', turnup: true }]]],
     ['Dresses', [['Shift dress', 'dress', { neck: 'crew', sleeve: 'none', shape: 'shift', len: 'knee' }], ['Sheath dress', 'dress', { neck: 'boat', sleeve: 'cap', shape: 'sheath', len: 'knee' }],
-                 ['Fit-and-flare dress', 'dress', { neck: 'scoop', sleeve: 'short', shape: 'flare', len: 'knee' }], ['A-line dress', 'dress', { neck: 'v', sleeve: 'long', shape: 'aline', len: 'midi' }],
-                 ['Slip dress', 'dress', { neck: 'slip', sleeve: 'none', shape: 'aline', len: 'midi' }], ['Maxi dress', 'dress', { neck: 'v', sleeve: 'short', shape: 'aline', len: 'maxi' }]]]
+                 ['Fit-and-flare dress', 'dress', { neck: 'scoop', sleeve: 'short', shape: 'flare', len: 'knee' }], ['Short fit-and-flare dress', 'dress', { neck: 'square', sleeve: 'none', shape: 'flare', len: 'mini' }],
+                 ['A-line dress', 'dress', { neck: 'v', sleeve: 'long', shape: 'aline', len: 'midi' }], ['Puff-sleeve dress', 'dress', { neck: 'square', sleeve: 'puff', shape: 'flare', len: 'midi' }],
+                 ['Slip dress', 'dress', { neck: 'slip', sleeve: 'none', shape: 'aline', len: 'midi' }], ['Maxi dress', 'dress', { neck: 'v', sleeve: 'short', shape: 'aline', len: 'maxi' }]]],
+    ['Jumpsuits', [['Wide-leg jumpsuit', 'jumpsuit', { neck: 'v', sleeve: 'none', leg: 'wide', belt: true }], ['Boiler suit', 'jumpsuit', { neck: 'collar', sleeve: 'long', leg: 'straight' }],
+                   ['Strappy jumpsuit', 'jumpsuit', { neck: 'slip', sleeve: 'none', leg: 'wide' }], ['Playsuit', 'jumpsuit', { neck: 'square', sleeve: 'short', leg: 'wide', len: 'shorts', belt: true }]]]
   ];
-  function blkDefaults(base) { var o = {}; BLK_PARAMS[base].forEach(function (p) { o[p[0]] = p[2] === 'bool' ? false : p[2][p[0] === 'fit' ? 1 : p[0] === 'len' && base === 'top' ? 1 : 0][0]; }); if (base === 'trousers') o.len = 'full'; if (base === 'shirt') o.len = 'hip'; return o; }
+  var BLK_DEF = { top: { len: 'hip', fit: 'regular' }, shirt: { len: 'hip', fit: 'regular' }, cardigan: { len: 'hip', fit: 'regular' }, vest: { fit: 'regular' }, jacket: { fit: 'regular' } };
+  function blkDefaults(base) { var o = {}; BLK_PARAMS[base].forEach(function (p) { o[p[0]] = p[2] === 'bool' ? false : p[2][0][0]; }); return Object.assign(o, BLK_DEF[base] || {}); }
   // ---- geometry helpers (cm; x right from centre front, y down)
   function qb(a, c, b, n) { var o = []; n = n || 14; for (var i = 0; i <= n; i++) { var t = i / n, u = 1 - t; o.push([u * u * a[0] + 2 * u * t * c[0] + t * t * b[0], u * u * a[1] + 2 * u * t * c[1] + t * t * b[1]]); } return o; }
   function cat() { var o = []; for (var i = 0; i < arguments.length; i++) { var s2 = arguments[i]; o = o.concat(o.length && s2.length && Math.hypot(o[o.length - 1][0] - s2[0][0], o[o.length - 1][1] - s2[0][1]) < 1e-6 ? s2.slice(1) : s2); } return o; }
-  function circlePts(cx, cy, r, n) { var o = []; n = n || 16; for (var i = 0; i <= n; i++) { var t = 2 * Math.PI * i / n; o.push([cx + Math.cos(t) * r, cy + Math.sin(t) * r]); } return o; }
+  function circlePts(cx, cy, r, n) { var o = []; n = n || 16; for (var i = 0; i <= n; i++) { var t = 2 * Math.PI * i / n; o.push([cx + Math.cos(t) * r, cy + Math.sin(t) * r]); } o.circ = [cx, cy, r, n]; return o; }
+  function crv(P, n) {   // a smooth curve through the points (Catmull-Rom)
+    n = n || 8; var o = [P[0].slice()];
+    for (var i = 0; i < P.length - 1; i++) {
+      var p0 = P[i - 1] || P[i], p1 = P[i], p2 = P[i + 1], p3 = P[i + 2] || P[i + 1];
+      for (var j = 1; j <= n; j++) { var t = j / n, t2 = t * t, t3 = t2 * t, f = function (k) { return 0.5 * (2 * p1[k] + (p2[k] - p0[k]) * t + (2 * p0[k] - 5 * p1[k] + 4 * p2[k] - p3[k]) * t2 + (3 * p1[k] - p0[k] - 3 * p2[k] + p3[k]) * t3); }; o.push([f(0), f(1)]); }
+    }
+    return o;
+  }
+  function lerp2(a, b, t) { return [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t]; }
+  function mapPts(pts, f) { var r = pts.map(f); if (pts.circ) { var c = f([pts.circ[0], pts.circ[1]]); r.circ = [c[0], c[1], pts.circ[2], pts.circ[3]]; } return r; }
+  function xAtY(pts, y) { for (var i = 0; i < pts.length - 1; i++) { var a = pts[i], b = pts[i + 1]; if ((a[1] - y) * (b[1] - y) <= 0 && a[1] !== b[1]) return a[0] + (b[0] - a[0]) * (y - a[1]) / (b[1] - a[1]); } return pts[y < pts[0][1] ? 0 : pts.length - 1][0]; }
+  function yAtX(pts, x) { for (var i = 0; i < pts.length - 1; i++) { var a = pts[i], b = pts[i + 1]; if ((a[0] - x) * (b[0] - x) <= 0 && a[0] !== b[0]) return a[1] + (b[1] - a[1]) * (x - a[0]) / (b[0] - a[0]); } return null; }
+  function offsetLine(pts, d) {   // a parallel line, d to the left of the direction of travel (y down: left is +x when going down)
+    return pts.map(function (q, i) { var a = pts[Math.max(0, i - 1)], b = pts[Math.min(pts.length - 1, i + 1)], dx = b[0] - a[0], dy = b[1] - a[1], l = Math.hypot(dx, dy) || 1; return [q[0] - dy / l * d, q[1] + dx / l * d]; });
+  }
+  function clipRuns(pts, hidden) {   // the visible runs of a line where something lies on top of it
+    var dense = [pts[0]], out = [], run = [];
+    for (var i = 1; i < pts.length; i++) { var a = pts[i - 1], b = pts[i], n = Math.max(1, Math.ceil(Math.hypot(b[0] - a[0], b[1] - a[1]) / 0.4)); for (var j = 1; j <= n; j++) dense.push(lerp2(a, b, j / n)); }
+    var edge = function (a, b) { var lo = 0, hi = 1, ha = hidden(a); for (var k = 0; k < 14; k++) { var m = (lo + hi) / 2; if (hidden(lerp2(a, b, m)) === ha) lo = m; else hi = m; } return lerp2(a, b, (lo + hi) / 2); };
+    for (i = 0; i < dense.length; i++) {
+      var h = hidden(dense[i]);
+      if (!h) { if (!run.length && i) run.push(edge(dense[i - 1], dense[i])); run.push(dense[i]); }
+      else if (run.length) { run.push(edge(dense[i - 1], dense[i])); if (run.length > 1) out.push(run); run = []; }
+    }
+    if (run.length > 1) out.push(run);
+    return out;
+  }
+  function blkCollar(add, kind, nw, back) {   // shirt collars, for shirts and boiler suits
+    if (kind === 'point') {
+      add([[0, -2.2], [nw + 0.3, -1.6], [nw + 0.2, 0.2]], 'outline');   // collar stand
+      if (!back) { add([[nw + 0.2, 0.2], [nw + 3.2, 2.6], [5, 10], [0.6, 4.8]], 'outline'); add([[nw + 0.2, 0.6], [4.8, 9.2]], 'topstitch'); }
+      else add([[0, 3.6], [nw + 3.4, 2.6], [nw + 0.2, 0.2]], 'outline');
+    } else if (kind === 'band') { add([[0, -3], [nw + 0.2, -2.4], [nw + 0.3, 0.2]], 'outline'); add([[0, -2.2], [nw - 0.2, -1.7]], 'topstitch'); }
+    else if (kind === 'peter' && !back) { add(cat([[nw, 0]], qb([nw, 0], [nw + 3, 9], [1, 11], 14)), 'outline'); add(qb([nw - 0.4, 1], [nw + 1.6, 8.6], [1.2, 9.8], 12), 'topstitch'); }
+  }
+  function blkHood(add, nw, fd, back) {   // a hood: up behind the head at the front, lying down the back
+    if (!back) {
+      add(crv([[nw + 0.4, 0.6], [nw + 4.6, -8], [nw + 3.4, -19], [nw * 0.55, -26], [0, -27.5]]));
+      var op = crv([[0, fd - 1.5], [3.4, 0.5], [6.2, -8.5], [5.8, -17.5], [3, -22], [0, -23]]);
+      add(op); add(offsetLine(op.slice(3), -1.3).slice(0, -2), 'topstitch');
+      add(circlePts(1.9, fd - 3.4, 0.45, 10), 'detail');
+      add(crv([[1.9, fd - 3], [2.5, fd + 5], [2.1, fd + 13]]), 'detail'); add([[2.1, fd + 13], [2.15, fd + 15]], 'outline');
+    } else {
+      add(crv([[nw, 0], [nw + 4.6, 6], [nw + 3.4, 17], [5.5, 25], [0, 27.5]])); add(crv([[0, -1.4], [nw * 0.6, -1.1], [nw, 0]]));
+      add([[0, -1.4], [0, 27.5]], 'seam', false);
+    }
+  }
+  function blkZip(add, x, y0, y1) {   // a zip: tape edges, teeth and the pull at the top (one side only)
+    add([[x - 0.55, y0], [x - 0.55, y1]], 'seam', false); add([[x + 0.55, y0], [x + 0.55, y1]], 'seam', false);
+    for (var y = y0 + 0.4; y < y1 - 0.2; y += 0.6) add([[x - 0.32, y], [x + 0.32, y]], 'detail', false);
+    add([[x + 0.3, y0 + 0.8], [x + 1.4, y0 + 0.8], [x + 1.4, y0 + 4.2], [x + 0.3, y0 + 4.2], [x + 0.3, y0 + 0.8]], 'outline', false);
+  }
+  // knit stitches over a top's body: rib (fine vertical lines) or cable (crossing ropes in columns)
+  function blkKnit(add, t, kind, back, cols) {
+    var top = function (x) {   // the body's top edge at x: neckline, shoulder or armhole
+      var y = x <= t.nw ? yAtX(t.neckPts, x) : x <= t.SP[0] ? t.NS[1] + (t.SP[1] - t.NS[1]) * (x - t.NS[0]) / (t.SP[0] - t.NS[0]) : yAtX(t.arm, x);
+      if (back && x <= t.nw) y = 2.5;
+      return y == null ? t.AB[1] : y;
+    };
+    var bot = t.len - (t.rib ? 6 : 2.2) - 0.4, xmax = Math.min(t.waist[0], t.hem[0]) - 1.4;
+    if (kind === 'rib') { for (var x = 1.1; x <= xmax; x += 1.7) { var y0 = top(x) + (x <= t.nw ? 2.2 : 1.2); if (bot - y0 > 4) add([[x, y0], [x, bot]], 'detail'); } return; }
+    (cols || [0, 8.5, 16]).forEach(function (cx) {
+      if (cx + 2.6 > xmax) return;
+      var ytop = 0; for (var xx = cx - 2.6; xx <= cx + 2.6; xx += 0.4) ytop = Math.max(ytop, top(Math.abs(xx)) + (Math.abs(xx) <= t.nw ? 2.4 : 1.6));
+      if (bot - ytop < 8) return;
+      var mir = cx > 0, A = 1.4, P = 7.2, s1 = [], s2 = [];
+      for (var y = ytop; y <= bot + 1e-6; y += 0.3) { var ph = Math.sin(2 * Math.PI * (y - ytop) / P); s1.push([cx + A * ph, y]); s2.push([cx - A * ph, y]); }
+      // at each crossing one strand passes over: break the other there (alternating), so the ropes read as twisted
+      var crossAt = function (y) { var k = Math.round((y - ytop) / (P / 2)); return { d: Math.abs(y - ytop - k * P / 2), k: k }; };
+      [s1, s2].forEach(function (s, si) {
+        clipRuns(s, function (q) { var c = crossAt(q[1]); return c.k > 0 && c.d < 0.55 && (c.k % 2 === si); }).forEach(function (r) { add(r, 'detail', mir); });
+      });
+      add([[cx + 2.6, ytop], [cx + 2.6, bot]], 'detail', true);
+      if (mir) add([[cx - 2.6, ytop], [cx - 2.6, bot]], 'detail', true);
+    });
+  }
   // a flat: { lines: [{ pts, role, mirror }] } — mirror: also draw it flipped across the centre line
   function blkTopHalf(p, view, dress) {
     var L = [], add = function (pts, role, mirror) { var o = { pts: pts, role: role || 'outline', mirror: mirror !== false }; L.push(o); return o; };
     var chest = { slim: 23, regular: 25, oversized: 29 }[p.fit || 'regular'], drop = p.fit === 'oversized';
     if (dress) chest = 23.5;
-    var neck = p.neck || 'crew', back = view === 'back';
+    var neck = p.neck || 'crew', back = view === 'back', hood = neck === 'hood';
+    if (hood) neck = 'crew';
     var nw = { crew: 8, v: 8, scoop: 10.5, boat: 13, square: 10, turtle: 7.5, mock: 7.5, slip: 9 }[neck], fd = back ? (neck === 'boat' ? 2 : neck === 'slip' ? 16 : 2.5) : { crew: 8, v: 18, scoop: 14, boat: 3, square: 12, turtle: 2.5, mock: 3, slip: 14 }[neck];
+    if (p.vDepth && neck === 'v' && !back) fd = p.vDepth;
     var SP = [drop ? 22.5 : 18.5, drop ? 6.5 : 5], AB = [chest, drop ? 27 : 22], WA = [dress ? chest - (p.shift ? 1 : 4) : chest - (p.fit === 'slim' ? 3 : 1.5), 40];
     var len = dress ? 40 : { crop: 46, hip: 64, tunic: 78 }[p.len || 'hip'], HM = [dress ? WA[0] : chest + (p.fit === 'oversized' ? 0 : 0.5), len];
     // neckline (from centre front to the neck point)
@@ -5210,8 +5339,8 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
     else if (neck === 'v' && !back) neckPts = [CF, NS];
     else if (neck === 'square' && !back) neckPts = [CF, [nw, fd], NS];
     else neckPts = qb(CF, [nw * (neck === 'boat' ? 0.95 : 0.88), fd * (neck === 'boat' ? 0.9 : 0.95)], NS, 14);
-    add(neckPts);
-    var bindSeam = neck !== 'turtle' && neck !== 'mock' && neck !== 'slip';
+    if (!(hood && back)) add(neckPts);
+    var bindSeam = neck !== 'turtle' && neck !== 'mock' && neck !== 'slip' && !hood;
     if (bindSeam && neck !== 'square' && neck !== 'v') add(qb([0, fd + 1.6], [nw * 0.85, fd * 0.95 + 1.6], [nw + 0.4, 1.2], 14), 'seam').bind = true;
     else if (bindSeam && neck === 'v' && !back) add([[0, fd + 2.2], [nw + 0.6, 1.4]], 'seam').bind = true;
     if (neck === 'turtle' || neck === 'mock') {   // a collar standing above the neck, folded over for a turtleneck
@@ -5219,33 +5348,61 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
       if (neck === 'turtle') add([[0, -h / 2], [nw - 0.3, -h / 2]], 'fold');
       add([[0, -h + 1.2], [nw - 0.55, -h + 1.2]], 'detail');
     }
-    var sl = p.sleeve || 'none';
+    if (hood) blkHood(add, nw, fd, back);
+    var sl = p.sleeve || 'none', arm = null, info = function () { return { lines: L, hem: HM, waist: WA, len: len, chest: chest, nw: nw, fd: fd, NS: NS, SP: SP, AB: AB, arm: arm, neckPts: neckPts, rib: p.rib }; };
     if (neck === 'slip') {   // straps from the bodice edge over the shoulder
       add([[nw - 1, fd - 2.2], [nw + 1.5, -0.2]], 'outline'); add([[nw - 0.4, fd - 2.4], [nw + 2.1, -0.1]], 'outline');
       add([[nw + 1.5, -0.2], [nw + 2.1, -0.1]], 'outline');
       add(cat([NS], qb(NS, [chest - 3, fd - 1], [AB[0], AB[1] - 2], 10)), 'outline');
       var side0 = [AB[0], AB[1] - 2];
-      add([side0, WA, HM]); return { lines: L, hem: HM, waist: WA, len: len, chest: chest, nw: nw, fd: fd };
+      add([side0, WA, HM]); return info();
     }
-    if (sl === 'none' || (dress && sl === 'none')) {
+    if (sl === 'none') {
       var raised = [SP[0] - 2.5, SP[1]];   // sleeveless: the shoulder a little narrower, the armhole a deep curve
-      add([NS, raised]); add(qb(raised, [chest - 3.5, 13], AB, 14));
+      add([NS, raised]); arm = qb(raised, [chest - 3.5, 13], AB, 14); add(arm);
       add(qb([raised[0] - 1.6, raised[1] + 0.3], [chest - 5, 13.5], [AB[0] - 0.4, AB[1] - 1.6], 14), 'topstitch');
+      SP = raised;
     } else {
+      var kind = { puff: 'short', bishop: 'long', bell: 'long' }[sl] || sl;
       var dirs = { cap: 72, short: 58, elbow: 40, long: 22 }, lens = { cap: 7, short: 20, elbow: 34, long: 60 }, opens = { cap: 18, short: 17, elbow: 13, long: 10 };
-      var a = dirs[sl] * Math.PI / 180, d = [Math.sin(a), Math.cos(a)], nrm = [Math.cos(a), -Math.sin(a)];   // along the sleeve; across it (down-in)
-      var top0 = p.raglan ? [nw * 0.6 + 2, fd * 0.45] : SP, Ls = lens[sl] + (p.raglan ? 6 : 0);
-      var T = [SP[0] + d[0] * lens[sl], SP[1] + d[1] * lens[sl]], cw = opens[sl], Bc = [T[0] - nrm[0] * cw, T[1] - nrm[1] * cw];
-      if (sl === 'cap') Bc = [AB[0] + 1.5, AB[1] - 3];
-      if (p.raglan) add([NS, T]); else { add([NS, SP]); add([SP, T]); }
-      add([T, Bc]);   // the sleeve opening
-      if (sl !== 'cap') add([Bc, AB]);   // underarm seam to the side
-      else add(qb(Bc, [AB[0] + 0.5, AB[1] - 1.5], AB, 6));
-      if (p.raglan) add([top0, AB], 'seam'); else add(qb(SP, [chest - 2.6, 14], AB, 12), 'seam');
-      var hemIn = p.rib && sl === 'long' ? 5 : 2.2;   // the sleeve hem: a rib cuff, or a topstitched hem
-      var c0 = [T[0] - d[0] * hemIn, T[1] - d[1] * hemIn], c1 = [Bc[0] - d[0] * hemIn, Bc[1] - d[1] * hemIn];
-      add([c0, c1], p.rib && sl === 'long' ? 'seam' : 'topstitch');
-      if (p.rib && sl === 'long') for (var r = 1; r < 6; r++) { var f = r / 6; add([[T[0] + (Bc[0] - T[0]) * f - d[0] * 0.2, T[1] + (Bc[1] - T[1]) * f - d[1] * 0.2], [c0[0] + (c1[0] - c0[0]) * f, c0[1] + (c1[1] - c0[1]) * f]], 'detail'); }
+      if (sl === 'bell') { dirs.long = 28; opens.long = 19; }
+      if (sl === 'puff') { lens.short = 17; opens.short = 15; }
+      var a = dirs[kind] * Math.PI / 180, d = [Math.sin(a), Math.cos(a)], nrm = [Math.cos(a), -Math.sin(a)];   // along the sleeve; across it (outward)
+      var top0 = p.raglan ? [nw * 0.6 + 2, fd * 0.45] : SP;
+      var T = [SP[0] + d[0] * lens[kind], SP[1] + d[1] * lens[kind]], cw = opens[kind], Bc = [T[0] - nrm[0] * cw, T[1] - nrm[1] * cw];
+      if (kind === 'cap') Bc = [AB[0] + 1.5, AB[1] - 3];
+      var mid = function (P, Q, out) { return [(P[0] + Q[0]) / 2 + nrm[0] * out, (P[1] + Q[1]) / 2 + nrm[1] * out]; };
+      if (sl === 'puff') {   // a gathered, rounded short sleeve on a band
+        var bT = [T[0] - d[0] * 2.4, T[1] - d[1] * 2.4], bB = [Bc[0] - d[0] * 2.4, Bc[1] - d[1] * 2.4];
+        add([NS, SP]); add(cat(qb(SP, mid(SP, bT, 4.2), [bT[0] + nrm[0] * 1.2, bT[1] + nrm[1] * 1.2], 12), [bT]));
+        add(cat([bB], qb([bB[0] - nrm[0] * 1.2, bB[1] - nrm[1] * 1.2], mid(bB, AB, -2.2), AB, 10)));
+        add([bT, T, Bc, bB]); add([bT, bB], 'seam');
+        for (var g1 = 1; g1 < 6; g1++) { var gp = lerp2(bT, bB, g1 / 6); add([gp, [gp[0] - d[0] * 1.6, gp[1] - d[1] * 1.6]], 'detail'); }
+        for (var g2 = 1; g2 < 5; g2++) { var ap = qb(SP, [chest - 2.6, 14], AB, 12)[g2 * 2]; add([ap, [ap[0] + d[0] * 1.5, ap[1] + d[1] * 1.5]], 'detail'); }
+        add(qb(SP, [chest - 2.6, 14], AB, 12), 'seam');
+        arm = qb(SP, [chest - 2.6, 14], AB, 12);
+      } else if (sl === 'bishop') {   // full, billowing over a buttoned cuff
+        var cT = [T[0] - d[0] * 6, T[1] - d[1] * 6], cB = [T[0] - nrm[0] * 8.5 - d[0] * 6, T[1] - nrm[1] * 8.5 - d[1] * 6], eT = T, eB = [T[0] - nrm[0] * 8.5, T[1] - nrm[1] * 8.5];
+        add([NS, SP]);
+        add(cat(qb(SP, mid(SP, cT, 5), [cT[0] + nrm[0] * 2.2 + d[0] * 0.6, cT[1] + nrm[1] * 2.2 + d[1] * 0.6], 14), [cT]));
+        add(cat([cB], qb([cB[0] - nrm[0] * 2.2 + d[0] * 0.6, cB[1] - nrm[1] * 2.2 + d[1] * 0.6], mid(cB, AB, -3.2), AB, 12)));
+        add([cT, eT, eB, cB]); add([cT, cB], 'seam');
+        for (var g3 = 1; g3 < 7; g3++) { var cp = lerp2(cT, cB, g3 / 7); add([cp, [cp[0] - d[0] * 2, cp[1] - d[1] * 2]], 'detail'); }
+        add(circlePts(eB[0] + (cB[0] - eB[0]) / 2 + nrm[0] * 1.2, eB[1] + (cB[1] - eB[1]) / 2 + nrm[1] * 1.2, 0.5, 10), 'detail');
+        arm = qb(SP, [chest - 2.6, 14], AB, 12); add(arm, 'seam');
+      } else {
+        if (p.raglan) add([NS, T]); else { add([NS, SP]); add([SP, T]); }
+        add([T, Bc]);   // the sleeve opening
+        if (sl === 'bell') { var Br = [T[0] - nrm[0] * 10, T[1] - nrm[1] * 10], el = lerp2(AB, Br, 0.55); add(cat([AB], qb(el, lerp2(el, Bc, 0.5), Bc, 8))); }   // straight to the elbow, then flaring
+        else if (kind !== 'cap') add([Bc, AB]);   // underarm seam to the side
+        else add(qb(Bc, [AB[0] + 0.5, AB[1] - 1.5], AB, 6));
+        if (p.raglan) add([top0, AB], 'seam'); else { arm = qb(SP, [chest - 2.6, 14], AB, 12); add(arm, 'seam'); }
+        var hemIn = p.rib && kind === 'long' && sl !== 'bell' ? 5 : 2.2;   // the sleeve hem: a rib cuff, or a topstitched hem
+        var c0 = [T[0] - d[0] * hemIn, T[1] - d[1] * hemIn], c1 = [Bc[0] - d[0] * hemIn, Bc[1] - d[1] * hemIn];
+        add([c0, c1], hemIn === 5 ? 'seam' : 'topstitch');
+        if (hemIn === 5) for (var r = 1; r < 6; r++) { var f = r / 6; add([[T[0] + (Bc[0] - T[0]) * f - d[0] * 0.2, T[1] + (Bc[1] - T[1]) * f - d[1] * 0.2], [c0[0] + (c1[0] - c0[0]) * f, c0[1] + (c1[1] - c0[1]) * f]], 'detail'); }
+      }
+      if (!arm) arm = qb(SP, [chest - 2.6, 14], AB, 12);
     }
     // the side seam and hem
     if (dress) add([AB, WA]); else add(qb(AB, WA, HM, 12));
@@ -5254,8 +5411,14 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
       if (p.rib) { add([[0, len - 6], [HM[0] - 0.2, len - 6]], 'seam'); for (var q = 1; q < 8; q++) add([[HM[0] * q / 8, len - 5.6], [HM[0] * q / 8, len - 0.4]], 'detail'); }
       else add([[0, len - 2.2], [HM[0] - 0.1, len - 2.2]], 'topstitch');
     }
-    if (back && neck !== 'slip') add([[0, 3.5], [3, 3.5], [3, 5.5], [0, 5.5]], 'detail', false);   // the label inside the back neck
-    return { lines: L, hem: HM, waist: WA, len: len, chest: chest, nw: nw, fd: fd };
+    if (back && neck !== 'slip' && !hood) add([[0, 3.5], [3, 3.5], [3, 5.5], [0, 5.5]], 'detail', false);   // the label inside the back neck
+    if (!dress && p.pocket === 'kangaroo' && !back) {   // a pouch across the front, open at the sides
+      var ky = len - (p.rib ? 6 : 2.2), y1 = ky - 19, kx = Math.min(16.5, HM[0] - 4);
+      add([[0, y1], [kx - 6, y1], [kx, y1 + 11], [kx, ky]]); add([[0, y1 + 0.8], [kx - 6.3, y1 + 0.8], [kx - 0.8, y1 + 11]], 'topstitch');
+    }
+    var t = info();
+    if (!dress && p.knit && p.knit !== 'plain') blkKnit(add, t, p.knit, back, p.knitCols);
+    return t;
   }
   function blkShirt(p, view) {
     var t = blkTopHalf({ neck: 'crew', sleeve: p.sleeve === 'long' ? 'long' : p.sleeve, fit: p.fit, len: p.len }, view), L = t.lines.filter(function (l) { return !l.bind; }), back = view === 'back';
@@ -5274,15 +5437,187 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
       for (var y = t.fd + 3.5; y < t.len - 3; y += 9.5) add(circlePts(0, y, 0.55, 12), 'detail', false);   // buttons on the centre front
       if (p.pocket) { var px0 = 9, py0 = 20; add([[px0, py0], [px0 + 11, py0], [px0 + 11, py0 + 12.5], [px0 + 5.5, py0 + 14], [px0, py0 + 12.5], [px0, py0]], 'outline', false); add([[px0 + 0.6, py0 + 1.6], [px0 + 10.4, py0 + 1.6]], 'topstitch', false); }
     } else add([[0, 12], [t.chest - 3.2, 10.5]], 'seam');   // back yoke
-    var nw = t.nw;
-    if (p.collar === 'point') {
-      add([[0, -2.2], [nw + 0.3, -1.6], [nw + 0.2, 0.2]], 'outline');   // collar stand
-      if (!back) { add([[nw + 0.2, 0.2], [nw + 3.2, 2.6], [5, 10], [0.6, 4.8]], 'outline'); add([[nw + 0.2, 0.6], [4.8, 9.2]], 'topstitch'); }
-      else add([[0, 3.6], [nw + 3.4, 2.6], [nw + 0.2, 0.2]], 'outline');
-    } else if (p.collar === 'band') { add([[0, -3], [nw + 0.2, -2.4], [nw + 0.3, 0.2]], 'outline'); add([[0, -2.2], [nw - 0.2, -1.7]], 'topstitch'); }
-    else if (p.collar === 'peter' && !back) { add(cat([[nw, 0]], qb([nw, 0], [nw + 3, 9], [1, 11], 14)), 'outline'); add(qb([nw - 0.4, 1], [nw + 1.6, 8.6], [1.2, 9.8], 12), 'topstitch'); }
+    blkCollar(add, p.collar, t.nw, back);
     if (p.sleeve === 'long') {   // a cuff: the sleeve end becomes a band
       L.forEach(function (l) { if (l.role === 'topstitch' && l.pts.length === 2 && l.pts[0][0] > t.chest) l.role = 'seam'; });
+    }
+    return { lines: L };
+  }
+  function blkCardigan(p, view) {
+    var neck = p.neck || 'v', back = view === 'back';
+    var t = blkTopHalf({ neck: neck, sleeve: p.sleeve || 'long', fit: p.fit || 'regular', len: p.len || 'hip', rib: true, knit: p.knit, knitCols: [8.2, 16], vDepth: 25 }, view), L = t.lines;
+    var add = function (pts, role, mirror) { L.push({ pts: pts, role: role || 'outline', mirror: mirror !== false }); };
+    if (!back) {
+      if (neck === 'v') {   // the button band runs up the front and along the V
+        L = L.filter(function (l) { return !l.bind; });
+        var nl = Math.hypot(t.nw, t.fd), n = [t.fd / nl, t.nw / nl], P0 = [n[0] * 2.6, t.fd + n[1] * 2.6], P1 = [t.nw + n[0] * 2.6, n[1] * 2.6];
+        var tt = (2.6 - P0[0]) / (P1[0] - P0[0]), I = lerp2(P0, P1, tt);
+        L.push({ pts: [P1, I, [2.6, t.len]], role: 'seam', mirror: true });
+      } else L.push({ pts: [[2.6, t.fd + 1.7], [2.6, t.len]], role: 'seam', mirror: true });
+      L.push({ pts: [[0, t.fd], [0, t.len]], role: 'outline', mirror: false });
+      for (var y = t.fd + 1.8; y < t.len - 4.5; y += 7.4) L.push({ pts: circlePts(0, y, 0.55, 12), role: 'detail', mirror: false });
+      if (p.pocket) { var py = t.len - 21; add([[7.5, py], [17, py], [17, py + 13], [7.5, py + 13], [7.5, py]]); add([[7.5, py + 3], [17, py + 3]], 'seam'); for (var k = 1; k < 7; k++) add([[7.5 + 9.5 * k / 7, py + 0.4], [7.5 + 9.5 * k / 7, py + 2.7]], 'detail'); }
+    }
+    return { lines: L };
+  }
+  function blkVest(p, view) {
+    var L = [], add = function (pts, role, mirror) { L.push({ pts: pts, role: role || 'outline', mirror: mirror !== false }); }, back = view === 'back', style = p.style || 'waistcoat';
+    if (style === 'sweater') {
+      var t = blkTopHalf({ neck: 'v', sleeve: 'none', fit: p.fit || 'regular', len: 'hip', rib: true, knit: p.knit }, view);
+      t.lines.forEach(function (l) { if (l.role === 'topstitch' && l.pts.length > 10) l.role = 'seam'; });   // a rib band round the armhole
+      return { lines: t.lines };
+    }
+    var w = { slim: -1, regular: 0, oversized: 1.6 }[p.fit || 'regular'];
+    if (style === 'puffer') {
+      var nw = 8.5, SP = [19 + w, 4.5], AB = [24.8 + w, 23], len = 60, HMx = 25.5 + w;
+      var arm = qb(SP, [20.6 + w, 18.5], AB, 12), side = [AB, [HMx, len]];
+      add([[nw, 0], [nw - 0.3, -5.5], [0, -6]]); add(crv([[0, back ? 1 : 2], [nw * 0.75, back ? 0.8 : 1.6], [nw, 0]]), 'seam');
+      add([[nw, 0], SP]); add(arm); add(offsetLine(arm, -1.1), 'topstitch'); add(side); add([[HMx, len], [0, len]]); add([[0, len - 1.6], [HMx - 0.1, len - 1.6]], 'seam');
+      for (var y = 8; y < len - 5; y += 8.6) { var x1 = y < AB[1] ? xAtY(arm, y) - 0.4 : xAtY(side, y) - 0.2; add([[0.9, y], [x1, y]], 'seam'); }
+      if (!back) { add([[0, -6], [0, len]], 'outline', false); blkZip(add, 0, -6, len - 0.4); if (p.pocket) { add([[13.5, 41], [17.2, 52.5]], 'seam'); add(circlePts(13.6, 41.8, 0.45, 8), 'detail'); } }
+      else add([[0, 2.6], [3, 2.6], [3, 4.4], [0, 4.4]], 'detail', false);
+      return { lines: L };
+    }
+    // a tailored waistcoat: deep armholes, a V front with five buttons and pointed fronts; a half belt at the back
+    var nw2 = 7, SP2 = [14.2 + w * 0.5, 3.4], AB2 = [23.4 + w, 24], arm2 = qb(SP2, [16.8 + w * 0.5, 21], AB2, 14);
+    var side2 = crv([AB2, [21.6 + w, 40], [22.4 + w, 50]], 8);
+    add([[nw2, 0], SP2]); add(arm2); add(side2);
+    if (!back) {
+      add(qb([nw2, 0], [3.4, 13], [0, 27])); add([[22.4 + w, 50], [3.2, 57.8], [0, 56.2]]);
+      add([[0, 27], [0, 56.2]], 'outline', false);
+      for (var b = 0; b < 5; b++) add(circlePts(0, 29.6 + b * 5.6, 0.5, 12), 'detail', false);
+      add([[11.4, 28.5], [12.2, 43.6]], 'seam');
+      if (p.pocket) { add([[9.6, 45.2], [17.6, 44.2]]); add([[9.6, 46.6], [17.6, 45.6]], 'seam'); add([[9.6, 45.2], [9.6, 46.6]]); add([[17.6, 44.2], [17.6, 45.6]]); add([[12.4, 25.6], [17.8, 24.6], [17.8, 26], [12.4, 27], [12.4, 25.6]], 'outline', false); }
+    } else {
+      add(qb([0, 2], [4.5, 1.8], [nw2, 0])); add([[0, 51.6], [22.4 + w, 50]]); add([[0, 2], [0, 51.6]], 'seam', false); add([[10.8, 26], [11.4, 48]], 'seam');
+      add([[2, 38.6], [13.5, 38.4]]); add([[2, 41.2], [13.5, 41]]); add([[13.5, 38.4], [13.5, 41]]);
+      add([[-1.8, 38.1], [1.8, 38.1], [1.8, 41.7], [-1.8, 41.7], [-1.8, 38.1]], 'outline', false); add([[0, 38.1], [0, 41.7]], 'detail', false);
+    }
+    return { lines: L };
+  }
+  // jackets and coats: set-in two-piece sleeves, lapels (notch, peak, shawl) or a collarless neck, single or double-breasted
+  function blkJacket(p, view, coat) {
+    var L = [], add = function (pts, role, mirror) { var o = { pts: pts, role: role || 'outline', mirror: mirror !== false }; L.push(o); return o; }, back = view === 'back';
+    var fit = coat ? 'regular' : p.fit || 'regular';
+    var chest = coat ? 27 : { slim: 24.5, regular: 25.5, boxy: 27.5 }[fit];
+    var nw = coat ? 9 : 8.5, NS = [nw, 0], SP = coat ? [20.8, 5] : [fit === 'boxy' ? 21 : 19.8, 4.6], AB = [chest, 22.5];
+    var len = coat ? { hip: 76, knee: 100, midi: 116 }[p.len || 'knee'] : { crop: 47, hip: 68, long: 80 }[p.len || 'hip'];
+    var waistIn = coat ? (p.belt ? 2.6 : 1.2) : { slim: 3.6, regular: 2.6, boxy: 0.6 }[fit];
+    var WA = [chest - waistIn, 40], hx = coat ? chest + 0.6 + (len - 60) * 0.06 : chest + (fit === 'slim' ? 0 : 0.6);
+    var sidePts = len > 58 ? [AB, [WA[0] + 0.2, 32], WA, [hx - 0.4, 58], [hx, len]] : [AB, [WA[0] + 0.2, 32], WA, [WA[0] + (hx - WA[0]) * 0.5, len]];
+    var side = crv(sidePts, 8), HM = side[side.length - 1];
+    add(side);
+    // shoulder and a two-piece sleeve; the sleeve lies over the body, so body lines under it are hidden (at the end)
+    var a = 20 * Math.PI / 180, d = [Math.sin(a), Math.cos(a)], nrm = [Math.cos(a), -Math.sin(a)], Ls = coat ? 62 : 60, cw = coat ? 15 : 13;
+    var T = [SP[0] + d[0] * Ls, SP[1] + d[1] * Ls], Bc = [T[0] - nrm[0] * cw, T[1] - nrm[1] * cw], slv = [];
+    var addS = function (pts, role) { slv.push({ pts: pts, role: role || 'outline', mirror: true }); };
+    add([NS, SP]);
+    var outerS = cat(qb(SP, [SP[0] + d[0] * 5 + nrm[0] * 1.3, SP[1] + d[1] * 5 + nrm[1] * 1.3], [SP[0] + d[0] * 14 + nrm[0] * 0.25, SP[1] + d[1] * 14 + nrm[1] * 0.25], 8), [T]);
+    addS(outerS); addS([T, Bc]); addS([AB, Bc]);
+    var arm = qb(SP, [chest - 2.2, 15], AB, 12); addS(arm, 'seam');
+    var sq = lerp2(Bc, T, 0.3); addS([arm[9], sq], 'seam');
+    var cuffN = coat ? 0 : 3; for (var cb = 0; cb < cuffN; cb++) addS(circlePts(sq[0] - d[0] * (2.4 + cb * 1.5) - nrm[0] * 1.1, sq[1] - d[1] * (2.4 + cb * 1.5) - nrm[1] * 1.1, 0.45, 10), 'detail');
+    if (coat && p.epaulettes) {   // cuff straps with a buckle
+      var s0 = [T[0] - d[0] * 7, T[1] - d[1] * 7], s1 = [Bc[0] - d[0] * 7, Bc[1] - d[1] * 7], s2 = [T[0] - d[0] * 10.5, T[1] - d[1] * 10.5], s3 = [Bc[0] - d[0] * 10.5, Bc[1] - d[1] * 10.5];
+      addS([s0, s1]); addS([s2, s3]); var bq = lerp2(s0, s1, 0.25), bq2 = lerp2(s2, s3, 0.25); addS([bq, bq2, lerp2(bq2, s3, 0.12), lerp2(bq, s1, 0.12), bq]);
+    }
+    var slPoly = outerS.concat([Bc, AB]).concat(arm.slice().reverse()), sc0 = slPoly.reduce(function (m, q) { return [m[0] + q[0] / slPoly.length, m[1] + q[1] / slPoly.length]; }, [0, 0]);
+    slPoly = slPoly.map(function (q) { var dx = sc0[0] - q[0], dy = sc0[1] - q[1], l = Math.hypot(dx, dy) || 1; return [q[0] + dx / l * 0.2, q[1] + dy / l * 0.2]; });
+    var kind = coat ? (p.collar || 'notch') : (p.lapel || 'notch'), lapels = kind === 'notch' || kind === 'peak' || kind === 'shawl';
+    var dbl = (p.close === 'double') && kind !== 'funnel' && kind !== 'hood', ov = dbl ? (coat ? 9 : 7.5) : 0, bx = -ov;
+    var BPy = coat ? (dbl ? 22 : 25) : { one: 34, two: 30, double: 31 }[p.close || 'two'];
+    if (!coat && len < 50) BPy = Math.min(BPy, 25);
+    var s = coat ? 1.14 : 1, S2 = function (q) { return [q[0] * s, q[1] * s]; };
+    if (!back) {
+      var F = [];   // the front lines of the panel on top (the right one); mirrored for a single-breasted front
+      var rollTo = [nw + 0.4, 0.8], roll = [[bx, BPy], rollTo];
+      if (lapels) {
+        F.push([roll, 'outline']);
+        if (kind === 'shawl') {
+          F.push([crv([[bx, BPy], [(bx + 9.5) / 2 + 1.2, (BPy + 15) / 2], [nw + 3.2, 9], [nw + 2.6, 1.6], [nw + 2.4, 0.2]]), 'outline']);
+        } else {
+          var LP = S2(kind === 'peak' ? [12.6, 11] : [10.8, 14.6]), G = S2(kind === 'peak' ? [7.8, 13.8] : [7.6, 13.4]), CP = S2(kind === 'peak' ? [9.4, 11.7] : [8.9, 11.6]);
+          F.push([crv([[bx, BPy], [(bx + LP[0]) / 2 + 1, (BPy + LP[1]) / 2], LP]), 'outline']);
+          F.push([[LP, G], 'outline']); F.push([[G, CP], 'outline']);
+          F.push([crv([CP, [nw + 3.6 * s, 4.4], [nw + 2.5, 0.2]], 6), 'outline']);
+          var gy = G[1] - 3.2, rt = (gy - BPy) / (rollTo[1] - BPy); F.push([[G, lerp2([bx, BPy], rollTo, rt)], 'seam']);
+        }
+        add(crv([[nw + 2.4, 0.2], [nw * 0.55, -2.7], [0, -3.2]]));   // the collar round the back of the neck
+        add(crv([rollTo, [nw * 0.5, -0.4], [0, -0.7]]));
+      } else if (kind === 'none') {
+        add(crv([[0, 9.5], [nw * 0.72, 8], [nw, 0]])); add(crv([[0, 11], [nw * 0.8, 9.4], [nw + 1, 1.2]]), 'seam'); add([[1.5, 10.8], [1.5, len - 1.4]], 'seam'); add([[0, len - 1.5], [HM[0] - 0.2, len - 1.5]], 'seam');
+        BPy = 9.5;
+      } else if (kind === 'funnel') {
+        add([[nw, 0], [nw - 0.5, -7.5], [0, -8]]); add(crv([[0, 1.4], [nw * 0.6, 1], [nw, 0]]), 'seam'); add([[0, -6.6], [nw - 0.6, -6.2]], 'topstitch'); BPy = -8;
+      } else { blkHood(add, nw, 7, false); add(crv([[0, 8], [nw * 0.85, 7.4], [nw, 0]])); BPy = 6.5; }
+      // the front edge, the hem and buttons
+      if (dbl) {
+        F.push([[[bx, BPy], [bx, len]], 'outline']); add([[bx, len], [0, len]], 'outline', false); add([[0, len], HM]);
+      } else if (!coat && lapels) {
+        add([[0, BPy], [0, len - 3.5]], 'outline', false); add(crv([[0, len - 3.5], [2.4, len - 0.7], [6, len]]), 'outline'); add([[6, len], HM]);
+      } else { add([[0, BPy], [0, len]], 'outline', false); add([[0, len], HM]); }
+      if (dbl) {   // the panel underneath shows only outside the top panel's lapel
+        F.forEach(function (f) { add(f[0], f[1], false); });
+        var hid = function (q) { if (q[1] >= BPy) return q[0] > bx - 0.05; var rx = bx + (rollTo[0] - bx) * (q[1] - BPy) / (rollTo[1] - BPy); return q[1] > rollTo[1] && q[0] > rx - 0.05; };
+        F.forEach(function (f) { if (f[0].length < 2 || f[0][0][1] > BPy + 1) return; clipRuns(f[0].map(function (q) { return [-q[0], q[1]]; }), hid).forEach(function (r) { add(r, f[1], false); }); });
+        var bxs = ov - 2.6, rows = coat ? 4 : (len < 50 ? 2 : 3), step = coat ? 10.5 : 7.5;
+        for (var rI = 0; rI < rows; rI++) add(circlePts(bxs, BPy + 1.2 + rI * step, coat ? 0.65 : 0.55, 12), 'detail');
+        if (coat) add(circlePts(bxs, BPy - 4, 0.5, 10), 'detail');
+      } else {
+        F.forEach(function (f) { add(f[0], f[1], true); });
+        var nb = coat ? 4 : kind === 'none' ? 4 : p.close === 'one' ? 1 : 2, st0 = kind === 'none' ? 11.5 : kind === 'funnel' ? -4 : BPy + 1.2, stp = coat ? 11 : kind === 'none' ? 8.5 : 10;
+        for (var bi = 0; bi < nb; bi++) add(circlePts(0, st0 + bi * stp, coat ? 0.65 : 0.55, 12), 'detail', false);
+      }
+      if (coat) { add([[dbl ? bx + 1.2 : 1.2, BPy + 0.5], [dbl ? bx + 1.2 : 1.2, len - 2.4]], 'topstitch', false); add([[0, len - 2.4], [HM[0] - 0.2, len - 2.4]], 'topstitch'); }
+      // pockets
+      var yp = coat ? 56 : len > 72 ? 56 : 52, pk = p.pockets || (coat ? 'welt' : 'flap'), rects = [];
+      if (len > yp + 8 && pk !== 'none') {
+        var x0 = 9, x1 = coat ? 23.5 : 21.5;
+        if (pk === 'flap') { add([[x0, yp], [x1, yp - 0.8]], 'seam'); add([[x0, yp], [x0 + 0.1, yp + 5.8], [x1 + 0.1, yp + 5], [x1, yp - 0.8]]); rects.push([x0, yp - 1, x1 + 0.2, yp + 6]); }
+        else if (pk === 'welt' && coat) { add([[16.5, yp - 8], [21, yp + 6]]); add([[18, yp - 8.4], [22.5, yp + 5.6]], 'seam'); add([[16.5, yp - 8], [18, yp - 8.4]]); add([[21, yp + 6], [22.5, yp + 5.6]]); rects.push([16, yp - 9, 23, yp + 7]); }
+        else if (pk === 'welt') { add([[x0, yp], [x1, yp - 0.8]]); add([[x0, yp + 1.3], [x1, yp + 0.5]], 'seam'); add([[x0, yp], [x0, yp + 1.3]]); add([[x1, yp - 0.8], [x1, yp + 0.5]]); rects.push([x0, yp - 1, x1, yp + 1.5]); }
+        else { var pb = yp + (coat ? 18 : 15); add(cat([[x0, yp - 1], [x0, pb - 1.5]], qb([x0, pb - 1.5], [x0, pb], [x0 + 1.5, pb], 4), [[x1 - 1.5, pb]], qb([x1 - 1.5, pb], [x1, pb], [x1, pb - 1.5], 4), [[x1, yp - 1], [x0, yp - 1]])); add([[x0 + 0.5, yp + 1], [x1 - 0.5, yp + 1]], 'topstitch'); rects.push([x0, yp - 1.5, x1, pb]); }
+      }
+      if (!coat && p.chest) { add([[12.6, 24], [19.6, 22.8], [19.8, 25], [12.8, 26.2], [12.6, 24]], 'outline', false); }
+      var inR = function (q) { return rects.some(function (r) { return q[0] > r[0] && q[0] < r[2] && q[1] > r[1] && q[1] < r[3]; }); };
+      if (!coat) {   // the side panel seam and the front dart, under the pockets
+        clipRuns(crv([[chest - 3.2, 21.6], [WA[0] - 3.4, 40], [HM[0] - 3.6, len]]), inR).forEach(function (r) { add(r, 'seam'); });
+        if (len > 56) add([[13.6, 27], [13.4, yp - 0.6]], 'seam');
+      }
+      if (coat && p.storm) {   // the gun flap over one shoulder (wearer's right)
+        var gf = crv([[-(nw + 3.9), 1.6], [-(SP[0] - 0.4), SP[1] + 0.3]], 2).concat(crv([[-(SP[0] - 0.4), SP[1] + 0.3], [-(SP[0] - 1.2), 16.5], [-15, 20.6], [-10.4 * s, 18.6]], 6).slice(1));
+        add(gf, 'outline', false); add(offsetLine(gf.slice(1), 0.9), 'topstitch', false);
+      }
+    } else {
+      // the back: collar, centre back seam, vents and panel seams
+      if (lapels) { add(crv([[0, -3.2], [nw * 0.55, -2.7], [nw + 2.4, 0.2]])); add(crv([[0, 1.6], [nw * 0.6, 1.4], [nw + 2.4, 0.2]])); }
+      else if (kind === 'none') { add(crv([[0, 1.6], [nw * 0.6, 1.1], [nw, 0]])); add(crv([[0, 3.1], [nw * 0.6, 2.6], [nw + 1, 1.2]]), 'seam'); add([[0, len - 1.5], [HM[0] - 0.2, len - 1.5]], 'seam'); }
+      else if (kind === 'funnel') { add([[nw, 0], [nw - 0.5, -7.5], [0, -8]]); add(crv([[0, 1], [nw * 0.6, 0.7], [nw, 0]]), 'seam'); add([[0, -6.6], [nw - 0.6, -6.2]], 'topstitch'); }
+      else blkHood(add, nw, 7, true);
+      add([[0, len], HM]);
+      var vent = coat ? 'centre' : p.vent || 'centre', vTop = len - (coat ? 30 : 22);
+      add([[0, kind === 'hood' ? 27.5 : 1.6], [0, vent === 'centre' ? vTop : len]], 'seam', false);
+      if (vent === 'centre') { add([[0, vTop], [0, len]], 'outline', false); add([[0, vTop], [1.4, vTop + 1.2]], 'seam', false); }
+      var bseam = crv([[chest - 4.6, 21.2], [WA[0] - 5.6, 40], [HM[0] - 6, len]]); add(bseam, 'seam');
+      if (vent === 'side') { var vs = bseam.filter(function (q) { return q[1] >= len - 18; }); add(vs, 'outline'); }
+      if (coat) add([[0, len - 2.4], [HM[0] - 0.2, len - 2.4]], 'topstitch');
+      if (coat && p.storm) { var yk = crv([[SP[0] - 0.4, SP[1] + 0.4], [chest - 1.4, 17], [chest - 5, 21.6], [10, 23.6], [0, 24]]); add(yk); add(offsetLine(yk, -0.9), 'topstitch'); }
+    }
+    if (coat && p.epaulettes) {   // shoulder straps, buttoned near the neck
+      var u = [SP[0] - NS[0], SP[1] - NS[1]], ul = Math.hypot(u[0], u[1]); u = [u[0] / ul, u[1] / ul]; var nn = [-u[1] * 1.6, u[0] * 1.6];
+      var e0 = [NS[0] + u[0] * 2.4, NS[1] + u[1] * 2.4], e1 = [SP[0] - u[0] * 0.6, SP[1] - u[1] * 0.6];
+      add([[e1[0] - nn[0], e1[1] - nn[1]], [e0[0] - nn[0] + u[0] * 1.4, e0[1] - nn[1] + u[1] * 1.4], e0, [e0[0] + nn[0] + u[0] * 1.4, e0[1] + nn[1] + u[1] * 1.4], [e1[0] + nn[0], e1[1] + nn[1]]]);
+      add(circlePts(e0[0] + u[0] * 2.2, e0[1] + u[1] * 2.2, 0.5, 10), 'detail');
+    }
+    var underSl = function (q) { return insidePoly([Math.abs(q[0]), q[1]], slPoly); }, keptS = [];
+    L.forEach(function (l) { if (l.pts.circ) { if (!underSl([l.pts.circ[0], l.pts.circ[1]])) keptS.push(l); return; } clipRuns(l.pts, underSl).forEach(function (r) { keptS.push({ pts: r, role: l.role, mirror: l.mirror }); }); });
+    L = keptS.concat(slv);
+    if (coat && p.belt) {   // a belt over the waist: lines under it are hidden; a buckle at the front
+      var by0 = 38, by1 = 42.6, bw = WA[0] + 0.5, under = function (q) { return q[1] > by0 + 0.05 && q[1] < by1 - 0.05 && Math.abs(q[0]) < WA[0] - 0.3; };
+      var kept = []; L.forEach(function (l) { if (l.pts.circ || l.role === 'detail' && l.pts.length < 3) { kept.push(l); return; } clipRuns(l.pts, under).forEach(function (r) { kept.push({ pts: r, role: l.role, mirror: l.mirror }); }); }); L = kept;
+      add([[0, by0], [bw, by0]]); add([[0, by1], [bw, by1]]); add([[bw, by0], [bw, by1]]);
+      add([[WA[0] - 2, by0 - 0.7], [WA[0] - 0.7, by0 - 0.7], [WA[0] - 0.7, by1 + 0.7], [WA[0] - 2, by1 + 0.7], [WA[0] - 2, by0 - 0.7]], 'outline');
+      if (!back) { add([[-2.6, by0 - 0.7], [2.6, by0 - 0.7], [2.6, by1 + 0.7], [-2.6, by1 + 0.7], [-2.6, by0 - 0.7]], 'outline', false); add([[-1.4, by0 + 0.4], [1.4, by0 + 0.4], [1.4, by1 - 0.4], [-1.4, by1 - 0.4], [-1.4, by0 + 0.4]], 'outline', false); add([[0, by0 + 0.4], [0, by1 - 0.4]], 'outline', false); add([[2.6, (by0 + by1) / 2], [6.5, (by0 + by1) / 2]], 'topstitch', false); }
     }
     return { lines: L };
   }
@@ -5308,31 +5643,41 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
     if (back && p.shape === 'pencil') add([[0, Y - 16], [0, Y + 0.6]], 'outline', false);   // back vent
     return { lines: L, hem: [hw, Y] };
   }
-  function blkTrousers(p, view) {
-    var L = [], add = function (pts, role, mirror) { L.push({ pts: pts, role: role || 'outline', mirror: mirror !== false }); }, back = view === 'back';
-    var wx = 18.5, rise = 27, len = { shorts: 46, crop: 88, full: 104 }[p.len || 'full'];
+  // trousers; with o.y0 they hang from a bodice (a jumpsuit): no waistband or fly, the waist o.wx wide at o.y0
+  function blkTrousers(p, view, o) {
+    o = o || {}; var L = [], add = function (pts, role, mirror) { L.push({ pts: pts, role: role || 'outline', mirror: mirror !== false }); }, back = view === 'back';
+    var wx = o.wx || 18.5, bb = o.y0 ? 0 : 4.5, rise = 27, len = { shorts: 46, crop: 88, full: 104 }[p.len || 'full'];
+    if (o.y0 && p.len === 'shorts') len = 40;
     var hemW = { slim: 15, straight: 20, wide: 31, flare: 27, jogger: 14 }[p.leg || 'straight'], knee = p.leg === 'flare' ? 19 : null, cx = 13;
     if (p.len === 'shorts') hemW = Math.max(hemW, 26);
     var xin = Math.max(1.2, cx - hemW / 2), xout = xin + hemW, hip = [25, 20];
-    add([[0, 0], [wx, 0]]); add([[wx, 0], [wx + 0.15, 4.5]]); add([[0, 4.5], [wx + 0.15, 4.5]], 'seam');
-    var outer = p.leg === 'flare' && len > 60 ? cat(qb([wx + 0.15, 4.5], [hip[0], hip[1] - 6], hip, 8), qb(hip, [knee + cx - 3, 62], [xout, len], 12)) : cat(qb([wx + 0.15, 4.5], [hip[0], hip[1] - 6], hip, 8), [[xout, len]]);
+    var w0 = [o.y0 ? wx : wx + 0.15, bb];
+    if (!o.y0) { add([[0, 0], [wx, 0]]); add([[wx, 0], [wx + 0.15, 4.5]]); add([[0, 4.5], [wx + 0.15, 4.5]], 'seam'); }
+    var outer = p.leg === 'flare' && len > 60 ? cat(qb(w0, [hip[0], hip[1] - 6], hip, 8), qb(hip, [knee + cx - 3, 62], [xout, len], 12)) : cat(qb(w0, [hip[0], hip[1] - 6], hip, 8), [[xout, len]]);
     add(outer); add([[xout, len], [xin, len]]);
-    var crotch = [2.2, rise + 3]; add(qb([xin, len], [xin + 0.5, rise + 12], crotch, 12)); add(qb(crotch, [0.4, rise - 1], [0, 4.5], 8), 'seam');
+    var crotch = [2.2, rise + 3]; add(qb([xin, len], [xin + 0.5, rise + 12], crotch, 12)); add(qb(crotch, [0.4, rise - 1], [0, bb], 8), 'seam');
     var hemUp = p.turnup ? 4.5 : 2.5;
     if (p.leg === 'jogger') { add([[xout, len - 6], [xin, len - 6]], 'seam'); for (var j = 1; j < 6; j++) add([[xin + hemW * j / 6, len - 5.6], [xin + hemW * j / 6 + 0.2, len - 0.4]], 'detail'); }
     else if (p.turnup) { add([[xout + 0.3, len - hemUp], [xin - 0.2, len - hemUp]], 'seam'); }
     else add([[xout - 0.1, len - hemUp], [xin + 0.1, len - hemUp]], 'topstitch');
     if (!back) {
-      add(qb([0, 4.5], [3.6, 6], [3.6, 17]), 'topstitch', false); add(qb([3.6, 17], [3.6, 20.5], [0.4, 21.5], 6), 'topstitch', false);   // fly (J-stitch), on one side
-      if (p.pockets === 'slant') add([[12.5, 4.5], [wx + 1.6, 16.5]], 'seam');
+      if (!o.y0) { add(qb([0, 4.5], [3.6, 6], [3.6, 17]), 'topstitch', false); add(qb([3.6, 17], [3.6, 20.5], [0.4, 21.5], 6), 'topstitch', false); add(circlePts(0.9, 2.2, 0.6, 12), 'detail', false); }   // fly (J-stitch) and button, on one side
+      if (p.pockets === 'slant' || p.pockets === 'cargo') add([[12.5, bb], [wx + 1.6, 12 + bb]], 'seam');
       if (p.pockets === 'jeans') { add(qb([11, 4.5], [12, 11.5], [wx + 1.4, 12.5], 10), 'seam'); add(qb([10.4, 4.5], [11.4, 12.2], [wx + 1.3, 13.3], 10), 'topstitch'); add([[13.5, 5], [17.5, 5], [17.5, 9.5], [13.5, 9.5], [13.5, 5]], 'seam', false); add(circlePts(wx + 1.3, 12.6, 0.4, 8), 'detail'); }
-      add(circlePts(0.9, 2.2, 0.6, 12), 'detail', false);   // the button
+      if (p.pleats) { add([[8.6, bb], [8.9, bb + 10]], 'fold'); add([[12, bb], [12.2, bb + 7]], 'fold'); }
     } else {
       if (p.pockets === 'jeans') { add([[0, 15], [wx + 1, 9.5]], 'seam'); add([[0, 16.2], [wx + 1, 10.7]], 'topstitch'); add([[5, 18], [15.5, 17], [15.8, 30], [10.6, 32.5], [5.6, 30.6], [5, 18]], 'outline'); add([[5.8, 19.4], [14.8, 18.5]], 'topstitch'); }
-      else if (p.pockets !== 'none') { add([[6, 14.5], [15, 14]], 'seam'); add([[6, 15.4], [15, 14.9]], 'detail'); }
-      add([[0, 4.5], [0, rise + 2.5]], 'seam', false);
+      else if (p.pockets !== 'none' && !o.y0) { add([[6, 14.5], [15, 14]], 'seam'); add([[6, 15.4], [15, 14.9]], 'detail'); }
+      add([[0, bb], [0, rise + 2.5]], 'seam', false);
     }
-    if (p.loops) [7, 16].concat(back ? [0.01] : []).forEach(function (x) { add([[x - 0.6, -0.6], [x + 0.6, -0.6], [x + 0.6, 5.2], [x - 0.6, 5.2], [x - 0.6, -0.6]], 'detail', x > 0.1); });
+    if (p.pockets === 'cargo' && len > 70) {   // a bellows pocket with a buttoned flap on the outer thigh
+      var xo = xAtY(outer, 54) - 1.3;
+      add([[xo - 11.5, 47], [xo, 47], [xo, 62], [xo - 11.5, 62], [xo - 11.5, 47]]); add([[xo - 5.75, 49.5], [xo - 5.75, 62]], 'fold');
+      add([[xo - 12, 44], [xo + 0.4, 44], [xo + 0.4, 49.2], [xo - 12, 49.2], [xo - 12, 44]]); add([[xo - 11.4, 48.4], [xo - 0.2, 48.4]], 'topstitch');
+      add(circlePts(xo - 5.75, 47.4, 0.5, 10), 'detail');
+    }
+    if (p.loops && !o.y0) [7, 16].concat(back ? [0.01] : []).forEach(function (x) { add([[x - 0.6, -0.6], [x + 0.6, -0.6], [x + 0.6, 5.2], [x - 0.6, 5.2], [x - 0.6, -0.6]], 'detail', x > 0.1); });
+    if (o.y0) L.forEach(function (l) { l.pts = mapPts(l.pts, function (q) { return [q[0], q[1] + o.y0]; }); });
     return { lines: L };
   }
   function blkDress(p, view) {
@@ -5342,126 +5687,331 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
     if (view === 'back') { L.push({ pts: [[0, t.fd + 0.5], [0, 58]], role: 'seam', mirror: false }); L.push({ pts: circlePts(0.9, t.fd + 2, 0.5, 10), role: 'detail', mirror: false }); }
     return { lines: L.concat(sk.lines) };
   }
+  function blkJumpsuit(p, view) {
+    var back = view === 'back', collar = p.neck === 'collar';
+    var t = blkTopHalf({ neck: collar ? 'crew' : p.neck, sleeve: p.sleeve, fit: 'regular' }, view, true), L = t.lines, wx = t.waist[0];
+    var add = function (pts, role, mirror) { L.push({ pts: pts, role: role || 'outline', mirror: mirror !== false }); };
+    if (collar) { L = L.filter(function (l) { return !l.bind; }); blkCollar(add, 'point', t.nw, back); }
+    add([[0, 40], [wx, 40]], 'seam');
+    L = L.concat(blkTrousers({ leg: p.leg, len: p.len, pockets: p.pockets }, view, { y0: 40, wx: wx }).lines);
+    if (!back && collar) { add([[1.75, t.fd + 2], [1.75, 60]], 'seam'); add([[1.35, t.fd + 2.5], [1.35, 59.4]], 'topstitch'); add([[0, 60], [1.75, 60]], 'seam'); for (var y = t.fd + 3.5; y < 59; y += 9) add(circlePts(0, y, 0.55, 12), 'detail', false); }
+    else if (!back && p.neck !== 'slip') add(qb([0, 42], [2.8, 50], [0.4, 58]), 'topstitch', false);
+    if (back && !collar) { add([[0, t.fd + 0.5], [0, 58]], 'seam', false); add(circlePts(0.9, t.fd + 2, 0.5, 10), 'detail', false); }
+    if (p.belt) {   // a tie belt: a band at the waist and a bow at the front
+      var under = function (q) { return q[1] > 38.25 && q[1] < 41.75 && Math.abs(q[0]) < wx - 0.3; }, kept = [];
+      L.forEach(function (l) { if (l.pts.circ) { kept.push(l); return; } clipRuns(l.pts, under).forEach(function (r) { kept.push({ pts: r, role: l.role, mirror: l.mirror }); }); }); L = kept;
+      add([[0, 38.2], [wx + 0.3, 38.2]]); add([[0, 41.8], [wx + 0.3, 41.8]]); add([[wx + 0.3, 38.2], [wx + 0.3, 41.8]]);
+      if (!back) {
+        var lobe = cat(qb([1, 38.8], [5.6, 34.6], [7.2, 38.4], 10), qb([7.2, 38.4], [7, 42.8], [1, 41.2], 10));
+        var under2 = function (q) { return q[1] > 34 && q[1] < 43.5 && Math.abs(q[0]) < 7.3 && insidePoly(q, lobe.concat(lobe.map(function (z) { return [-z[0], z[1]]; }).reverse())); };
+        kept = []; L.forEach(function (l) { if (l.pts.circ) { kept.push(l); return; } clipRuns(l.pts, under2).forEach(function (r) { kept.push({ pts: r, role: l.role, mirror: l.mirror }); }); }); L = kept;
+        add(lobe); add([[-1.2, 38.5], [1.2, 38.5], [1.2, 41.5], [-1.2, 41.5], [-1.2, 38.5]], 'outline', false);
+        add([[0.7, 41.5], [3.4, 52]]); add([[1.2, 41.2], [5.4, 51]]); add([[3.4, 52], [5.4, 51]]);
+      }
+    }
+    return { lines: L };
+  }
+  function insidePoly(q, poly) { var c = false; for (var i = 0, j = poly.length - 1; i < poly.length; j = i++) { var a = poly[i], b = poly[j]; if ((a[1] > q[1]) !== (b[1] > q[1]) && q[0] < (b[0] - a[0]) * (q[1] - a[1]) / (b[1] - a[1]) + a[0]) c = !c; } return c; }
   function blkBuild(base, p, view) {
     if (base === 'top') return blkTopHalf(p, view);
     if (base === 'shirt') return blkShirt(p, view);
+    if (base === 'cardigan') return blkCardigan(p, view);
+    if (base === 'vest') return blkVest(p, view);
+    if (base === 'jacket') return blkJacket(p, view, false);
+    if (base === 'coat') return blkJacket(p, view, true);
     if (base === 'skirt') return blkSkirtHalf(p, view);
     if (base === 'trousers') return blkTrousers(p, view);
+    if (base === 'jumpsuit') return blkJumpsuit(p, view);
     return blkDress(p, view);
   }
+  // bodies: the same garment reshaped by widths down the body (y from the neck point; skirts and trousers start at the
+  // waist, 40 cm down) and a height. Educated starting proportions, not a sizing standard.
+  var BLK_BODIES = {
+    women: { n: "Women's", h: 1, w: [[-40, 1], [200, 1]] },
+    men: { n: "Men's", h: 1.07, w: [[-40, 1.1], [0, 1.1], [6, 1.14], [22, 1.08], [40, 1.12], [60, 1], [100, 1.02], [200, 1.05]] },
+    plus: { n: 'Plus', h: 1, w: [[-40, 1.08], [0, 1.08], [6, 1.1], [22, 1.27], [40, 1.36], [60, 1.3], [100, 1.24], [200, 1.14]] },
+    child: { n: 'Child', h: 0.6, w: [[-40, 0.82], [0, 0.82], [6, 0.7], [22, 0.72], [40, 0.76], [60, 0.7], [200, 0.68]] }
+  };
+  function bodyW(tab, y) { for (var i = 0; i < tab.length - 1; i++) if (y <= tab[i + 1][0]) { var a = tab[i], b = tab[i + 1]; return a[1] + (b[1] - a[1]) * Math.max(0, (y - a[0]) / (b[0] - a[0])); } return tab[tab.length - 1][1]; }
   // all lines of a view with the mirrored half, in cm
-  function blkLines(base, p, view) {
-    var out = [];
+  function blkLines(base, p, view, body) {
+    var out = [], B = BLK_BODIES[body] || BLK_BODIES.women, yo = base === 'skirt' || base === 'trousers' ? 40 : 0;
+    var warp = B === BLK_BODIES.women ? null : function (q) {   // wider or narrower across the torso; sleeves move with its edge, unstretched
+      var f = bodyW(B.w, q[1] + yo), ax = Math.abs(q[0]); return [q[0] + Math.sign(q[0]) * (f - 1) * Math.min(ax, 26), q[1] * B.h]; };
     blkBuild(base, p, view).lines.forEach(function (l) {
-      out.push({ pts: l.pts, role: l.role });
-      if (l.mirror) out.push({ pts: l.pts.map(function (q) { return [-q[0], q[1]]; }), role: l.role });
+      var pts = l.pts;
+      if (warp) { if (pts.circ) { var c = warp([pts.circ[0], pts.circ[1]]); pts = circlePts(c[0], c[1], pts.circ[2] * Math.sqrt(bodyW(B.w, pts.circ[1] + yo) * B.h), pts.circ[3]); } else pts = pts.map(warp); }
+      out.push({ pts: pts, role: l.role });
+      if (l.mirror) out.push({ pts: mapPts(pts, function (q) { return [-q[0], q[1]]; }), role: l.role });
     });
     return out;
   }
   function blkBox(lines) { var b = { x0: 1e9, y0: 1e9, x1: -1e9, y1: -1e9 }; lines.forEach(function (l) { l.pts.forEach(function (q) { b.x0 = Math.min(b.x0, q[0]); b.y0 = Math.min(b.y0, q[1]); b.x1 = Math.max(b.x1, q[0]); b.y1 = Math.max(b.y1, q[1]); }); }); return b; }
   var BLK_W = { outline: 2.3, seam: 1.25, topstitch: 1.05, fold: 1.05, detail: 1.15 };
-  // a garment as strokes: views side by side, k world px per cm, its top-left at (ox, oy)
+  // a line as Trace points (x, y, width), and a line cut into dashes
+  function techPts(seg, w) { var p = [], st = 1.6; for (var i = 0; i < seg.length - 1; i++) { var a = seg[i], c = seg[i + 1], n = Math.max(1, Math.ceil(Math.hypot(c[0] - a[0], c[1] - a[1]) / st)); for (var j = i ? 1 : 0; j <= n; j++) p.push(Math.round((a[0] + (c[0] - a[0]) * j / n) * 100) / 100, Math.round((a[1] + (c[1] - a[1]) * j / n) * 100) / 100, w); } return p; }
+  function dashSplit(pts, dash, gapL) {
+    var out = [], acc = 0, on = true, cur = [pts[0]];
+    for (var i = 1; i < pts.length; i++) {
+      var a = pts[i - 1], c = pts[i], seg = Math.hypot(c[0] - a[0], c[1] - a[1]), t0 = 0;
+      while (seg - t0 > 1e-6) {
+        var lim = on ? dash : gapL, take = Math.min(lim - acc, seg - t0); t0 += take; acc += take;
+        var pt = [a[0] + (c[0] - a[0]) * t0 / seg, a[1] + (c[1] - a[1]) * t0 / seg];
+        if (on) cur.push(pt);
+        if (acc >= lim - 1e-6) { if (on && cur.length > 1) out.push(cur); on = !on; acc = 0; cur = [pt]; }
+      }
+    }
+    if (on && cur.length > 1) out.push(cur);
+    return out;
+  }
+  // a garment as strokes: views side by side, k world px per cm, its top-left at (ox, oy), then g.M (a move made with Select)
   function blkStrokes(g) {
-    var views = g.view === 'both' ? ['front', 'back'] : [g.view], out = [], col = g.c, k = g.k, gap = 14, x = 0;
+    var views = g.view === 'both' ? ['front', 'back'] : [g.view], out = [], col = g.c, k = g.k, gap = 14, x = 0, M = g.M;
     views.forEach(function (v) {
-      var ls = blkLines(g.base, g.p, v), b = blkBox(ls), dx = x - b.x0;
+      var ls = blkLines(g.base, g.p, v, g.body), b = blkBox(ls), dx = x - b.x0;
       ls.forEach(function (l) {
         var w = BLK_W[l.role] * (g.w || 1), pts = l.pts.map(function (q) { return [g.ox + (q[0] + dx) * k, g.oy + (q[1] - g.top) * k]; });
-        var push = function (seg) { var p = [], st = 1.6; for (var i = 0; i < seg.length - 1; i++) { var a = seg[i], c = seg[i + 1], n = Math.max(1, Math.ceil(Math.hypot(c[0] - a[0], c[1] - a[1]) / st)); for (var j = i ? 1 : 0; j <= n; j++) p.push(Math.round((a[0] + (c[0] - a[0]) * j / n) * 100) / 100, Math.round((a[1] + (c[1] - a[1]) * j / n) * 100) / 100, w); }
-          if (p.length >= 3) out.push({ t: 'tech', c: col, a: 1, L: g.L, p: p, blk: g.id }); };
-        if (l.role === 'topstitch' || l.role === 'fold') {   // dashes along the path
-          var dash = l.role === 'fold' ? Math.max(6, 2.6 * k) : Math.max(3, 0.9 * k), gapL = l.role === 'fold' ? Math.max(3.5, 1.4 * k) : Math.max(2.2, 0.6 * k), acc = 0, on = true, cur = [pts[0]];
-          for (var i = 1; i < pts.length; i++) {
-            var a = pts[i - 1], c = pts[i], seg = Math.hypot(c[0] - a[0], c[1] - a[1]), t0 = 0;
-            while (seg - t0 > 1e-6) {
-              var lim = on ? dash : gapL, take = Math.min(lim - acc, seg - t0); t0 += take; acc += take;
-              var pt = [a[0] + (c[0] - a[0]) * t0 / seg, a[1] + (c[1] - a[1]) * t0 / seg];
-              if (on) cur.push(pt);
-              if (acc >= lim - 1e-6) { if (on && cur.length > 1) push(cur); on = !on; acc = 0; cur = [pt]; }
-            }
-          }
-          if (on && cur.length > 1) push(cur);
-        } else push(pts);
+        var push = function (seg) { var p = techPts(seg, w); if (p.length >= 3) out.push({ t: 'tech', c: col, a: 1, L: g.L, p: p, blk: g.id }); };
+        if (l.role === 'topstitch' || l.role === 'fold') dashSplit(pts, l.role === 'fold' ? Math.max(6, 2.6 * k) : Math.max(3, 0.9 * k), l.role === 'fold' ? Math.max(3.5, 1.4 * k) : Math.max(2.2, 0.6 * k)).forEach(push);
+        else push(pts);
       });
       x += (b.x1 - b.x0) + gap;
     });
-    return out;
+    return M ? out.map(function (st) { var o = transformStroke(st, M); o.blk = g.id; return o; }) : out;
   }
-  function blkSize(g) { var views = g.view === 'both' ? ['front', 'back'] : [g.view], w = 0, top = 1e9, bot = -1e9; views.forEach(function (v, i) { var b = blkBox(blkLines(g.base, g.p, v)); w += (b.x1 - b.x0) + (i ? 14 : 0); top = Math.min(top, b.y0); bot = Math.max(bot, b.y1); }); return { w: w, top: top, h: bot - top }; }
+  function blkSize(g) { var views = g.view === 'both' ? ['front', 'back'] : [g.view], w = 0, top = 1e9, bot = -1e9; views.forEach(function (v, i) { var b = blkBox(blkLines(g.base, g.p, v, g.body)); w += (b.x1 - b.x0) + (i ? 14 : 0); top = Math.min(top, b.y0); bot = Math.max(bot, b.y1); }); return { w: w, top: top, h: bot - top }; }
   // a small picture of a garment, for the library
   var blkThumbs = {};
-  function blkThumb(base, p, key) {
+  function blkThumb(base, p, key, body) {
     if (blkThumbs[key]) return blkThumbs[key];
     var c = document.createElement('canvas'); c.width = c.height = 96; var x = c.getContext('2d'); x.fillStyle = '#fff'; x.fillRect(0, 0, 96, 96);
-    var ls = blkLines(base, p, 'front'), b = blkBox(ls), sc = Math.min(84 / (b.x1 - b.x0), 84 / (b.y1 - b.y0));
+    var ls = blkLines(base, p, 'front', body), b = blkBox(ls), sc = Math.min(84 / (b.x1 - b.x0), 84 / (b.y1 - b.y0));
     x.translate(48 - (b.x0 + b.x1) / 2 * sc, 48 - (b.y0 + b.y1) / 2 * sc); x.lineCap = 'round'; x.lineJoin = 'round'; x.strokeStyle = '#222';
     ls.forEach(function (l) { x.lineWidth = l.role === 'outline' ? 1.6 : 0.9; x.setLineDash(l.role === 'topstitch' ? [2, 1.6] : l.role === 'fold' ? [4, 2.5] : []); x.beginPath(); l.pts.forEach(function (q, i) { x[i ? 'lineTo' : 'moveTo'](q[0] * sc, q[1] * sc); }); x.stroke(); });
     return (blkThumbs[key] = c.toDataURL());
   }
-  // ---- the Blocks panel: a library by category; a tap places the garment (front and back) on the Lines layer, in the
-  // middle of the view, at one shared scale (so garments line up); its options stay editable here afterwards
-  INK.blocks = {}; INK.blkCur = null; var blkCat = 0;
-  function blkPlace(name, base, preset) {
+  // a move, turn or resize made with Select since the garment was drawn: the best affine fit from what blkStrokes drew
+  // to what is on the page now (so a changed option redraws the garment where it was moved to, not where it was placed)
+  function blkMoved(g) {
+    var now = INK.strokes.filter(function (st) { return st.blk === g.id && st.p; }), was = blkStrokes(g);
+    if (!now.length || now.length !== was.length) return null;
+    var A = [[0, 0, 0], [0, 0, 0], [0, 0, 0]], bx = [0, 0, 0], by = [0, 0, 0], n = 0, step = Math.max(1, Math.floor(now.length / 40));
+    for (var i = 0; i < now.length; i += step) {
+      var p = now[i].p, q = was[i].p; if (!q || p.length !== q.length) return null;
+      for (var j = 0; j < p.length; j += 3 * Math.max(1, Math.floor(p.length / 30))) { var v = [q[j], q[j + 1], 1]; for (var r = 0; r < 3; r++) { for (var c = 0; c < 3; c++) A[r][c] += v[r] * v[c]; bx[r] += v[r] * p[j]; by[r] += v[r] * p[j + 1]; } n++; }
+    }
+    if (n < 3) return null;
+    var solve = function (b) {   // 3x3 by Cramer's rule
+      var det = function (m) { return m[0][0] * (m[1][1] * m[2][2] - m[1][2] * m[2][1]) - m[0][1] * (m[1][0] * m[2][2] - m[1][2] * m[2][0]) + m[0][2] * (m[1][0] * m[2][1] - m[1][1] * m[2][0]); };
+      var D = det(A); if (Math.abs(D) < 1e-9) return null;
+      return [0, 1, 2].map(function (k) { var m = A.map(function (row, ri) { return row.map(function (v, ci) { return ci === k ? b[ri] : v; }); }); return det(m) / D; });
+    };
+    var X = solve(bx), Y = solve(by); if (!X || !Y) return null;
+    var M = [X[0], Y[0], X[1], Y[1], X[2], Y[2]];
+    if (Math.abs(M[0] - 1) + Math.abs(M[1]) + Math.abs(M[2]) + Math.abs(M[3] - 1) + Math.abs(M[4]) + Math.abs(M[5]) < 0.02) return null;
+    return M;
+  }
+  // ---- the Blocks panel: a library by category (and search); a tap places the garment (front and back) on the Lines
+  // layer, in the middle of the view, at one shared scale (so garments line up); its options stay editable here afterwards
+  INK.blocks = {}; INK.blkCur = null; var blkCat = 0, blkQuery = '';
+  if (!BLK_BODIES[S.blkBody]) S.blkBody = 'women';
+  if (!Array.isArray(S.myBlocks)) S.myBlocks = [];
+  function blkCats() { return S.myBlocks.length ? BLK_PRESETS.concat([['Mine', S.myBlocks.map(function (m) { return [m.n, m.b, m.p, m.body]; })]]) : BLK_PRESETS; }
+  function blkPlace(name, base, preset, body) {
     var L = layerExists('lines') && !lset('lines').lock ? 'lines' : S.activeLayer; if (lset(L).lock) { lockedToast(L); return; }
-    var p = Object.assign(blkDefaults(base), preset), g = { id: 'g' + Date.now().toString(36), name: name, base: base, p: p, view: 'both', L: L, c: hexRgb(S.inkColor === '#2f2c29' ? '#1d1b19' : S.inkColor), w: 1 };
+    var p = Object.assign(blkDefaults(base), preset), g = { id: 'g' + Date.now().toString(36) + Math.floor(Math.random() * 1e3), name: name, base: base, p: p, view: 'both', L: L, body: BLK_BODIES[body] ? body : S.blkBody, c: hexRgb(S.inkColor === '#2f2c29' ? '#1d1b19' : S.inkColor), w: 1 };
     var H = window.innerHeight / V.s, W = window.innerWidth / V.s, vx = -V.x / V.s, vy = -V.y / V.s;
     g.k = 0.62 * H / 110;   // one scale for every garment: about 110 cm fills 62% of the view
     var sz = blkSize(g); g.top = sz.top;
     if (sz.w * g.k > W * 0.82) g.k = W * 0.82 / sz.w;
     g.ox = vx + (W - sz.w * g.k) / 2; g.oy = vy + H * 0.16;
     pushUndo(snap('ink'));
-    INK.blocks[g.id] = g; INK.blkCur = g.id;
+    INK.blocks = Object.assign({}, INK.blocks); INK.blocks[g.id] = g; INK.blkCur = g.id;
     INK.strokes = INK.strokes.concat(blkStrokes(g)); inkChanged(); renderBlocksPop();
     toast(name + ' placed: change its options here, or draw over it.');
   }
+  function blkLive() {   // the garments still in the drawing (for saving)
+    var o = {}; INK.strokes.forEach(function (st) { if (st.blk && INK.blocks[st.blk] && !o[st.blk]) o[st.blk] = JSON.parse(JSON.stringify(INK.blocks[st.blk])); }); return o;
+  }
   function blkRegen(g) {   // the garment again with its new options, where it was
     var sz = blkSize(g); g.top = sz.top;
-    pushUndo(snap('ink'));
     INK.strokes = INK.strokes.filter(function (st) { return st.blk !== g.id; }).concat(blkStrokes(g)); inkChanged();
   }
+  // change the garment being edited: one undo step; a move made with Select is kept; the old options stay in the undo copy
+  function blkLiveCur() { var g = INK.blocks[INK.blkCur]; return g && INK.strokes.some(function (st) { return st.blk === g.id; }) ? g : null; }   // the garment being edited, if it is still on the page
+  function blkChange(mutate) {
+    var g0 = blkLiveCur(); if (!g0) return;
+    var M = blkMoved(g0); pushUndo(snap('ink'));
+    var g = JSON.parse(JSON.stringify(g0)); INK.blocks = Object.assign({}, INK.blocks); INK.blocks[g.id] = g;
+    if (M) g.M = g.M ? mMul(M, g.M) : M;
+    mutate(g); blkRegen(g); renderBlocksPop();
+  }
+  function blkSearchText(pr) {
+    var s = pr[0] + ' ' + BLK_NAMES[pr[1]], p = pr[2];
+    BLK_PARAMS[pr[1]].forEach(function (pa) { if (pa[2] === 'bool') { if (p[pa[0]]) s += ' ' + pa[1]; } else pa[2].forEach(function (o) { if (p[pa[0]] === o[0]) s += ' ' + o[1]; }); });
+    return s.toLowerCase();
+  }
   function renderBlocksPop() {
-    var seg = $('blkCatSeg');
-    if (!seg.childElementCount) BLK_PRESETS.forEach(function (c, i) { var b = document.createElement('button'); b.type = 'button'; b.textContent = c[0]; b.dataset.i = i; b.addEventListener('click', function () { blkCat = i; renderBlocksPop(); }); seg.appendChild(b); });
-    seg.querySelectorAll('button').forEach(function (b) { b.setAttribute('aria-pressed', +b.dataset.i === blkCat ? 'true' : 'false'); });
+    var cats = blkCats(); if (blkCat >= cats.length) blkCat = 0;
+    var seg = $('blkCatSeg'); seg.innerHTML = '';
+    cats.forEach(function (c, i) { var b = document.createElement('button'); b.type = 'button'; b.textContent = c[0]; b.setAttribute('aria-pressed', !blkQuery && i === blkCat ? 'true' : 'false'); b.addEventListener('click', function () { blkCat = i; blkQuery = ''; $('blkSearch').value = ''; renderBlocksPop(); }); seg.appendChild(b); });
+    $('blkBodySeg').querySelectorAll('button').forEach(function (b) { var g0 = blkLiveCur(); b.setAttribute('aria-pressed', b.dataset.v === (g0 ? g0.body || 'women' : S.blkBody) ? 'true' : 'false'); });
     var grid = $('blkGrid'); grid.innerHTML = '';
-    BLK_PRESETS[blkCat][1].forEach(function (pr) {
+    var list = [], q = blkQuery.trim().toLowerCase(), mineCat = cats.length > BLK_PRESETS.length ? cats.length - 1 : -1;
+    if (q) cats.forEach(function (c, ci) { c[1].forEach(function (pr) { if (q.split(/\s+/).every(function (w) { return blkSearchText(pr).indexOf(w) >= 0; })) list.push([pr, ci === mineCat]); }); });
+    else cats[blkCat][1].forEach(function (pr) { list.push([pr, blkCat === mineCat]); });
+    $('blkMineNote').hidden = !list.some(function (x) { return x[1]; });
+    if (!list.length) { var none = document.createElement('p'); none.className = 'fine'; none.style.margin = '0'; none.textContent = 'No garment matches “' + blkQuery.trim() + '”.'; grid.appendChild(none); }
+    list.forEach(function (it) {
+      var pr = it[0], mine = it[1], body = mine && pr[3] ? pr[3] : S.blkBody, p = Object.assign(blkDefaults(pr[1]), pr[2]);
       var b = document.createElement('button'); b.type = 'button'; b.className = 'printBtn';
-      var im = document.createElement('img'); im.alt = ''; im.src = blkThumb(pr[1], Object.assign(blkDefaults(pr[1]), pr[2]), pr[0]);
+      var im = document.createElement('img'); im.alt = ''; im.src = blkThumb(pr[1], p, (mine ? 'mine|' + JSON.stringify(p) + '|' : '') + pr[0] + '|' + body, body);
       var sp = document.createElement('span'); sp.textContent = pr[0]; b.appendChild(im); b.appendChild(sp); grid.appendChild(b);
-      b.addEventListener('click', function () { blkPlace(pr[0], pr[1], pr[2]); });
+      b.addEventListener('click', function () { if (b._held) { b._held = false; return; } blkPlace(pr[0], pr[1], pr[2], mine ? pr[3] : null); });
+      if (mine) {   // touch and hold (or right-click) one of yours to remove it
+        var t = 0, remove = function () { b._held = true; if (!confirm('Remove “' + pr[0] + '” from your garments?')) return; var i = S.myBlocks.findIndex(function (m) { return m.n === pr[0] && m.b === pr[1]; }); if (i >= 0) S.myBlocks.splice(i, 1); persist(); renderBlocksPop(); };
+        b.addEventListener('pointerdown', function () { clearTimeout(t); t = setTimeout(remove, 650); });
+        ['pointerup', 'pointerleave', 'pointercancel'].forEach(function (ev) { b.addEventListener(ev, function () { clearTimeout(t); }); });
+        b.addEventListener('contextmenu', function (e) { e.preventDefault(); clearTimeout(t); remove(); });
+      }
     });
     // garments already in this drawing
-    var ids = Object.keys(INK.blocks).filter(function (id) { return INK.strokes.some(function (st) { return st.blk === id; }); }), mine = $('blkMine'); mine.innerHTML = '';
+    var ids = Object.keys(INK.blocks).filter(function (id) { return INK.strokes.some(function (st) { return st.blk === id; }); }), mineEl = $('blkMine'); mineEl.innerHTML = '';
     $('blkMineHead').hidden = !ids.length;
-    ids.forEach(function (id) { var c = document.createElement('button'); c.type = 'button'; c.className = 'chip'; c.textContent = INK.blocks[id].name; c.setAttribute('aria-pressed', id === INK.blkCur ? 'true' : 'false'); c.addEventListener('click', function () { INK.blkCur = INK.blkCur === id ? null : id; renderBlocksPop(); }); mine.appendChild(c); });
-    var g = INK.blkCur && ids.indexOf(INK.blkCur) >= 0 ? INK.blocks[INK.blkCur] : null, ed = $('blkEdit'); ed.hidden = !g; if (!g) return;
+    ids.forEach(function (id) { var c = document.createElement('button'); c.type = 'button'; c.className = 'chip'; c.textContent = INK.blocks[id].name; c.setAttribute('aria-pressed', id === INK.blkCur ? 'true' : 'false'); c.addEventListener('click', function () { INK.blkCur = INK.blkCur === id ? null : id; renderBlocksPop(); }); mineEl.appendChild(c); });
+    var g = INK.blkCur && ids.indexOf(INK.blkCur) >= 0 ? INK.blocks[INK.blkCur] : null, ed = $('blkEdit'); ed.hidden = !g;
+    renderStitch();
+    if (!g) return;
     $('blkEditTitle').textContent = 'Change the ' + g.name.toLowerCase();
     var box = $('blkParams'); box.innerHTML = '';
     BLK_PARAMS[g.base].forEach(function (pa) {
       if (pa[2] === 'bool') {
         var row = document.createElement('div'); row.className = 'row'; row.innerHTML = '<div class="ctl"><button type="button" class="switch" role="switch"></button><span></span></div>';
         var sw = row.querySelector('button'); row.querySelector('span').textContent = pa[1]; sw.setAttribute('aria-label', pa[1]); sw.setAttribute('aria-checked', g.p[pa[0]] ? 'true' : 'false');
-        sw.addEventListener('click', function () { g.p[pa[0]] = !g.p[pa[0]]; blkRegen(g); renderBlocksPop(); }); box.appendChild(row); return;
+        sw.addEventListener('click', function () { blkChange(function (gg) { gg.p[pa[0]] = !gg.p[pa[0]]; }); }); box.appendChild(row); return;
       }
       var lab = document.createElement('label'); lab.className = 'blkSel'; lab.textContent = pa[1];
       var sel = document.createElement('select'); pa[2].forEach(function (o) { var op = document.createElement('option'); op.value = o[0]; op.textContent = o[1]; if (g.p[pa[0]] === o[0]) op.selected = true; sel.appendChild(op); });
-      sel.addEventListener('change', function () { g.p[pa[0]] = this.value; blkRegen(g); });
+      sel.addEventListener('change', function () { var v = this.value; blkChange(function (gg) { gg.p[pa[0]] = v; }); });
       lab.appendChild(sel); box.appendChild(lab);
     });
     $('blkViewSeg').querySelectorAll('button').forEach(function (b) { b.setAttribute('aria-pressed', b.dataset.v === g.view ? 'true' : 'false'); });
     $('blkSize').value = Math.round(Math.log2(g.w || 1) * 100) / 100;
   }
-  $('blkViewSeg').querySelectorAll('button').forEach(function (b) { b.addEventListener('click', function () { var g = INK.blocks[INK.blkCur]; if (!g) return; g.view = b.dataset.v; blkRegen(g); renderBlocksPop(); }); });
-  $('blkSize').addEventListener('change', function () { var g = INK.blocks[INK.blkCur]; if (!g) return; g.w = Math.round(Math.pow(2, +this.value) * 100) / 100; blkRegen(g); });
+  $('blkSearch').addEventListener('input', function () { blkQuery = this.value; renderBlocksPop(); });
+  $('blkViewSeg').querySelectorAll('button').forEach(function (b) { b.addEventListener('click', function () { blkChange(function (g) { g.view = b.dataset.v; }); }); });
+  $('blkBodySeg').querySelectorAll('button').forEach(function (b) { b.addEventListener('click', function () {
+    S.blkBody = b.dataset.v; persist();
+    if (blkLiveCur()) blkChange(function (g) { g.body = b.dataset.v; }); else renderBlocksPop();
+  }); });
+  $('blkSize').addEventListener('change', function () { var v = Math.round(Math.pow(2, +this.value) * 100) / 100; blkChange(function (g) { g.w = v; }); });
+  $('blkSurprise').addEventListener('click', function () {
+    blkChange(function (g) { BLK_PARAMS[g.base].forEach(function (pa) { g.p[pa[0]] = pa[2] === 'bool' ? Math.random() < 0.4 : pa[2][Math.floor(Math.random() * pa[2].length)][0]; }); g.name = 'New ' + BLK_NAMES[g.base].toLowerCase(); });
+  });
+  $('blkSaveMine').addEventListener('click', function () {
+    var g = blkLiveCur(); if (!g) return;
+    var n = prompt('A name for this garment', g.name); if (n == null) return; n = n.trim().slice(0, 40) || g.name;
+    var i = S.myBlocks.findIndex(function (m) { return m.n === n && m.b === g.base; }), rec = { n: n, b: g.base, p: JSON.parse(JSON.stringify(g.p)), body: g.body || 'women' };
+    if (i >= 0) S.myBlocks[i] = rec; else S.myBlocks.push(rec);
+    persist(); blkCat = blkCats().length - 1; blkQuery = ''; $('blkSearch').value = ''; renderBlocksPop(); toast('Saved to your garments: it is under Mine.');
+  });
+  $('blkDetach').addEventListener('click', function () {
+    var g = blkLiveCur(); if (!g) return;
+    pushUndo(snap('ink'));
+    INK.strokes = INK.strokes.map(function (st) { if (st.blk !== g.id) return st; var o = Object.assign({}, st); delete o.blk; return o; });
+    INK.blkCur = null; inkChanged(); renderBlocksPop(); toast('Now plain lines: draw, erase and select them like any others.');
+  });
   $('blkDelete').addEventListener('click', function () { var g = INK.blocks[INK.blkCur]; if (!g) return; pushUndo(snap('ink')); INK.strokes = INK.strokes.filter(function (st) { return st.blk !== g.id; }); INK.blkCur = null; inkChanged(); renderBlocksPop(); toast('Garment removed. Undo brings it back.'); });
   $('blkDone').addEventListener('click', function () { INK.blkCur = null; closeInkPop(); });
+
+  // ---- Stitch lines: technical brushes for flats. A line drawn while one is chosen becomes topstitching, a zip, buttons,
+  // gathers, rib or a scalloped edge, as plain vector lines in the line's colour (so they export to SVG and can be erased,
+  // selected and recoloured). The size follows the screen, so zoom in for finer stitching.
+  var STITCH_SAY = { top1: 'topstitching', top2: 'double-needle topstitching', top3: 'triple-needle topstitching', zigzag: 'zigzag stitching', gathers: 'gathers', rib: 'rib knit', zip: 'a zip', buttons: 'a row of buttons', scallop: 'a scalloped edge' };
+  var STITCH = [['off', 'Off'], ['top1', 'Topstitch'], ['top2', 'Double needle'], ['top3', 'Triple needle'], ['zigzag', 'Zigzag'], ['gathers', 'Gathers'], ['rib', 'Rib knit'], ['zip', 'Zip'], ['buttons', 'Buttons'], ['scallop', 'Scallop edge']];
+  if (!(S.stitchSize > 0)) S.stitchSize = 5;
+  S.stitch = 'off';   // never carried over from last time: it would surprise
+  function resamp(pts, step) {   // points evenly spaced along a line
+    var out = [pts[0].slice()], need = step;
+    for (var i = 1; i < pts.length; i++) {
+      var a = pts[i - 1], b = pts[i], d = Math.hypot(b[0] - a[0], b[1] - a[1]), pos = 0;
+      while (d - pos >= need) { pos += need; out.push(lerp2(a, b, pos / d)); need = step; }
+      need -= d - pos;
+    }
+    var e = pts[pts.length - 1], l = out[out.length - 1]; if (Math.hypot(e[0] - l[0], e[1] - l[1]) > step * 0.3) out.push(e.slice());
+    return out;
+  }
+  function smoothPts(pts, r) { return pts.map(function (q, i) { if (!i || i === pts.length - 1) return q; var sx = 0, sy = 0, n = 0; for (var k = Math.max(0, i - r); k <= Math.min(pts.length - 1, i + r); k++) { sx += pts[k][0]; sy += pts[k][1]; n++; } return [sx / n, sy / n]; }); }
+  function pathLen(pts) { var s = 0; for (var i = 1; i < pts.length; i++) s += Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]); return s; }
+  function stitchLines(raw, kind, u) {   // raw: [[x, y]...]; u: the stitch size; returns lines [[x, y]...] (and .k: a width factor)
+    var base = smoothPts(resamp(raw, u * 0.5), 3), L = pathLen(base), out = [], add = function (pts, k) { if (pts.length > 1) { pts.k = k || 1; out.push(pts); } };
+    if (L < u * 1.5) return out;
+    var nAt = function (pts, i) { var a = pts[Math.max(0, i - 1)], b = pts[Math.min(pts.length - 1, i + 1)], dx = b[0] - a[0], dy = b[1] - a[1], l = Math.hypot(dx, dy) || 1; return [-dy / l, dx / l]; };
+    var ticks = function (step, from, to, k) { var s = resamp(base, step); s.forEach(function (q, i) { var n = nAt(s, i); add([[q[0] + n[0] * from, q[1] + n[1] * from], [q[0] + n[0] * to, q[1] + n[1] * to]], k); }); return s; };
+    if (kind === 'top1' || kind === 'top2' || kind === 'top3') {
+      var offs = kind === 'top1' ? [0] : kind === 'top2' ? [-0.55, 0.55] : [-1.1, 0, 1.1];
+      offs.forEach(function (o) { dashSplit(o ? offsetLine(base, o * u) : base, 1.5 * u, 0.9 * u).forEach(function (d) { add(d); }); });
+    } else if (kind === 'zigzag') {
+      var zs = resamp(base, 0.7 * u); add(zs.map(function (q, i) { var n = nAt(zs, i), o = (i % 2 ? 0.6 : -0.6) * u; return [q[0] + n[0] * o, q[1] + n[1] * o]; }));
+    } else if (kind === 'gathers') {
+      var gs = resamp(base, 0.8 * u), fr = function (v) { return v - Math.floor(v); };   // short soft ticks on one side, all curving the same way, a little uneven
+      gs.forEach(function (q, i) { var n = nAt(gs, i), len = (1.1 + 1.3 * fr(Math.sin(i * 12.9898) * 43758.5453)) * u, tg = [n[1], -n[0]], sh = (fr(Math.sin(i * 78.233) * 12345.678) - 0.5) * 0.3 * u, b = [q[0] + tg[0] * sh, q[1] + tg[1] * sh], bend = 0.2 * u;
+        add([b, [b[0] + n[0] * len / 2 + tg[0] * bend, b[1] + n[1] * len / 2 + tg[1] * bend], [b[0] + n[0] * len, b[1] + n[1] * len]], 0.8); });
+    } else if (kind === 'rib') {
+      add(offsetLine(base, -1.3 * u)); add(offsetLine(base, 1.3 * u)); ticks(0.6 * u, -1.1 * u, 1.1 * u, 0.7);
+    } else if (kind === 'zip') {
+      add(offsetLine(base, -1 * u), 0.9); add(offsetLine(base, 1 * u), 0.9); ticks(0.45 * u, -0.55 * u, 0.55 * u, 0.8);
+      var s0 = base[0], s1 = resamp(base, u)[1] || base[1], tl = Math.hypot(s1[0] - s0[0], s1[1] - s0[1]) || 1, tg2 = [(s1[0] - s0[0]) / tl, (s1[1] - s0[1]) / tl], nn = [-tg2[1], tg2[0]];
+      var P = function (a, b) { return [s0[0] + tg2[0] * a + nn[0] * b, s0[1] + tg2[1] * a + nn[1] * b]; };
+      add([P(0.3 * u, -0.55 * u), P(3 * u, -0.55 * u), P(3 * u, 0.55 * u), P(0.3 * u, 0.55 * u), P(0.3 * u, -0.55 * u)], 1.3);
+      add(circlePts(P(3.6 * u, 0)[0], P(3.6 * u, 0)[1], 0.5 * u, 12), 1);
+    } else if (kind === 'buttons') {
+      var nb = Math.max(2, Math.round(L / (5 * u)) + 1), bs = resamp(base, L / (nb - 1) * 0.999);
+      bs.slice(0, nb).forEach(function (q, i) { var n = nAt(bs, i); add(circlePts(q[0], q[1], 0.8 * u, 16), 1.1); [-0.25, 0.25].forEach(function (o) { add(circlePts(q[0] + n[1] * o * u, q[1] - n[0] * o * u, 0.1 * u, 6), 0.8); }); });
+    } else if (kind === 'scallop') {
+      var w = 1.8 * u, ss = resamp(base, w / 8);
+      add(ss.map(function (q, i) { var n = nAt(ss, i), o = Math.abs(Math.sin(Math.PI * i / 8)) * 0.8 * u; return [q[0] + n[0] * o, q[1] + n[1] * o]; }));
+    }
+    return out;
+  }
+  function stitchStroke(st) {   // a finished stroke as stitch-line strokes
+    var raw = []; for (var i = 0; i < st.p.length; i += 3) raw.push([st.p[i], st.p[i + 1]]);
+    var avgW = 0; for (i = 2; i < st.p.length; i += 3) avgW += st.p[i]; avgW /= st.p.length / 3;
+    var u = (S.stitchSize || 5) / V.s, w = Math.max(0.6 / V.s, Math.min(avgW * 0.8, u * 0.42)), out = [];
+    stitchLines(raw, S.stitch, u).forEach(function (l) {
+      var o = Object.assign({}, st); delete o.na; delete o.n; delete o._path; delete o.qs;
+      o.t = 'tech'; o.p = techPts(l, Math.round(w * l.k * 100) / 100); o.stitch = S.stitch; out.push(o);
+    });
+    return out;
+  }
+  function renderStitch() {
+    var grid = $('stitchGrid');
+    if (!grid.childElementCount) STITCH.forEach(function (s) {
+      var b = document.createElement('button'); b.type = 'button'; b.className = 'printBtn'; b.dataset.k = s[0];
+      var c = document.createElement('canvas'); c.width = 96; c.height = 48; var x = c.getContext('2d'); x.fillStyle = '#fff'; x.fillRect(0, 0, 96, 48);
+      x.strokeStyle = '#222'; x.lineCap = 'round'; x.lineJoin = 'round';
+      var path = []; for (var i = 0; i <= 40; i++) path.push([10 + i * 1.9, 24 + Math.sin(i / 40 * Math.PI * 2) * 9]);
+      if (s[0] === 'off') { x.lineWidth = 2; x.beginPath(); path.forEach(function (q, i) { x[i ? 'lineTo' : 'moveTo'](q[0], q[1]); }); x.stroke(); }
+      else stitchLines(path, s[0], 4.6).forEach(function (l) { x.lineWidth = 1.2 * l.k; x.beginPath(); l.forEach(function (q, i) { x[i ? 'lineTo' : 'moveTo'](q[0], q[1]); }); x.stroke(); });
+      var im = document.createElement('img'); im.alt = ''; im.src = c.toDataURL(); var sp = document.createElement('span'); sp.textContent = s[1];
+      b.appendChild(im); b.appendChild(sp); grid.appendChild(b);
+      b.addEventListener('click', function () {
+        S.stitch = s[0]; renderStitch();
+        if (s[0] !== 'off') { closeInkPop(); toast(s[1] + ': each line you draw becomes ' + STITCH_SAY[s[0]] + '. Blocks → Stitch lines → Off to draw normally.'); }
+      });
+    });
+    grid.querySelectorAll('button').forEach(function (b) { b.setAttribute('aria-pressed', b.dataset.k === (S.stitch || 'off') ? 'true' : 'false'); });
+    $('railBlocks').classList.toggle('stitchOn', !!S.stitch && S.stitch !== 'off');
+    $('stitchSize').value = S.stitchSize; $('stitchSizeOut').textContent = Math.round(S.stitchSize * 10) / 10;
+  }
+  $('stitchSize').addEventListener('input', function () { S.stitchSize = +this.value; $('stitchSizeOut').textContent = Math.round(S.stitchSize * 10) / 10; persist(); });
   // the device check (?selftest) reads the drawing's state through this; nothing is exposed otherwise
   if (SELFTEST) window.__trace = {
     get INK() { return INK; }, get S() { return S; }, get V() { return V; }, LAYERS: LAYERS,
     layerState: layerState, setLayers: setLayers, strokeLayer: strokeLayer, kindOf: kindOf, inkSvgText: inkSvgText, inkPngBlob: inkPngBlob,
     renderLayers: renderLayers, inkPaint: inkPaint, saveSession: function () { return saveSession(true); }, store: store, selDraw: selDraw,
     mergeDown: mergeDown, duplicateLayer: duplicateLayer, moveLayer: moveLayer, layerPicture: layerPicture, selectAll: selectAllOnLayer,
-    selPaste: selPaste, selCopy: selCopy, inkSvgReady: inkSvgReady, symGet: symGet, symChanged: symChanged, blkPlace: blkPlace, blkLines: blkLines, BLK_PRESETS: BLK_PRESETS, BLK_PARAMS: BLK_PARAMS, blkRegen: blkRegen, renderStroke: renderStroke, tileCanvas: tileCanvas, symBuild: symBuild, symTileImage: symTileImage, symSvgText: symSvgText, symCopies: symCopies, WALL: WALL, get SAVE() { return SAVE; }, MEM: MEM, RW: RW, inkDpr: inkDpr, viewK: viewK, selDelete: selDelete, selToLayer: selToLayer, setSelMode: setSelMode, layerCap: layerCap, get PROJ() { return PROJ; }
+    selPaste: selPaste, selCopy: selCopy, inkSvgReady: inkSvgReady, symGet: symGet, symChanged: symChanged, blkPlace: blkPlace, blkLines: blkLines, blkChange: blkChange, blkMoved: blkMoved, blkStrokes: blkStrokes, BLK_BODIES: BLK_BODIES, stitchLines: stitchLines, renderBlocksPop: renderBlocksPop, BLK_PRESETS: BLK_PRESETS, BLK_PARAMS: BLK_PARAMS, blkRegen: blkRegen, renderStroke: renderStroke, tileCanvas: tileCanvas, symBuild: symBuild, symTileImage: symTileImage, symSvgText: symSvgText, symCopies: symCopies, WALL: WALL, get SAVE() { return SAVE; }, MEM: MEM, RW: RW, inkDpr: inkDpr, viewK: viewK, selDelete: selDelete, selToLayer: selToLayer, setSelMode: setSelMode, layerCap: layerCap, get PROJ() { return PROJ; }
   };
   $('inkMirrorBtn').addEventListener('click', function () {
     var on = !(S.mirrorOn && S.cfOn); S.mirrorOn = on; if (on) S.cfOn = true; persist(); drawGuides(); syncUI();
@@ -6265,7 +6815,7 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
       back: BASE.back && BASE.back.blob, backName: BASE.back && BASE.back.name,
       ghost: ghost && ghost.blob, T: placed.picture ? frac(T) : null, B: placed.base ? frac(B) : null,
       boardId: boardId, boardTitle: boardTitle, savedAt: Date.now(),
-      screen: screenMode, ink: inkForSave(), inkW: INK.W, inkH: INK.H, layers: layerState(), activeLayer: S.activeLayer, sym: JSON.parse(JSON.stringify(S.sym)), blocks: JSON.parse(JSON.stringify(INK.blocks || {})) };
+      screen: screenMode, ink: inkForSave(), inkW: INK.W, inkH: INK.H, layers: layerState(), activeLayer: S.activeLayer, sym: JSON.parse(JSON.stringify(S.sym)), blocks: blkLive() };
     if (!PROJ.id) PROJ.id = 'p' + Date.now().toString(36) + Math.floor(Math.random() * 1296).toString(36);
     var id = PROJ.id, thumb = withThumb || !PROJ.thumbed ? projThumb() : null; if (thumb) PROJ.thumbed = true;
     rec.id = id;

@@ -245,13 +245,34 @@
       return wait(800).then(function () {
         ev('pointermove', pts[60][0] + 0.4, pts[60][1]); ev('pointerup', pts[60][0] + 0.4, pts[60][1]);
         var st = T.INK.strokes[T.INK.strokes.length - 1]; add('QuickShape (hold to snap)', st && st.qs === 'ellipse', st && st.qs || 'did not snap');
-        // flat blocks: every preset front and back without broken points; place one
+        // flat blocks: every preset front and back on every body, every option on its own, without broken points
         if (!T.BLK_PRESETS) return;   // KP Art has no garment blocks
         var bad = 0, n = 0, def = function (b) { var o = {}; T.BLK_PARAMS[b].forEach(function (pp) { o[pp[0]] = pp[2] === 'bool' ? false : pp[2][0][0]; }); return o; };
-        T.BLK_PRESETS.forEach(function (cat) { cat[1].forEach(function (pr) { ['front', 'back'].forEach(function (v) { n++; var ls = T.blkLines(pr[1], Object.assign(def(pr[1]), pr[2]), v); if (!ls.length || ls.some(function (l) { return l.pts.some(function (q) { return !isFinite(q[0]) || !isFinite(q[1]); }); })) bad++; }); }); });
-        add('Flat blocks (' + n / 2 + ' garments)', !bad, bad ? bad + ' broken views' : 'front and back all fine');
-        fresh(); var t0 = performance.now(); T.blkPlace('Button-up shirt', 'shirt', { collar: 'point', sleeve: 'long', pocket: true, tail: true });
-        add('Placing a shirt (front + back)', T.INK.strokes.length > 50, ms(performance.now() - t0), T.INK.strokes.length + ' strokes');
+        var broken = function (ls) { return !ls.length || ls.some(function (l) { return l.pts.length < 2 || l.pts.some(function (q) { return !isFinite(q[0]) || !isFinite(q[1]); }); }); };
+        var bodies = Object.keys(T.BLK_BODIES), t0 = performance.now();
+        T.BLK_PRESETS.forEach(function (cat) { cat[1].forEach(function (pr) { ['front', 'back'].forEach(function (v) { bodies.forEach(function (bo) { n++; if (broken(T.blkLines(pr[1], Object.assign(def(pr[1]), pr[2]), v, bo))) bad++; }); }); }); });
+        add('Flat blocks (' + n / 2 / bodies.length + ' garments, ' + bodies.length + ' bodies)', !bad, bad ? bad + ' broken views' : 'front and back all fine', ms(performance.now() - t0) + ' to draw them all');
+        var bad2 = 0, n2 = 0;
+        Object.keys(T.BLK_PARAMS).forEach(function (base) { T.BLK_PARAMS[base].forEach(function (pa) { (pa[2] === 'bool' ? [true, false] : pa[2].map(function (o) { return o[0]; })).forEach(function (val) { ['front', 'back'].forEach(function (v) { var p = def(base); p[pa[0]] = val; n2++; if (broken(T.blkLines(base, p, v))) bad2++; }); }); }); });
+        add('Every garment option', !bad2, bad2 ? bad2 + ' of ' + n2 + ' broken' : n2 + ' views fine');
+        fresh(); var t1 = performance.now(); T.blkPlace('Button-up shirt', 'shirt', { collar: 'point', sleeve: 'long', pocket: true, tail: true });
+        add('Placing a shirt (front + back)', T.INK.strokes.length > 50, ms(performance.now() - t1), T.INK.strokes.length + ' strokes');
+        // an option changed after moving the garment with Select: it stays where it was moved to; undo brings the old option back
+        var box = function () { var b = [1e9, 1e9]; T.INK.strokes.forEach(function (st) { if (st.blk) for (var i = 0; i < st.p.length; i += 3) { b[0] = Math.min(b[0], st.p[i]); b[1] = Math.min(b[1], st.p[i + 1]); } }); return b; };
+        var b0 = box(); T.INK.strokes = T.INK.strokes.map(function (st) { if (!st.blk) return st; var o = Object.assign({}, st); o.p = st.p.map(function (v, i) { return i % 3 === 0 ? v + 40 : i % 3 === 1 ? v + 25 : v; }); return o; });
+        var cur = T.INK.blkCur; T.blkChange(function (g) { g.p.collar = 'band'; }); var b1 = box();
+        var kept = Math.abs(b1[0] - b0[0] - 40) < 2 && T.INK.blocks[cur].p.collar === 'band';
+        $('undoBtn').click(); var back = T.INK.blocks[cur] && T.INK.blocks[cur].p.collar === 'point';
+        add('Changing a moved garment', kept && back, kept ? (back ? 'stays put; undo restores it' : 'undo did not restore the collar') : 'jumped back ' + Math.round(b1[0] - b0[0]) + ' px');
+        var hgt = function () { var y0 = 1e9, y1 = -1e9; T.INK.strokes.forEach(function (st) { if (st.blk) for (var i = 1; i < st.p.length; i += 3) { y0 = Math.min(y0, st.p[i]); y1 = Math.max(y1, st.p[i]); } }); return y1 - y0; };
+        var h0 = hgt(); T.blkChange(function (g) { g.body = 'child'; }); var h1 = hgt();
+        add('Child body', h1 < h0 * 0.75 && h1 > h0 * 0.45, Math.round(h1 / h0 * 100) + '% of the height');
+        // stitch lines: a drawn line becomes a zip; double-needle topstitching becomes two rows of dashes
+        fresh(); pick('pen', 'lines'); T.S.stitch = 'zip'; line(W() * 0.3, H() * 0.3, W() * 0.3, H() * 0.6);
+        var zip = T.INK.strokes.filter(function (st) { return st.stitch === 'zip'; }).length;
+        T.S.stitch = 'top2'; line(W() * 0.5, H() * 0.3, W() * 0.7, H() * 0.5);
+        var dash = T.INK.strokes.filter(function (st) { return st.stitch === 'top2'; }).length; T.S.stitch = 'off';
+        add('Stitch lines (zip, double needle)', zip > 30 && dash > 10, zip + ' zip parts, ' + dash + ' stitches');
       });
     }],
     ['Save and reopen', function () {
