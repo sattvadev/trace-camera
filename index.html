@@ -7,7 +7,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="NUMOTIFSTUDIO - Trace">
 <meta name="application-name" content="NUMOTIFSTUDIO - Trace">
-<meta name="app-build" content="2026-11-22.03">
+<meta name="app-build" content="2026-11-22.04">
 <title>NUMOTIFSTUDIO - Trace</title>
 <link rel="icon" type="image/png" sizes="32x32" href="assets/favicon-32.png">
 <link rel="icon" type="image/png" sizes="192x192" href="assets/icon-192.png">
@@ -7548,7 +7548,7 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
   if (history.state && history.state.tc) history.replaceState(null, '');
   updateUndo(); syncUI(); syncStart(); showResume();
   // the device check: its script only loads with ?selftest (fresh from the network, see sw.js)
-  if (SELFTEST) { var stS = document.createElement('script'); stS.src = 'selftest.js?b=' + encodeURIComponent((document.querySelector('meta[name=app-build]') || {}).content || '') + '&t=' + Date.now();   // always the newest document.body.appendChild(stS); }
+  if (SELFTEST) { var stS = document.createElement('script'); stS.src = 'selftest.js?b=' + encodeURIComponent((document.querySelector('meta[name=app-build]') || {}).content || '') + '&t=' + Date.now(); document.body.appendChild(stS); }   // always the newest
   $('helpCheck').addEventListener('click', function () { location.href = location.pathname + '?selftest'; });
 })();
 </script>
