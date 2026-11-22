@@ -159,6 +159,16 @@ and your chosen photo floats see-through on top, so you can draw while watching 
   a photo kaleidoscope or seamless photo wallpaper; "Another part" tries a different piece), starter motifs Seigaiha,
   Shippō and Asanoha (original line art), Scales and Scatter layouts (Scatter: six turned copies in a big tile, Shuffle),
   "Edit this pattern" from a print in Fill, and the print's repeat in cm on the croquis.
+- **Flat blocks (rail: Blocks):** original technical flats generated from measurements (women's medium, cm), not drawn
+  pictures: 5 bases (top, shirt, skirt, trousers, dress) and 35 presets in 5 categories, each front and back. Options:
+  necklines (crew, V, scoop, boat, square, turtle, mock, slip), collars (point, band, Peter Pan), sleeves (sleeveless,
+  cap, short, elbow, long; raglan), fit, length, rib, chest pocket, shirt-tail hem, skirt silhouettes (pencil, A-line,
+  flared, pleated), waist (band, elastic), darts, trouser legs (slim, straight, wide, flare, jogger), pockets (slant,
+  5-pocket jeans), belt loops, turn-ups, dress skirts (sheath, A-line, fit-and-flare, shift). Lines have roles:
+  outline, seam, topstitch (dashed), fold, detail. Placed on Lines at one shared scale (so garments line up), as
+  ordinary strokes linked to the garment: Blocks → In this drawing → change options, views (front/back/both) or line
+  weight; each change is one undo step; saved with the project. Inspired by the workflow of template apps like
+  FashionDraw; nothing is copied from their templates (see reports/FashionDraw blocks for Trace.md).
 - **Keyboard:** Cmd/Ctrl+Z undo; Shift+Cmd/Ctrl+Z or Ctrl+Y redo (ignored while typing in a text field). With a selection:
   Cmd+C, Cmd+X, Cmd+V, Cmd+D duplicate, Delete, arrows nudge (Shift ×10), Escape lets go; Cmd+A selects the whole layer.
 - **Speed and memory (for iPad):** the per-pixel paint of watercolour, airbrush, shading and soft lines runs in a pool of up

@@ -228,6 +228,32 @@
         });
       });
     }],
+    ['Procreate-style tools', function () {
+      fresh(); pick('gouache', 'colour'); T.S.inkColor = '#e4ded5'; T.S.brushSet.gouache.size = 4;
+      for (var r = 0; r < 5; r++) line(W() * 0.35, H() * 0.35 + r * 22, W() * 0.65, H() * 0.35 + r * 22);
+      T.S.brushSet.gouache.size = 1;
+      $('layerAdd').click(); var inp = document.querySelector('.layerPick input'); if (inp) inp.blur(); $('inkPopClose').click();
+      var id = T.S.activeLayer; T.S.layerSet[id].clip = true; T.S.inkColor = '#b3262e'; pick('pen', id);
+      line(W() * 0.2, H() * 0.42, W() * 0.8, H() * 0.42);
+      var c = $('inkLayer'), dp = T.inkDpr(); T.INK.dirty = true; T.inkPaint();
+      var out = c.getContext('2d').getImageData(W() * 0.25 * dp, H() * 0.42 * dp, 1, 1).data[3], inn = c.getContext('2d').getImageData(W() * 0.5 * dp, H() * 0.42 * dp, 1, 1).data;
+      add('Clipping mask', out === 0 && inn[0] > 150 && inn[1] < 90, out === 0 ? 'stays inside its base' : 'leaks outside');
+      // QuickShape: a wobbly circle held at the end
+      fresh(); pick('pen', 'lines'); var pts = [], cx = W() * 0.5, cy = H() * 0.45, rr = Math.min(W(), H()) * 0.12;
+      for (var i = 0; i <= 60; i++) { var a = i / 60 * Math.PI * 2; pts.push([cx + Math.cos(a) * rr * (1 + 0.06 * Math.sin(a * 3)), cy + Math.sin(a) * rr * 0.8]); }
+      ev('pointerdown', pts[0][0], pts[0][1]); for (i = 1; i < pts.length; i++) ev('pointermove', pts[i][0], pts[i][1]);
+      return wait(800).then(function () {
+        ev('pointermove', pts[60][0] + 0.4, pts[60][1]); ev('pointerup', pts[60][0] + 0.4, pts[60][1]);
+        var st = T.INK.strokes[T.INK.strokes.length - 1]; add('QuickShape (hold to snap)', st && st.qs === 'ellipse', st && st.qs || 'did not snap');
+        // flat blocks: every preset front and back without broken points; place one
+        if (!T.BLK_PRESETS) return;   // KP Art has no garment blocks
+        var bad = 0, n = 0, def = function (b) { var o = {}; T.BLK_PARAMS[b].forEach(function (pp) { o[pp[0]] = pp[2] === 'bool' ? false : pp[2][0][0]; }); return o; };
+        T.BLK_PRESETS.forEach(function (cat) { cat[1].forEach(function (pr) { ['front', 'back'].forEach(function (v) { n++; var ls = T.blkLines(pr[1], Object.assign(def(pr[1]), pr[2]), v); if (!ls.length || ls.some(function (l) { return l.pts.some(function (q) { return !isFinite(q[0]) || !isFinite(q[1]); }); })) bad++; }); }); });
+        add('Flat blocks (' + n / 2 + ' garments)', !bad, bad ? bad + ' broken views' : 'front and back all fine');
+        fresh(); var t0 = performance.now(); T.blkPlace('Button-up shirt', 'shirt', { collar: 'point', sleeve: 'long', pocket: true, tail: true });
+        add('Placing a shirt (front + back)', T.INK.strokes.length > 50, ms(performance.now() - t0), T.INK.strokes.length + ' strokes');
+      });
+    }],
     ['Save and reopen', function () {
       fresh(); pick('pen', 'lines'); line(W() * 0.2, H() * 0.3, W() * 0.6, H() * 0.3);
       $('layerAdd').click(); var inp = document.querySelector('.layerPick input'); if (inp) inp.blur(); $('inkPopClose').click();
